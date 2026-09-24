@@ -1,0 +1,34 @@
+Informe de cierre de iteración correspondiente a la fase de Inicion, iteración 1, comprendida entre el 31/08 y el 20/09
+
+Lapso planificado para la iteración: 31/08 al 20/09
+Lapso real de la iteración: 31/08 al 24/09
+
+Trabajo realizado:
+* Relevamiento de requerimientos
+	Entrevista con personal NODOCENTE del Departamento de Títulos. Entrevista con Secretario Académico, Guillermo Melgarejo
+	Inspección, análisis e investigación sobre las herramientas utilizadas por el dominio (Excel, Google Sheets, Google Drive,Siu Guarani)
+	Inspección, análisis e investigación sobre las reglas y procesos del dominio (proceso para la generación de un título en trámite, proceso para la generación de un analítico, proceso para la obtención de estadística)
+* Comprensión del dominio
+* Reformulación de hojas de cálculo y formulario de solicitud de título
+* Avance con sistema de hojas de cálculo para la generación de estadísticas (cancelado)
+* Avance con sistema de escaneo de PDFs (cancelado)
+* Avance con sistema integral de para el Departamento de títulos (en curso)
+* Desarrollo de todos los requerimientos y casos de uso en una ERS (compeltado)
+* Desarrollo de un estudio de factibilidad (cancelado)
+* Desarrollo de una propuesta de desarrollo formal (pospuesto)
+* Desarollo de actividades de riesgos (pospuesto)
+
+Planificación temporal:
+* Actividades completadas: 3
+* Actividades pospuestas: 6
+* Actividades canceladas: 1
+ 
+ Observaciones sobre la iteración:
+- En el 70% de la iteración faltó organización real.
+- La ingeniería de requerimientos se aplicó de forma desordenada, generando falsos avances y retrasos
+- Paros NODOCENTES complejizaron el avance del proyecto y pospusieron el cierre de la iteración
+- El estudio de factibilidad se canceló para evitar documentos que se consideran innecesarios para el tamaño del software
+- La propuesta de desarrollo se encuentral parcialmente completa y se presentará para darle un marco formal al trabajo
+- Se completaron los trabajos de Requerimientos y CU con un gran nivel de refinamiento, por lo que se podrá avanzar con tareas de estimación
+- Se deben realizar tareas de modelado profundo (modelo de diseño, modelo de datos)
+- Se deben desarrollar prototipos en base a lo obtenido 
