@@ -83,7 +83,7 @@ class Analitico(models.Model):
     class Meta: #meta son las restricciones
         constraints=[
             models.UniqueConstraint( #restricción de UNIQUE para que no se repitan los siguientes campos
-                fields=['graduado','carrera'], #campos que NO pueden repetirse
+                fields=['graduado','titulo_carrera'], #campos que NO pueden repetirse
                 name='fk_analitico'
             )
         ]
@@ -106,7 +106,7 @@ class GraduadoCarrera(models.Model):
 
     
 class CarreraMateria(models.Model):
-    materia= models.ForeignKey(Materia, on_delete=models.CASCADE, relatad_name='carreras_asociadas')
+    materia= models.ForeignKey(Materia, on_delete=models.CASCADE, related_name='carreras_asociadas')
     carrera= models.ForeignKey(Carrera, on_delete=models.CASCADE, related_name='materias_asociadas')
 
     class Meta:
@@ -160,7 +160,7 @@ class GraduadoNombre (models.Model):
 
 class GraduadoMateria(models.Model):
     graduado=models.ForeignKey(Graduado, on_delete=models.CASCADE, related_name='materias_asociadas')
-    materia= models.ForeignKey(Materia, on_delete=models.CASCADE, relatad_name='graduados_asociados')
+    materia= models.ForeignKey(Materia, on_delete=models.CASCADE, related_name='graduados_asociados')
     class Meta:
         constraints=[
             models.UniqueConstraint(
