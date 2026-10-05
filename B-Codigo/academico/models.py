@@ -27,10 +27,10 @@ class Graduado(models.Model):
     def __str__(self):
         return self.legajo_graduado
 
+
 class Carrera(models.Model):
     codigo_carrera = models.CharField(max_length=4, primary_key=True)
     nombre_carrera= models.CharField(max_length=50)
-    plan_vigente= models.CharField(max_length=8)
     escuela= models.CharField(max_length=100)
     resolucion_nacional= models.CharField(max_length=8, null=True, blank=True)
     notas= models.CharField(max_length=5, null=True, blank=True)
@@ -38,11 +38,22 @@ class Carrera(models.Model):
     def __str__(self):
         return f"{self.codigo_carrera}, {self.nombre_carrera}, {self.escuela}"
 
+class PlanEstudios(models.Model):
+    carrera = models.ForeignKey(Carrera, on_delete=models.CASCADE, related_name='planes')
+    codigo_plan = models.CharField(max_length=10)
+    vigente = models.BooleanField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['carrera'],
+                name= 'fk_plan_carrera'
+            )
+        ]
 
 class Materia(models.Model):
     codigo_materia=models.CharField(max_length=6, primary_key=True)
     nombre_materia=models.CharField(max_length=100)
-    orden= models.CharField(max_length=2)
     anio=models.CharField(max_length=1)
 
     def __str__(self):
@@ -105,15 +116,16 @@ class GraduadoCarrera(models.Model):
         ]
 
     
-class CarreraMateria(models.Model):
+class PlanMateria(models.Model):
     materia= models.ForeignKey(Materia, on_delete=models.CASCADE, related_name='carreras_asociadas')
-    carrera= models.ForeignKey(Carrera, on_delete=models.CASCADE, related_name='materias_asociadas')
+    plan= models.ForeignKey(PlanEstudios, on_delete=models.CASCADE, related_name='materias_asociadas')
+    orden = models.CharField(max_length=2)
 
     class Meta:
         constraints=[
             models.UniqueConstraint(
-                fields=['materia','carrera'],
-                name='unique_carrera_materia'
+                fields=['materia','plan'],
+                name='unique_plan_materia'
             )
         ]
 

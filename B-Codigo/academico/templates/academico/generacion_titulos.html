@@ -1,10 +1,368 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>GeneradorTitulos</title>
-    </head>
-    <body>
+{% extends "academico/index.html" %}
 
-    </body>
-</html>
+{% block content %}
+
+<div class="container mt-4 mb-5">
+
+    <h1 class="mb-4">Generador de analíticos</h1>
+
+    <form method="post" enctype="multipart/form-data">
+
+        {% csrf_token %}
+
+        <!-- DATOS GENERALES -->
+        <section class="mb-5">
+
+            <h2 class="mb-3">Datos generales</h2>
+
+            <div class="mb-3">
+                <label for="nombre" class="form-label">
+                    Nombre/s
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="nombre"
+                    name="nombre"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="apellido" class="form-label">
+                    Apellido/s
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="apellido"
+                    name="apellido"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="legajo" class="form-label">
+                    Legajo
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="legajo"
+                    name="legajo"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="anio_ingreso_uarg" class="form-label">
+                    Año de ingreso a la UARG
+                </label>
+
+                <input
+                    type="number"
+                    class="form-control"
+                    id="anio_ingreso_uarg"
+                    name="anio_ingreso_uarg"
+                    min="1900"
+                    max="2100"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="carrera" class="form-label">
+                    Carrera de la que se gradúa
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="carrera"
+                    name="carrera"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="anio_ingreso_carrera" class="form-label">
+                    Año de ingreso a la carrera
+                </label>
+
+                <input
+                    type="number"
+                    class="form-control"
+                    id="anio_ingreso_carrera"
+                    name="anio_ingreso_carrera"
+                    min="1900"
+                    max="2100"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="anio_egreso_carrera" class="form-label">
+                    Año de egreso de la carrera
+                </label>
+
+                <input
+                    type="number"
+                    class="form-control"
+                    id="anio_egreso_carrera"
+                    name="anio_egreso_carrera"
+                    min="1900"
+                    max="2100"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="resoluciones_nacionales" class="form-label">
+                    Resoluciones nacionales
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="resoluciones_nacionales"
+                    name="resoluciones_nacionales"
+                    list="resoluciones-nacionales"
+                >
+
+                <datalist id="resoluciones-nacionales">
+                    <option value="Resolución Ministerial N.º XXXXX/XXXX">
+                    <option value="Resolución Ministerial N.º XXXXX/XXXX">
+                </datalist>
+            </div>
+
+
+            <div class="mb-3">
+                <label for="resoluciones_institucionales" class="form-label">
+                    Resoluciones institucionales
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="resoluciones_institucionales"
+                    name="resoluciones_institucionales"
+                    list="resoluciones-institucionales"
+                >
+
+                <datalist id="resoluciones-institucionales">
+                    <option value="Resolución N.º XXXXX/XXXX">
+                    <option value="Resolución N.º XXXXX/XXXX">
+                </datalist>
+            </div>
+
+
+            <div class="mb-3">
+                <label for="otros_instrumentos_legales" class="form-label">
+                    Otros instrumentos legales
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="otros_instrumentos_legales"
+                    name="otros_instrumentos_legales"
+                    list="instrumentos-legales"
+                >
+
+                <datalist id="instrumentos-legales">
+                    <option value="Ordenanza N.º XXXXX/XXXX">
+                    <option value="Disposición N.º XXXXX/XXXX">
+                </datalist>
+            </div>
+
+        </section>
+
+
+        <!-- DATOS DE NACIMIENTO -->
+        <section class="mb-5">
+
+            <h2 class="mb-3">Datos de nacimiento</h2>
+
+            <div class="mb-3">
+                <label for="fecha_nacimiento" class="form-label">
+                    Fecha de nacimiento
+                </label>
+
+                <input
+                    type="date"
+                    class="form-control"
+                    id="fecha_nacimiento"
+                    name="fecha_nacimiento"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="ciudad_nacimiento" class="form-label">
+                    Ciudad de nacimiento
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="ciudad_nacimiento"
+                    name="ciudad_nacimiento"
+                    list="ciudades"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="provincia_nacimiento" class="form-label">
+                    Provincia de nacimiento
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="provincia_nacimiento"
+                    name="provincia_nacimiento"
+                    list="provincias"
+                    required
+                >
+            </div>
+
+        </section>
+
+
+        <!-- DATOS DEL SECUNDARIO -->
+        <section class="mb-5">
+
+            <h2 class="mb-3">Datos del secundario</h2>
+
+            <div class="mb-3">
+                <label for="nombre_secundario" class="form-label">
+                    Nombre del secundario
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="nombre_secundario"
+                    name="nombre_secundario"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="ciudad_secundario" class="form-label">
+                    Ciudad del secundario
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="ciudad_secundario"
+                    name="ciudad_secundario"
+                    list="ciudades"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="provincia_secundario" class="form-label">
+                    Provincia del secundario
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="provincia_secundario"
+                    name="provincia_secundario"
+                    list="provincias"
+                    required
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label for="titulo_secundario" class="form-label">
+                    Título del secundario
+                </label>
+
+                <input
+                    type="text"
+                    class="form-control"
+                    id="titulo_secundario"
+                    name="titulo_secundario"
+                    required
+                >
+            </div>
+
+        </section>
+
+
+        <!-- DATOS COMPARTIDOS -->
+        <datalist id="provincias">
+            <option value="Santa Cruz">
+            <option value="Buenos Aires">
+            <option value="Catamarca">
+            <option value="Chaco">
+            <option value="Chubut">
+            <option value="Córdoba">
+            <option value="Corrientes">
+            <option value="Entre Ríos">
+            <option value="Formosa">
+            <option value="Jujuy">
+            <option value="La Pampa">
+            <option value="La Rioja">
+            <option value="Mendoza">
+            <option value="Misiones">
+            <option value="Neuquén">
+            <option value="Río Negro">
+            <option value="Salta">
+            <option value="San Juan">
+            <option value="San Luis">
+            <option value="Santa Fe">
+            <option value="Santiago del Estero">
+            <option value="Tierra del Fuego">
+            <option value="Tucumán">
+        </datalist>
+
+
+        <datalist id="ciudades">
+            <option value="Río Gallegos">
+            <option value="Caleta Olivia">
+            <option value="El Calafate">
+            <option value="Puerto Deseado">
+            <option value="Buenos Aires">
+            <option value="Córdoba">
+            <option value="Rosario">
+            <option value="La Plata">
+            <option value="Comodoro Rivadavia">
+            <option value="Ushuaia">
+            <option value="Neuquén">
+            <option value="Bariloche">
+        </datalist>
+
+
+        <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">
+                Continuar
+            </button>
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

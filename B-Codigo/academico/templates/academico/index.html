@@ -1,21 +1,11 @@
-<!DOCTYPE html> 
-<html lang="es">
-    <head>
-        <meta charset="UTF-8">        
-        <title>eGraduados</title>
+{% extends "academico/base.html" %}
 
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    </head>
-    <body class="fondo">
-        <div class="container">
-            <h1 class="text-center">eGraduados</h1>
-            <h3 class="text-center">Sistema dirigido a la gestión de los datos de los graduados</h3>
-            <h6 class="text-end">Secretaría académica</h6>
-        </div>
+{% block title %}eGraduados {% endblock %}
 
+    {% block content %}    
     <main class="container">
         <!-- Analiticos -->
-        <a href="#" class="text-decoration-none text-dark">
+        <a href="generacion_titulos.html" class="text-decoration-none text-dark">
             <div class="card mb-3">
                 <div class="card-body">
                     <h3 class="card-title">Generación de títulos</h3>
@@ -75,8 +65,4 @@
         </a>
     </main>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
-
-
-</html>
+    {% endblock %}    
