@@ -5,7 +5,7 @@
     {% block content %}    
     <main class="container">
         <!-- Analiticos -->
-        <a href="generacion_titulos.html" class="text-decoration-none text-dark">
+        <a href="{% url 'generacion_titulos' %}" class="text-decoration-none text-dark">
             <div class="card mb-3">
                 <div class="card-body">
                     <h3 class="card-title">Generación de títulos</h3>
@@ -29,7 +29,7 @@
         </a>
 
         <!-- Estadisticas -->
-        <a href="#" class="text-decoration-none text-dark">
+        <a href="{% url 'estadisticas' %}" class="text-decoration-none text-dark">
             <div class="card mb-3">
                 <div class="card-body">
                     <h3 class="card-title">Estadísticas</h3>

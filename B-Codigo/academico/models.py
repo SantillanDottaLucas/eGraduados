@@ -120,6 +120,7 @@ class PlanMateria(models.Model):
     materia= models.ForeignKey(Materia, on_delete=models.CASCADE, related_name='carreras_asociadas')
     plan= models.ForeignKey(PlanEstudios, on_delete=models.CASCADE, related_name='materias_asociadas')
     orden = models.CharField(max_length=2)
+    requisitos = models.BooleanField(default=False)
 
     class Meta:
         constraints=[
