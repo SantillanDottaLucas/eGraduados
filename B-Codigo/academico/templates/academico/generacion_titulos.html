@@ -11,11 +11,11 @@
         {% csrf_token %}
 
         <!-- DATOS GENERALES -->
-        <section class="mb-5">
+        <section class="mb-5 row">
 
-            <h2 class="mb-3">Datos generales</h2>
+            <div class="mb-3 col-6 ">
+            <h2 class="mb-3">Relacionado al graduado</h2>
 
-            <div class="mb-3">
                 <label for="nombre" class="form-label">
                     Nombre/s
                 </label>
@@ -27,10 +27,8 @@
                     name="nombre"
                     required
                 >
-            </div>
+            
 
-
-            <div class="mb-3">
                 <label for="apellido" class="form-label">
                     Apellido/s
                 </label>
@@ -42,10 +40,8 @@
                     name="apellido"
                     required
                 >
-            </div>
 
 
-            <div class="mb-3">
                 <label for="legajo" class="form-label">
                     Legajo
                 </label>
@@ -57,10 +53,7 @@
                     name="legajo"
                     required
                 >
-            </div>
 
-
-            <div class="mb-3">
                 <label for="anio_ingreso_uarg" class="form-label">
                     Año de ingreso a la UARG
                 </label>
@@ -76,8 +69,8 @@
                 >
             </div>
 
-
-            <div class="mb-3">
+            <div class="mb-3 col-6">
+            <h2 class="mb-3">Relacionado a la carrera</h2>
                 <label for="carrera" class="form-label">
                     Carrera de la que se gradúa
                 </label>
@@ -89,10 +82,8 @@
                     name="carrera"
                     required
                 >
-            </div>
 
 
-            <div class="mb-3">
                 <label for="anio_ingreso_carrera" class="form-label">
                     Año de ingreso a la carrera
                 </label>
@@ -106,10 +97,8 @@
                     max="2100"
                     required
                 >
-            </div>
 
 
-            <div class="mb-3">
                 <label for="anio_egreso_carrera" class="form-label">
                     Año de egreso de la carrera
                 </label>
@@ -123,10 +112,8 @@
                     max="2100"
                     required
                 >
-            </div>
 
 
-            <div class="mb-3">
                 <label for="resoluciones_nacionales" class="form-label">
                     Resoluciones nacionales
                 </label>
@@ -143,10 +130,8 @@
                     <option value="Resolución Ministerial N.º XXXXX/XXXX">
                     <option value="Resolución Ministerial N.º XXXXX/XXXX">
                 </datalist>
-            </div>
 
 
-            <div class="mb-3">
                 <label for="resoluciones_institucionales" class="form-label">
                     Resoluciones institucionales
                 </label>
@@ -163,10 +148,8 @@
                     <option value="Resolución N.º XXXXX/XXXX">
                     <option value="Resolución N.º XXXXX/XXXX">
                 </datalist>
-            </div>
 
 
-            <div class="mb-3">
                 <label for="otros_instrumentos_legales" class="form-label">
                     Otros instrumentos legales
                 </label>
@@ -189,126 +172,130 @@
 
 
         <!-- DATOS DE NACIMIENTO -->
-        <section class="mb-5">
+        <div class="row">
+            <section class="mb-5 col-6">
 
-            <h2 class="mb-3">Datos de nacimiento</h2>
+                <h2 class="mb-3">Datos de nacimiento</h2>
 
-            <div class="mb-3">
-                <label for="fecha_nacimiento" class="form-label">
-                    Fecha de nacimiento
-                </label>
+                <div class="mb-3">
+                    <label for="fecha_nacimiento" class="form-label">
+                        Fecha de nacimiento
+                    </label>
 
-                <input
-                    type="date"
-                    class="form-control"
-                    id="fecha_nacimiento"
-                    name="fecha_nacimiento"
-                    required
-                >
-            </div>
-
-
-            <div class="mb-3">
-                <label for="ciudad_nacimiento" class="form-label">
-                    Ciudad de nacimiento
-                </label>
-
-                <input
-                    type="text"
-                    class="form-control"
-                    id="ciudad_nacimiento"
-                    name="ciudad_nacimiento"
-                    list="ciudades"
-                    required
-                >
-            </div>
+                    <input
+                        type="date"
+                        class="form-control"
+                        id="fecha_nacimiento"
+                        name="fecha_nacimiento"
+                        required
+                    >
+                </div>
 
 
-            <div class="mb-3">
-                <label for="provincia_nacimiento" class="form-label">
-                    Provincia de nacimiento
-                </label>
+                <div class="mb-3">
+                    <label for="ciudad_nacimiento" class="form-label">
+                        Ciudad de nacimiento
+                    </label>
 
-                <input
-                    type="text"
-                    class="form-control"
-                    id="provincia_nacimiento"
-                    name="provincia_nacimiento"
-                    list="provincias"
-                    required
-                >
-            </div>
-
-        </section>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="ciudad_nacimiento"
+                        name="ciudad_nacimiento"
+                        list="ciudades"
+                        required
+                    >
+                </div>
 
 
-        <!-- DATOS DEL SECUNDARIO -->
-        <section class="mb-5">
+                <div class="mb-3">
+                    <label for="provincia_nacimiento" class="form-label">
+                        Provincia de nacimiento
+                    </label>
 
-            <h2 class="mb-3">Datos del secundario</h2>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="provincia_nacimiento"
+                        name="provincia_nacimiento"
+                        list="provincias"
+                        required
+                    >
+                </div>
 
-            <div class="mb-3">
-                <label for="nombre_secundario" class="form-label">
-                    Nombre del secundario
-                </label>
-
-                <input
-                    type="text"
-                    class="form-control"
-                    id="nombre_secundario"
-                    name="nombre_secundario"
-                    required
-                >
-            </div>
+            </section>
 
 
-            <div class="mb-3">
-                <label for="ciudad_secundario" class="form-label">
-                    Ciudad del secundario
-                </label>
+            <!-- DATOS DEL SECUNDARIO -->
+            <section class="mb-5 col-6">
 
-                <input
-                    type="text"
-                    class="form-control"
-                    id="ciudad_secundario"
-                    name="ciudad_secundario"
-                    list="ciudades"
-                    required
-                >
-            </div>
+                <h2 class="mb-3">Datos del secundario</h2>
 
+                <div class="mb-3">
+                    <label for="nombre_secundario" class="form-label">
+                        Nombre del secundario
+                    </label>
 
-            <div class="mb-3">
-                <label for="provincia_secundario" class="form-label">
-                    Provincia del secundario
-                </label>
-
-                <input
-                    type="text"
-                    class="form-control"
-                    id="provincia_secundario"
-                    name="provincia_secundario"
-                    list="provincias"
-                    required
-                >
-            </div>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="nombre_secundario"
+                        name="nombre_secundario"
+                        required
+                    >
+                </div>
 
 
-            <div class="mb-3">
-                <label for="titulo_secundario" class="form-label">
-                    Título del secundario
-                </label>
+                <div class="mb-3">
+                    <label for="ciudad_secundario" class="form-label">
+                        Ciudad del secundario
+                    </label>
 
-                <input
-                    type="text"
-                    class="form-control"
-                    id="titulo_secundario"
-                    name="titulo_secundario"
-                    required
-                >
-            </div>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="ciudad_secundario"
+                        name="ciudad_secundario"
+                        list="ciudades"
+                        required
+                    >
+                </div>
 
-        </section>
+
+                <div class="mb-3">
+                    <label for="provincia_secundario" class="form-label">
+                        Provincia del secundario
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="provincia_secundario"
+                        name="provincia_secundario"
+                        list="provincias"
+                        required
+                    >
+                </div>
+
+
+                <div class="mb-3">
+                    <label for="titulo_secundario" class="form-label">
+                        Título del secundario
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="titulo_secundario"
+                        name="titulo_secundario"
+                        required
+                    >
+                </div>
+
+            </section>
+        </div>       
+
+
         <!-- ARCHIVO DE NOTAS -->
         <section class="mb-5">
 
@@ -334,7 +321,7 @@
                 </div>
             </div>
 
-        </section>        
+        </section> 
 
 
         <!-- DATOS COMPARTIDOS -->

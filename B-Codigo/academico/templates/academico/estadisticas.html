@@ -1,33 +1,134 @@
 {% extends "academico/base.html" %}
+{% load static %}
 
 {% block content %}
 
-<div class="container">
-    <h2>Tablero estadístico</h2>
-
-        <form method="get">
-            <section class="container bg-border bt-2">
+<div class="container ">
+    <div class="row">
+        <!--LA URL ES EL NOMBRE DEL MÉTODO DE LA VIEW-->
+        <form method="get" action="{% url 'estadisticas_promedios' %}" class="col-6">
+            <section class="container p-2 border border-1 border-secondary rounded bt-2 m-1">
                 <h5>Estadísticas de promedios</h5>
                 <p>Indique los valores para ajustar el promedio</p>
-                <input type="number">
+                
+                <!--TIPO PROMEDIO-->
+                <div class="form-group m-2">
+                    <label>Tipo de promedio</label>
+                    <div>
+                        <input class="form-check-input" value="promedio_sin_aplazo" type="radio" name="promedio" required>
+                        <label>Promedio sin aplazo</label>
+                    </div>
 
+                    <div>
+                        <input class="form-check-input" value="promedio_con_aplazo" type="radio" name="promedio" required>
+                        <label>Promedio con aplazo</label>
+                    </div>
+                </div>
+
+                <!--TIPO DE FILTRO (TODOS, ESCUELA O CARRERA)-->
+                <div class="form-group m-2">
+                    <label>Filtrar por:</label>
+                    <div>
+                        <input id="filtroTodos" value="todos" class="form-check-input" type="radio" name="filtro" required>
+                        <label>Todos los alumnos</label>
+                    </div>
+
+                    <div>
+                        <input id="filtroCarrera" value="carrera" class="form-check-input" type="radio" name="filtro">
+                        <label>Carrera</label>
+                    </div>
+
+                    <div>
+                        <input id="filtroEscuela" value="escuela" class="form-check-input" type="radio" name="filtro">
+                        <label>Escuela</label>
+                    </div>
+                </div>
+
+                <!--CARRERA-->
+                <div> <!--Analizar si es mejor NONE o disable-->
+                    <label>Carrera:</label>
+                    <select class="form-select" name="carrera" id="campoCarrera" disabled>
+                        <option value="">Todas las carreras</option>
+                        {% for carrera in carreras %}
+                        <option value="{{carrera.id}}">
+                            {{carrera.nombre}}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+
+                <!--ESCUELA-->
+
+                <div>
+                    <label>Escuela:</label>
+                    <select class="form-select" name="escuela" id="campoEscuela" disabled>
+                        <option value="">Todas las escuelas</option>
+                        {% for carrera in carreras %}
+                        <option value="{{carrera.escuela}}">
+                            {{carrera.escuela}}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!--LAPSO DE TIEMPO-->
+
+                <div>
+                    <h6>Años de los datos</h6>
+                    <p>Aclaracion: Si no se coloca lapso de tiempo, se tomará el histórico</p>
+
+                    <label>Fecha de incio</label>
+                    <input type="date" value="fechaInicio">
+
+                    <label>Fecha de fin</label>
+                    <input type="date" value="fechaFin">
+                </div>
+
+
+                <button type="submit">
+                    Generar estadística 
+                </button>
+
+                
             </section>
+        </form>
+        <!--Grafico aca-->
         
-            <section class="container">
+        <div class="col-6" id="contenedorGrafico">
+            <p id="mensajeSinDatos">No hay datos disponibles para generar un gráfico</p>
+            <canvas  id="graficoPromedios"></canvas>
+            {{ datos_grafico|json_script:"datos-grafico" }}
+        </div>
+    </div>
+    <h2>Tablero estadístico</h2>
+
+
+    <div>
+        <form>
+            <section class="container p-2 border border-1 border-secondary rounded bt-2 m-1">
                 <h5>Estadísticas de totales</h5>
                 <p>Indique los valores para ajustar el promedio</p>
 
             </section>
+        </form>
+    </div>
+        
 
-            <section class="container">
+        <form>
+            <section class="container p-2 border border-1 border-secondary rounded bt-2 m-1">
                 <h5>Estadísticas de tiempos promedio de graduación</h5>
                 <p>Indique los valores para ajustar el promedio</p>
 
             </section>
-        
         </form>
+
+        
     
 </div>
+{% endblock %}
 
-
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/estadisticas.js' %}"></script>
 {% endblock %}
