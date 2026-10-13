@@ -31,3 +31,6 @@ def consultar_promedios(tipoPromedio, filtro, carrera, escuela, fechaInicio, fec
             )
         )
     return graduados
+
+def consultar_total(carrera, escuela, anioIngreso, anioEgreso):
+    return

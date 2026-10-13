@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from .servicios.consulta_estadisticas import consultar_promedios #Punto inicial para buscar dentro de la misma carpeta
-from .servicios.graficador_estadistico import graficar_promedio
+from .servicios.consulta_estadisticas import * #Punto inicial para buscar dentro de la misma carpeta
+from .servicios.graficador_estadistico import *
 
 # Create your views here.
 #Redirigir al index
@@ -40,6 +40,22 @@ def estadisticas_promedios(request):
 
     dato =consultar_promedios(tipo_promedio, filtro, carrera, escuela, fechaInicio, fechaFin)
 
-    datos_grafico= graficar_promedio(dato)
+    datos_promedios= graficar_promedio(dato)
 
-    return render(request, 'academico/estadisticas.html',{'datos_grafico':datos_grafico})
+    return render(request, 'academico/estadisticas.html',{'datos_promedios':datos_promedios})
+
+def estadisticas_totales(request):
+
+    carrera = request.GET.get("carrera")
+    escuela = request.GET.get("escuela")
+    anioIngreso = request.GET.get("anioIngreso")
+    anioEgreso= request.GET.get("anioEgreso")
+
+    dato = consultar_total(carrera,escuela,anioIngreso, anioEgreso)
+    datos_totales = graficar_total(dato)
+
+    return render(request, 'academico/estadisticas.html', {'datos_totales':datos_totales})
+
+def estadisticas_tiempos(request):
+
+    return render(request, 'academico/estadisticas.html', {'datos_tiempos':datos_tiempos})

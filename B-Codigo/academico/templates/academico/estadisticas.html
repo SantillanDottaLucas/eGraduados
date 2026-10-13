@@ -4,6 +4,7 @@
 {% block content %}
 
 <div class="container ">
+    <h2>Tablero estadístico</h2>
     <div class="row">
         <!--LA URL ES EL NOMBRE DEL MÉTODO DE LA VIEW-->
         <form method="get" action="{% url 'estadisticas_promedios' %}" class="col-6">
@@ -29,17 +30,17 @@
                 <div class="form-group m-2">
                     <label>Filtrar por:</label>
                     <div>
-                        <input id="filtroTodos" value="todos" class="form-check-input" type="radio" name="filtro" required>
+                        <input value="todos" class="filtroTodos form-check-input" type="radio" name="filtro" required>
                         <label>Todos los alumnos</label>
                     </div>
 
                     <div>
-                        <input id="filtroCarrera" value="carrera" class="form-check-input" type="radio" name="filtro">
+                        <input value="carrera" class="filtroCarrera form-check-input" type="radio" name="filtro">
                         <label>Carrera</label>
                     </div>
 
                     <div>
-                        <input id="filtroEscuela" value="escuela" class="form-check-input" type="radio" name="filtro">
+                        <input value="escuela" class="filtroEscuela form-check-input" type="radio" name="filtro">
                         <label>Escuela</label>
                     </div>
                 </div>
@@ -47,7 +48,7 @@
                 <!--CARRERA-->
                 <div> <!--Analizar si es mejor NONE o disable-->
                     <label>Carrera:</label>
-                    <select class="form-select" name="carrera" id="campoCarrera" disabled>
+                    <select class="campoCarrera form-select" name="carrera" disabled>
                         <option value="">Todas las carreras</option>
                         {% for carrera in carreras %}
                         <option value="{{carrera.id}}">
@@ -62,7 +63,7 @@
 
                 <div>
                     <label>Escuela:</label>
-                    <select class="form-select" name="escuela" id="campoEscuela" disabled>
+                    <select class="campoEscuela form-select" name="escuela" disabled>
                         <option value="">Todas las escuelas</option>
                         {% for carrera in carreras %}
                         <option value="{{carrera.escuela}}">
@@ -75,14 +76,13 @@
                 <!--LAPSO DE TIEMPO-->
 
                 <div>
-                    <h6>Años de los datos</h6>
-                    <p>Aclaracion: Si no se coloca lapso de tiempo, se tomará el histórico</p>
+                    <h6>Años</h6>
 
                     <label>Fecha de incio</label>
-                    <input type="date" value="fechaInicio">
+                    <input type="date" name="fechaInicio">
 
                     <label>Fecha de fin</label>
-                    <input type="date" value="fechaFin">
+                    <input type="date" name="fechaFin">
                 </div>
 
 
@@ -95,33 +95,165 @@
         </form>
         <!--Grafico aca-->
         
-        <div class="col-6" id="contenedorGrafico">
-            <p id="mensajeSinDatos">No hay datos disponibles para generar un gráfico</p>
-            <canvas  id="graficoPromedios"></canvas>
-            {{ datos_grafico|json_script:"datos-grafico" }}
+        <div class="col-6 contenedorGrafico" data-datos="datos-promedios">
+            <p class="mensajeSinDatos">No hay datos disponibles para generar un gráfico</p>
+            <canvas  class="graficoPromedios"></canvas>
+            {{ datos_promedios|json_script:"datos-promedios" }}
         </div>
     </div>
-    <h2>Tablero estadístico</h2>
 
-
-    <div>
-        <form>
+    <div class="row">
+        <form  method="get" action="{% url 'estadisticas_totales' %}" class="col-6">
             <section class="container p-2 border border-1 border-secondary rounded bt-2 m-1">
                 <h5>Estadísticas de totales</h5>
-                <p>Indique los valores para ajustar el promedio</p>
 
+                <div class="form-group m-2">
+                    <label>Filtrar por:</label>
+                    <div>
+                        <input value="todos" class="filtroTodos form-check-input" type="radio" name="filtro" required>
+                        <label>Todos los alumnos</label>
+                    </div>
+
+                    <div>
+                        <input value="carrera" class="filtroCarrera form-check-input" type="radio" name="filtro">
+                        <label>Carrera</label>
+                    </div>
+
+                    <div>
+                        <input value="escuela" class="filtroEscuela form-check-input" type="radio" name="filtro">
+                        <label>Escuela</label>
+                    </div>
+                </div>
+
+                <!--CARRERA-->
+                <div> <!--Analizar si es mejor NONE o disable-->
+                    <label>Carrera:</label>
+                    <select class="campoCarrera form-select" name="carrera" disabled >
+                        <option value="">Todas las carreras</option>
+                        {% for carrera in carreras %}
+                        <option value="{{carrera.id}}">
+                            {{carrera.nombre}}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+
+                <!--ESCUELA-->
+
+                <div>
+                    <label>Escuela:</label>
+                    <select class="campoEscuela form-select" name="escuela" disabled>
+                        <option value="">Todas las escuelas</option>
+                        {% for carrera in carreras %}
+                        <option value="{{carrera.escuela}}">
+                            {{carrera.escuela}}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!--AÑO INGRESO-->
+                <div>
+                    <label>Año de ingreso</label>
+                    <input type="number" class="form-control" name="anioIngreso">
+                </div>
+
+
+                <div>
+                    <label>Año de egreso</label>
+                    <input type="number" class="form-control" name="anioEgreso">
+                </div>
+
+                <button type="submit">
+                    Generar estadística 
+                </button>
             </section>
         </form>
+       
+        <div class="col-6 contenedorGrafico" data-datos="datos-totales">
+            <p class="mensajeSinDatos">No hay datos disponibles para generar un gráfico</p>
+            <canvas  class="graficoPromedios"></canvas>
+            {{ datos_totales|json_script:"datos-totales" }}
+        </div>
     </div>
         
-
-        <form>
+    <div class="row">
+        <form  method="get" action="{% url 'estadisticas_tiempos' %}" class="col-6">
             <section class="container p-2 border border-1 border-secondary rounded bt-2 m-1">
-                <h5>Estadísticas de tiempos promedio de graduación</h5>
-                <p>Indique los valores para ajustar el promedio</p>
+                <h5>Estadísticas de tiempo promedio de graduación</h5>
 
+                <div class="form-group m-2">
+                    <label>Filtrar por:</label>
+                    <div>
+                        <input value="todos" class="filtroTodos form-check-input" type="radio" name="filtro" required>
+                        <label>Todos los alumnos</label>
+                    </div>
+
+                    <div>
+                        <input value="carrera" class="filtroCarrera form-check-input" type="radio" name="filtro">
+                        <label>Carrera</label>
+                    </div>
+
+                    <div>
+                        <input value="escuela" class="filtroEscuela form-check-input" type="radio" name="filtro">
+                        <label>Escuela</label>
+                    </div>
+                </div>
+
+                <!--CARRERA-->
+                <div> <!--Analizar si es mejor NONE o disable-->
+                    <label>Carrera:</label>
+                    <select class="campoCarrera form-select" name="carrera" disabled>
+                        <option value="">Todas las carreras</option>
+                        {% for carrera in carreras %}
+                        <option value="{{carrera.id}}">
+                            {{carrera.nombre}}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+
+                <!--ESCUELA-->
+
+                <div>
+                    <label>Escuela:</label>
+                    <select class="campoEscuela form-select" name="escuela" disabled>
+                        <option value="">Todas las escuelas</option>
+                        {% for carrera in carreras %}
+                        <option value="{{carrera.escuela}}">
+                            {{carrera.escuela}}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!--AÑO INGRESO-->
+                <div>
+                    <label>Año de ingreso</label>
+                    <input type="number" class="form-control" name="anioIngreso">
+                </div>
+
+
+                <div>
+                    <label>Año de egreso</label>
+                    <input type="number" class="form-control" name="anioEgreso">
+                </div>
+
+                <button type="submit">
+                    Generar estadística 
+                </button>
             </section>
         </form>
+       
+        <div class="col-6 contenedorGrafico" data-datos="datos-tiempos">
+            <p class="mensajeSinDatos">No hay datos disponibles para generar un gráfico</p>
+            <canvas  class="graficoPromedios"></canvas>
+            {{ datos_tiempos|json_script:"datos-tiempos" }}
+        </div>
+    </div>
+
 
         
     
