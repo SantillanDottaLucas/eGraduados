@@ -79,10 +79,10 @@
                     <h6>Años</h6>
 
                     <label>Fecha de incio</label>
-                    <input type="date" name="fechaInicio">
+                    <input type="date" name="fechaInicio" value="1997-01-01">
 
                     <label>Fecha de fin</label>
-                    <input type="date" name="fechaFin">
+                    <input type="date" name="fechaFin" value="{{fechaFin|date:'Y-m-d'}}">
                 </div>
 
 
@@ -96,7 +96,20 @@
         <!--Grafico aca-->
         
         <div class="col-6 contenedorGrafico" data-datos="datos-promedios">
-            <p class="mensajeSinDatos">No hay datos disponibles para generar un gráfico</p>
+            <h4>Resultado del promedio</h4>
+
+            {% if resultado_promedio != None %}
+                <p>Promedio calculado: <strong> {{resultado_promedios}} </strong></p>
+            {% else %}
+                <p class="mensajeSinDatos">No hay datos disponibles para generar un gráfico</p>
+            {% endif %}
+
+            {% if varianza_promedio != None %}
+                <p>Varianza calculada: <strong>{{varianza_promedios}}</strong></p>
+            {% else %}
+                <p class="mensajeSinDatos">No hay datos disponibles para calcular la varianza</p>
+            {% endif %}
+
             <canvas  class="graficoPromedios"></canvas>
             {{ datos_promedios|json_script:"datos-promedios" }}
         </div>
@@ -153,16 +166,15 @@
                     </select>
                 </div>
 
-                <!--AÑO INGRESO-->
+                <!--LAPSO-->
                 <div>
-                    <label>Año de ingreso</label>
-                    <input type="number" class="form-control" name="anioIngreso">
-                </div>
+                    <h6>Años</h6>
 
+                    <label>Fecha de incio</label>
+                    <input type="date" name="fechaInicio" value="1997-01-01">
 
-                <div>
-                    <label>Año de egreso</label>
-                    <input type="number" class="form-control" name="anioEgreso">
+                    <label>Fecha de fin</label>
+                    <input type="date" name="fechaFin" value="{{fechaFin|date:'Y-m-d'}}">
                 </div>
 
                 <button type="submit">
@@ -172,7 +184,13 @@
         </form>
        
         <div class="col-6 contenedorGrafico" data-datos="datos-totales">
+            <h4>Resultado del total</h4>
+
+            {% if resultado_total != None %}
+                <p>Promedio calculado: <strong> {{resultado_total}} </strong></p>
+            {% else %}
             <p class="mensajeSinDatos">No hay datos disponibles para generar un gráfico</p>
+            {% endif %}
             <canvas  class="graficoPromedios"></canvas>
             {{ datos_totales|json_script:"datos-totales" }}
         </div>
@@ -229,16 +247,15 @@
                     </select>
                 </div>
 
-                <!--AÑO INGRESO-->
+                <!--LAPSO-->
                 <div>
-                    <label>Año de ingreso</label>
-                    <input type="number" class="form-control" name="anioIngreso">
-                </div>
+                    <h6>Años</h6>
 
+                    <label>Fecha de incio</label> <br>
+                    <input type="date" name="fechaInicio" value="1997-01-01"><br>
 
-                <div>
-                    <label>Año de egreso</label>
-                    <input type="number" class="form-control" name="anioEgreso">
+                    <label>Fecha de fin</label><br>
+                    <input type="date" name="fechaFin" value="{{fechaFin|date:'Y-m-d'}}"><br>
                 </div>
 
                 <button type="submit">
@@ -248,7 +265,13 @@
         </form>
        
         <div class="col-6 contenedorGrafico" data-datos="datos-tiempos">
+            <h4>Resultado del tiempo promedio de graduación</h4>
+
+            {% if resultado_tiempo != None %}
+                <p>Promedio calculado: <strong> {{resultado_tiempo}} </strong></p>
+            {% else %}
             <p class="mensajeSinDatos">No hay datos disponibles para generar un gráfico</p>
+            {% endif %}
             <canvas  class="graficoPromedios"></canvas>
             {{ datos_tiempos|json_script:"datos-tiempos" }}
         </div>

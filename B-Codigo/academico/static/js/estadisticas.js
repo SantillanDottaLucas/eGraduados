@@ -14,9 +14,11 @@ document.querySelectorAll("form").forEach(form => {
 
     function actualizarFiltro() {
         campoEscuela.disabled = !filtroEscuela.checked;
+        campoEscuela.hidden = !filtroEscuela.checked;
         campoEscuela.required = filtroEscuela.checked;
 
         campoCarrera.disabled = !filtroCarrera.checked;
+        campoCarrera.hidden = !filtroCarrera.checked;
         campoCarrera.required = filtroCarrera.checked;
     }
 

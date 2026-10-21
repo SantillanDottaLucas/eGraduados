@@ -8,5 +8,6 @@ urlpatterns=[
     path("estadisticas/", views.estadisticas, name="estadisticas"),
     path("estdisticas/", views.estadisticas_promedios, name="estadisticas_promedios"),
     path("estadisticas/",views.estadisticas_totales, name="estadisticas_totales"),
-    path("estadisticas/",views.estadisticas_tiempos, name="estadisticas_tiempos")
+    path("estadisticas/",views.estadisticas_tiempos, name="estadisticas_tiempos"),
+    path("lista_graduados/", views.lista_graduados, name="lista_graduados")
 ]

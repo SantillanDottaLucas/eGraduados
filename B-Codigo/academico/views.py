@@ -1,6 +1,10 @@
 from django.shortcuts import render
-from .servicios.consulta_estadisticas import * #Punto inicial para buscar dentro de la misma carpeta
-from .servicios.graficador_estadistico import *
+from .servicios.moduloAnalitico import *
+from .servicios.moduloEstadistica.consulta_estadisticas import *
+from .servicios.moduloEstadistica.graficador_estadistico import *
+from .models import Graduado
+from datetime import date
+
 
 # Create your views here.
 #Redirigir al index
@@ -28,7 +32,8 @@ def generacion_titulos(request):
 
 #Redirige a estadísticas
 def estadisticas(request):
-    return render(request,"academico/estadisticas.html")
+    fechaFin= date.today()
+    return render(request,"academico/estadisticas.html", {'fechaFin':fechaFin})
 
 def estadisticas_promedios(request):
     tipo_promedio = request.GET.get("promedio")
@@ -38,24 +43,40 @@ def estadisticas_promedios(request):
     fechaInicio = request.GET.get("fechaInicio")
     fechaFin= request.GET.get("fechaFin")
 
-    dato =consultar_promedios(tipo_promedio, filtro, carrera, escuela, fechaInicio, fechaFin)
+    resultado_promedio =consultar_promedios(tipo_promedio, filtro, carrera, escuela, fechaInicio, fechaFin)
+    datos_promedios= graficar_promedio(resultado_promedio['promedio'])
 
-    datos_promedios= graficar_promedio(dato)
-
-    return render(request, 'academico/estadisticas.html',{'datos_promedios':datos_promedios})
+    return render(
+        request, 
+        'academico/estadisticas.html',
+        {
+            'resultado_promedio':resultado_promedio['promedio'],
+            'datos_promedios':datos_promedios,
+            'varianza_promedios': resultado_promedio['varianza']
+            })
 
 def estadisticas_totales(request):
 
+    filtro = request.GET.get("filtro")
     carrera = request.GET.get("carrera")
     escuela = request.GET.get("escuela")
-    anioIngreso = request.GET.get("anioIngreso")
-    anioEgreso= request.GET.get("anioEgreso")
+    fechaInicio = request.GET.get("fechaInicio")
+    fechaFin= request.GET.get("fechaFin")
 
-    dato = consultar_total(carrera,escuela,anioIngreso, anioEgreso)
-    datos_totales = graficar_total(dato)
+    resultado_total = consultar_total(filtro, carrera, escuela, fechaInicio, fechaFin)
+    datos_totales = graficar_total(resultado_total)
 
-    return render(request, 'academico/estadisticas.html', {'datos_totales':datos_totales})
+    return render(request, 'academico/estadisticas.html', {'resultado_total':resultado_total,'datos_totales':datos_totales})
 
 def estadisticas_tiempos(request):
 
-    return render(request, 'academico/estadisticas.html', {'datos_tiempos':datos_tiempos})
+    return render(request, 'academico/estadisticas.html', {'resultado_tiempo':resultado_tiempo,'datos_tiempos':datos_tiempos})
+
+
+
+def lista_graduados(request):
+    graduados = Graduado.objects.all()
+
+    contexto = {'graduados':graduados}
+
+    return render(request, 'academico/lista_graduados.html',contexto)

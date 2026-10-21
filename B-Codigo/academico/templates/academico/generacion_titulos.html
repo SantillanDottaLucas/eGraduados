@@ -63,7 +63,7 @@
                     class="form-control"
                     id="anio_ingreso_uarg"
                     name="anio_ingreso_uarg"
-                    min="1900"
+                    min="1987"
                     max="2100"
                     required
                 >
@@ -75,13 +75,17 @@
                     Carrera de la que se gradúa
                 </label>
 
-                <input
-                    type="text"
-                    class="form-control"
-                    id="carrera"
-                    name="carrera"
-                    required
-                >
+                <div> <!--Analizar si es mejor NONE o disable-->
+                    <label>Carrera:</label>
+                    <select class="campoCarrera form-select" name="carrera" required>
+                        <option value="">Todas las carreras</option>
+                        {% for carrera in carreras %}
+                        <option value="{{carrera.id}}">
+                            {{carrera.nombre}}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
 
                 <label for="anio_ingreso_carrera" class="form-label">
@@ -124,6 +128,7 @@
                     id="resoluciones_nacionales"
                     name="resoluciones_nacionales"
                     list="resoluciones-nacionales"
+                    required
                 >
 
                 <datalist id="resoluciones-nacionales">
