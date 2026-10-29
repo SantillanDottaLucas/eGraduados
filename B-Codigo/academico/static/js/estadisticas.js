@@ -29,9 +29,16 @@ document.querySelectorAll("form").forEach(form => {
     actualizarFiltro();
 });
 
+const botonPromedios = document.getElementById("botonPromedios")
 
 
-document.querySelectorAll(".contenedorGrafico").forEach(contenedor => {
+botonPromedios.addEventListener("clic",function(){
+    const idDatos= d
+    }
+)
+
+
+document.getElementById("").forEach(contenedor => {
     const canvas = contenedor.querySelector(".graficoPromedios");
     const mensaje = contenedor.querySelector(".mensajeSinDatos");
     const idDatos = contenedor.dataset.datos;

@@ -4,6 +4,38 @@
 <div class="container mt-4">
     <h2>Lista de graduados</h2>
 
+    <form method="GET" class="row">
+        <div class="col-3">
+            <label>Escuela</label>
+            <select name="escuela" id="escuela">
+                <option value="">Todas</option>
+                {% for escuela in escuelas %}
+                <option value="{{escuela}}">
+                    {% if requets.GET.escuela == escuela %}selected{% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-3">
+            <label>Carrera</label>
+            <select name="carrera" id="carrera">
+                <option value="">Todas</option>
+                {% for carrera in carreras %}
+                <option value="{{escuela}}">
+                    {% if requets.GET.carrera == carrera %}selected{% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-3">
+            <label>Fechas</label>
+            <input type="date">
+            <input type="date">
+            </select>
+        </div>
+ 
+
+    </form>
     <table class="table table-striped table-bordered">
         <thead>
             <tr>
@@ -31,5 +63,10 @@
             {% endfor %}
         </tbody>
     </table>
+    <button> <!--EL SEGUNDO parentesis ENVÍA lo que son LOS FILTROS-->
+        <a href="{% url 'descargar_graduados' %}?{{request.GET.urlencode}}">
+            Descargar listado
+        </a>
+    </button>
 </div>
 {% endblock %}

@@ -67,7 +67,7 @@
                         <option value="">Todas las escuelas</option>
                         {% for carrera in carreras %}
                         <option value="{{carrera.escuela}}">
-                            {{carrera.escuela}}
+                            {{carrera.escuela}} <!--PROBLEMA, SE VAN A MOSTRAR LA ESCUELA DE CADA CARRERA-->
                         </option>
                         {% endfor %}
                     </select>
@@ -86,7 +86,7 @@
                 </div>
 
 
-                <button type="submit">
+                <button id="botonPromedios" type="submit">
                     Generar estadística 
                 </button>
 
@@ -110,7 +110,7 @@
                 <p class="mensajeSinDatos">No hay datos disponibles para calcular la varianza</p>
             {% endif %}
 
-            <canvas  class="graficoPromedios"></canvas>
+            <canvas  id="graficoPromedios"></canvas>
             {{ datos_promedios|json_script:"datos-promedios" }}
         </div>
     </div>

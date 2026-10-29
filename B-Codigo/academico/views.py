@@ -2,8 +2,11 @@ from django.shortcuts import render
 from .servicios.moduloAnalitico import *
 from .servicios.moduloEstadistica.consulta_estadisticas import *
 from .servicios.moduloEstadistica.graficador_estadistico import *
-from .models import Graduado
+from .models import Graduado, Carrera
 from datetime import date
+import csv
+from django.http import HttpResponse
+
 
 
 # Create your views here.
@@ -44,16 +47,15 @@ def estadisticas_promedios(request):
     fechaFin= request.GET.get("fechaFin")
 
     resultado_promedio =consultar_promedios(tipo_promedio, filtro, carrera, escuela, fechaInicio, fechaFin)
-    datos_promedios= graficar_promedio(resultado_promedio['promedio'])
 
+    datos = {'promedio':resultado_promedio['promedio'],
+            'varianza':resultado_promedio['varianza']         
+    }
     return render(
         request, 
         'academico/estadisticas.html',
-        {
-            'resultado_promedio':resultado_promedio['promedio'],
-            'datos_promedios':datos_promedios,
-            'varianza_promedios': resultado_promedio['varianza']
-            })
+        {'datos_promedios':datos}
+       )
 
 def estadisticas_totales(request):
 
@@ -77,6 +79,20 @@ def estadisticas_tiempos(request):
 def lista_graduados(request):
     graduados = Graduado.objects.all()
 
-    contexto = {'graduados':graduados}
+    escuelas = Carrera.objects.filter(
+        'escuela', flat=True
+    ).distinct()
 
-    return render(request, 'academico/lista_graduados.html',contexto)
+    carreras = Carrera.objects.all()
+
+
+    return render(request, 'academico/lista_graduados.html',{
+        'graduados':graduados,
+        'escuelas':escuelas,
+        'carreras':carreras
+    })
+
+def descargar_graduados(request):
+    graduados = consultar_graduados(request)
+
+    respuesta = Httpresponse
