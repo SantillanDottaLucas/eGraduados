@@ -15,7 +15,7 @@ def index(request):
     return render(request,"academico/index.html")
 
 #Generar un analítico si el método es POST. Si es un GET, reenvia al html generacion_titulos
-def generacion_titulos(request):
+def generacion_analiticos(request):
 
     if request.method == 'POST': #SI EL REQUEST ES UN POST, GENERA EL ANALÍTICO
 
@@ -30,8 +30,11 @@ def generacion_titulos(request):
 
     return render(
         request,
-        'academico/generacion_titulos.html'
+        'academico/generacion_analiticos.html'
     )
+
+def titulo_en_tramite(request):
+    return render(request, 'academico/titulo_en_tramite.html')
 
 #Redirige a estadísticas
 def estadisticas(request):

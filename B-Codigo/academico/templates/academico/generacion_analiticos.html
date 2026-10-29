@@ -1,0 +1,399 @@
+{% extends "academico/index.html" %}
+
+{% block content %}
+<style>
+    .analitico-page {
+        --uarg-blue: #173b67;
+        --uarg-blue-light: #eaf1f8;
+        --uarg-border: #dce4ed;
+        --uarg-muted: #66758a;
+        max-width: 1120px;
+        margin: 2rem auto 4rem;
+        padding: 0 1rem;
+    }
+
+    .analitico-header {
+        padding: 1.8rem 2rem;
+        margin-bottom: 1.5rem;
+        color: #fff;
+        background: linear-gradient(125deg, #173b67, #285a88);
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(23, 59, 103, .13);
+    }
+
+    .analitico-eyebrow {
+        margin-bottom: .45rem;
+        color: #d6e6f7;
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+    .analitico-header h1 {
+        margin: 0 0 .5rem;
+        font-size: clamp(1.55rem, 3vw, 2.15rem);
+        font-weight: 750;
+    }
+
+    .analitico-header p {
+        max-width: 680px;
+        margin: 0;
+        color: #e6eef7;
+        line-height: 1.6;
+    }
+
+    .analitico-section {
+        margin-bottom: 1.25rem;
+        padding: 1.5rem;
+        background: #fff;
+        border: 1px solid var(--uarg-border);
+        border-radius: 16px;
+        box-shadow: 0 5px 18px rgba(24, 48, 75, .045);
+    }
+
+    .analitico-section-heading {
+        display: flex;
+        align-items: flex-start;
+        gap: .85rem;
+        margin-bottom: 1.35rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e9eef4;
+    }
+
+    .analitico-section-number {
+        display: grid;
+        flex: 0 0 42px;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        color: var(--uarg-blue);
+        background: var(--uarg-blue-light);
+        border-radius: 12px;
+        font-weight: 800;
+    }
+
+    .analitico-section-heading h2 {
+        margin: .1rem 0 .25rem;
+        color: var(--uarg-blue);
+        font-size: 1.12rem;
+        font-weight: 750;
+    }
+
+    .analitico-section-heading p {
+        margin: 0;
+        color: var(--uarg-muted);
+        font-size: .9rem;
+    }
+
+    .analitico-page .form-label {
+        margin-bottom: .45rem;
+        color: #29384a;
+        font-size: .91rem;
+        font-weight: 650;
+    }
+
+    .analitico-page .form-control,
+    .analitico-page .form-select {
+        min-height: 46px;
+        border-color: #d5dee8;
+        border-radius: 9px;
+        box-shadow: none;
+    }
+
+    .analitico-page .form-control:focus,
+    .analitico-page .form-select:focus {
+        border-color: #5485b7;
+        box-shadow: 0 0 0 .2rem rgba(40, 90, 136, .12);
+    }
+
+    .analitico-page .form-text {
+        color: var(--uarg-muted);
+        line-height: 1.5;
+    }
+
+    .analitico-required-note {
+        margin: 0 0 1rem;
+        color: var(--uarg-muted);
+        font-size: .88rem;
+    }
+
+    .analitico-upload {
+        padding: 1.25rem;
+        background: #f7fafe;
+        border: 1px dashed #9db4ce;
+        border-radius: 12px;
+    }
+
+    .analitico-upload-title {
+        margin-bottom: .35rem;
+        color: var(--uarg-blue);
+        font-weight: 750;
+    }
+
+    .analitico-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .analitico-actions .btn {
+        min-height: 46px;
+        padding: .7rem 1.25rem;
+        border-radius: 10px;
+        font-weight: 700;
+    }
+
+    .analitico-actions .btn-primary {
+        background: var(--uarg-blue);
+        border-color: var(--uarg-blue);
+    }
+
+    .analitico-actions .btn-primary:hover {
+        background: #102d50;
+        border-color: #102d50;
+    }
+
+    @media (max-width: 767.98px) {
+        .analitico-page {
+            margin-top: 1rem;
+            padding: 0 .75rem;
+        }
+
+        .analitico-header,
+        .analitico-section {
+            padding: 1.15rem;
+            border-radius: 13px;
+        }
+
+        .analitico-actions {
+            align-items: stretch;
+            flex-direction: column-reverse;
+        }
+
+        .analitico-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="analitico-page">
+    <header class="analitico-header">
+        <div class="analitico-eyebrow">Secretaría Académica · UNPA UARG</div>
+        <h1>Generador de analíticos</h1>
+        <p>Completá los datos del graduado y de su trayectoria académica para preparar la documentación correspondiente.</p>
+    </header>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <p class="analitico-required-note"><span class="text-danger">*</span> Los campos marcados son obligatorios.</p>
+
+        <div class="row g-3">
+            <div class="col-12 col-lg-6">
+                <section class="analitico-section h-100">
+                    <div class="analitico-section-heading">
+                        <div class="analitico-section-number">01</div>
+                        <div>
+                            <h2>Datos del graduado</h2>
+                            <p>Información personal e ingreso a la universidad.</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre/s <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" autocomplete="given-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="apellido" class="form-label">Apellido/s <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="apellido" name="apellido" autocomplete="family-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="legajo" class="form-label">Legajo <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="legajo" name="legajo" required>
+                    </div>
+                    <div class="mb-0">
+                        <label for="anio_ingreso_uarg" class="form-label">Año de ingreso a la UARG <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="anio_ingreso_uarg" name="anio_ingreso_uarg" min="1987" max="2100" required>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-12 col-lg-6">
+                <section class="analitico-section h-100">
+                    <div class="analitico-section-heading">
+                        <div class="analitico-section-number">02</div>
+                        <div>
+                            <h2>Datos de la carrera</h2>
+                            <p>Trayectoria académica y normativa del título.</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="carrera" class="form-label">Carrera de la que se gradúa <span class="text-danger">*</span></label>
+                        <select class="campoCarrera form-select" id="carrera" name="carrera" required>
+                            <option value="" selected disabled>Seleccione una carrera</option>
+                            {% for carrera in carreras %}
+                            <option value="{{ carrera.id }}">{{ carrera.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label for="anio_ingreso_carrera" class="form-label">Año de ingreso <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="anio_ingreso_carrera" name="anio_ingreso_carrera" min="1900" max="2100" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="anio_egreso_carrera" class="form-label">Año de egreso <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="anio_egreso_carrera" name="anio_egreso_carrera" min="1900" max="2100" required>
+                        </div>
+                    </div>
+                    <div class="mt-3 mb-3">
+                        <label for="resoluciones_nacionales" class="form-label">Resoluciones nacionales <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="resoluciones_nacionales" name="resoluciones_nacionales" list="resoluciones-nacionales" placeholder="Ej.: Resolución Ministerial N.º..." required>
+                        <datalist id="resoluciones-nacionales">
+                            <option value="Resolución Ministerial N.º XXXXX/XXXX">
+                        </datalist>
+                    </div>
+                    <div class="mb-3">
+                        <label for="resoluciones_institucionales" class="form-label">Resoluciones institucionales</label>
+                        <input type="text" class="form-control" id="resoluciones_institucionales" name="resoluciones_institucionales" list="resoluciones-institucionales" placeholder="Ej.: Resolución N.º...">
+                        <datalist id="resoluciones-institucionales">
+                            <option value="Resolución N.º XXXXX/XXXX">
+                        </datalist>
+                    </div>
+                    <div class="mb-0">
+                        <label for="otros_instrumentos_legales" class="form-label">Otros instrumentos legales</label>
+                        <input type="text" class="form-control" id="otros_instrumentos_legales" name="otros_instrumentos_legales" list="instrumentos-legales" placeholder="Ej.: Ordenanza o disposición">
+                        <datalist id="instrumentos-legales">
+                            <option value="Ordenanza N.º XXXXX/XXXX">
+                            <option value="Disposición N.º XXXXX/XXXX">
+                        </datalist>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-12 col-lg-6">
+                <section class="analitico-section h-100">
+                    <div class="analitico-section-heading">
+                        <div class="analitico-section-number">03</div>
+                        <div>
+                            <h2>Datos de nacimiento</h2>
+                            <p>Información que figurará en la documentación.</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="fecha_nacimiento" class="form-label">Fecha de nacimiento <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ciudad_nacimiento" class="form-label">Ciudad de nacimiento <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="ciudad_nacimiento" name="ciudad_nacimiento" list="ciudades" required>
+                    </div>
+                    <div class="mb-0">
+                        <label for="provincia_nacimiento" class="form-label">Provincia de nacimiento <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="provincia_nacimiento" name="provincia_nacimiento" list="provincias" required>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-12 col-lg-6">
+                <section class="analitico-section h-100">
+                    <div class="analitico-section-heading">
+                        <div class="analitico-section-number">04</div>
+                        <div>
+                            <h2>Estudios secundarios</h2>
+                            <p>Datos del establecimiento y del título previo.</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nombre_secundario" class="form-label">Nombre del secundario <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nombre_secundario" name="nombre_secundario" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ciudad_secundario" class="form-label">Ciudad del secundario <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="ciudad_secundario" name="ciudad_secundario" list="ciudades" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="provincia_secundario" class="form-label">Provincia del secundario <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="provincia_secundario" name="provincia_secundario" list="provincias" required>
+                    </div>
+                    <div class="mb-0">
+                        <label for="titulo_secundario" class="form-label">Título del secundario <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="titulo_secundario" name="titulo_secundario" required>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-12">
+                <section class="analitico-section">
+                    <div class="analitico-section-heading">
+                        <div class="analitico-section-number">05</div>
+                        <div>
+                            <h2>Información académica</h2>
+                            <p>Adjuntá el certificado con las notas para completar el analítico.</p>
+                        </div>
+                    </div>
+
+                    <div class="analitico-upload">
+                        <div class="analitico-upload-title">Certificado Lincoln <span class="text-danger">*</span></div>
+                        <label for="archivo_notas" class="form-label">Seleccionar archivo Excel</label>
+                        <input type="file" class="form-control" id="archivo_notas" name="archivo_notas" accept=".xlsx,.xls" required>
+                        <div class="form-text mt-2">Formatos admitidos: .xlsx y .xls. Seleccioná el archivo que contiene las notas del graduado.</div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <datalist id="provincias">
+            <option value="Buenos Aires">
+            <option value="Catamarca">
+            <option value="Chaco">
+            <option value="Chubut">
+            <option value="Córdoba">
+            <option value="Corrientes">
+            <option value="Entre Ríos">
+            <option value="Formosa">
+            <option value="Jujuy">
+            <option value="La Pampa">
+            <option value="La Rioja">
+            <option value="Mendoza">
+            <option value="Misiones">
+            <option value="Neuquén">
+            <option value="Río Negro">
+            <option value="Salta">
+            <option value="San Juan">
+            <option value="San Luis">
+            <option value="Santa Cruz">
+            <option value="Santa Fe">
+            <option value="Santiago del Estero">
+            <option value="Tierra del Fuego">
+            <option value="Tucumán">
+        </datalist>
+
+        <datalist id="ciudades">
+            <option value="Río Gallegos">
+            <option value="Caleta Olivia">
+            <option value="El Calafate">
+            <option value="Puerto Deseado">
+            <option value="Buenos Aires">
+            <option value="Córdoba">
+            <option value="Rosario">
+            <option value="La Plata">
+            <option value="Comodoro Rivadavia">
+            <option value="Ushuaia">
+            <option value="Neuquén">
+            <option value="Bariloche">
+        </datalist>
+
+        <div class="analitico-actions">
+            <span class="text-secondary small">Revisá los datos antes de continuar.</span>
+            <button type="submit" class="btn btn-primary">Continuar <span aria-hidden="true">→</span></button>
+        </div>
+    </form>
+</div>
+{% endblock %}

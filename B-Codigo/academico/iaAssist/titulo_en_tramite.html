@@ -1,0 +1,187 @@
+{% extends "academico/index.html" %}
+
+{% block content %}
+<style>
+    .titulo-tramite-page {
+        --uarg-blue: #173b67;
+        --uarg-border: #dce4ed;
+        --uarg-muted: #66758a;
+        max-width: 760px;
+        margin: 2.5rem auto 4rem;
+        padding: 0 1rem;
+    }
+
+    .titulo-tramite-header {
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        color: #fff;
+        background: linear-gradient(125deg, #173b67, #285a88);
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(23, 59, 103, .13);
+    }
+
+    .titulo-tramite-eyebrow {
+        margin-bottom: .5rem;
+        color: #d6e6f7;
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+    .titulo-tramite-header h1 {
+        margin: 0 0 .6rem;
+        font-size: clamp(1.6rem, 4vw, 2.15rem);
+        font-weight: 750;
+    }
+
+    .titulo-tramite-header p {
+        max-width: 560px;
+        margin: 0;
+        color: #e6eef7;
+        line-height: 1.65;
+    }
+
+    .titulo-tramite-card {
+        padding: 1.75rem;
+        background: #fff;
+        border: 1px solid var(--uarg-border);
+        border-radius: 16px;
+        box-shadow: 0 5px 18px rgba(24, 48, 75, .045);
+    }
+
+    .titulo-tramite-icon {
+        display: grid;
+        width: 52px;
+        height: 52px;
+        margin-bottom: 1rem;
+        place-items: center;
+        color: var(--uarg-blue);
+        background: #eaf1f8;
+        border-radius: 14px;
+        font-size: 1.45rem;
+    }
+
+    .titulo-tramite-card h2 {
+        margin: 0 0 .45rem;
+        color: var(--uarg-blue);
+        font-size: 1.15rem;
+        font-weight: 750;
+    }
+
+    .titulo-tramite-card .description {
+        margin-bottom: 1.5rem;
+        color: var(--uarg-muted);
+        line-height: 1.6;
+    }
+
+    .titulo-tramite-page .form-label {
+        margin-bottom: .5rem;
+        color: #29384a;
+        font-weight: 650;
+    }
+
+    .titulo-tramite-page .form-control {
+        min-height: 48px;
+        border-color: #d5dee8;
+        border-radius: 10px;
+        box-shadow: none;
+    }
+
+    .titulo-tramite-page .form-control:focus {
+        border-color: #5485b7;
+        box-shadow: 0 0 0 .2rem rgba(40, 90, 136, .12);
+    }
+
+    .titulo-tramite-help {
+        margin-top: .5rem;
+        color: var(--uarg-muted);
+        font-size: .875rem;
+    }
+
+    .titulo-tramite-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .titulo-tramite-actions .btn {
+        min-height: 46px;
+        padding: .7rem 1.25rem;
+        border-radius: 10px;
+        font-weight: 700;
+    }
+
+    .titulo-tramite-actions .btn-primary {
+        background: var(--uarg-blue);
+        border-color: var(--uarg-blue);
+    }
+
+    .titulo-tramite-actions .btn-primary:hover {
+        background: #102d50;
+        border-color: #102d50;
+    }
+
+    @media (max-width: 575.98px) {
+        .titulo-tramite-page {
+            margin-top: 1rem;
+            padding: 0 .75rem;
+        }
+
+        .titulo-tramite-header,
+        .titulo-tramite-card {
+            padding: 1.25rem;
+            border-radius: 13px;
+        }
+
+        .titulo-tramite-actions {
+            align-items: stretch;
+            flex-direction: column-reverse;
+        }
+
+        .titulo-tramite-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<main class="titulo-tramite-page">
+    <header class="titulo-tramite-header">
+        <div class="titulo-tramite-eyebrow">Secretaría Académica · UNPA UARG</div>
+        <h1>Generar título en trámite</h1>
+        <p>Ingresá el legajo del alumno para iniciar la generación de la constancia de título en trámite.</p>
+    </header>
+
+    <section class="titulo-tramite-card">
+        <div class="titulo-tramite-icon" aria-hidden="true">▤</div>
+        <h2>Identificación del alumno</h2>
+        <p class="description">Comprobá que el legajo sea correcto antes de continuar.</p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label for="legajo" class="form-label">Legajo del alumno <span class="text-danger">*</span></label>
+                <input
+                    type="text"
+                    class="form-control"
+                    id="legajo"
+                    name="legajo"
+                    placeholder="Ingresá el legajo"
+                    autocomplete="off"
+                    required
+                    autofocus
+                >
+                <div class="titulo-tramite-help">Campo obligatorio.</div>
+            </div>
+
+            <div class="titulo-tramite-actions">
+                <a href="{% url 'index' %}" class="btn btn-outline-secondary">Volver</a>
+                <button type="submit" class="btn btn-primary">Generar título en trámite <span aria-hidden="true">→</span></button>
+            </div>
+        </form>
+    </section>
+</main>
+{% endblock %}

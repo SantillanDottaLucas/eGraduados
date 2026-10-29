@@ -1,68 +1,368 @@
 {% extends "academico/base.html" %}
 
-{% block title %}eGraduados {% endblock %}
+{% block title %}eGraduados | Panel principal{% endblock %}
 
-    {% block content %}    
-    <main class="container">
-        <!-- Analiticos -->
-        <a href="{% url 'generacion_titulos' %}" class="text-decoration-none text-dark">
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h3 class="card-title">Generación de títulos</h3>
-                    <p class="card-text">
-                        Apartado para la generación de títulos en trámite y analíticos.
-                    </p>
-                </div>
+{% block content %}
+<style>
+    .panel-principal {
+        max-width: 1150px;
+        margin: 0 auto;
+        padding: 2rem 1rem 4rem;
+    }
+
+    .panel-encabezado {
+        position: relative;
+        overflow: hidden;
+        padding: 2.5rem;
+        margin-bottom: 2.5rem;
+        color: white;
+        background: linear-gradient(125deg, #173b67, #2d6596);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(23, 59, 103, 0.16);
+    }
+
+    .panel-encabezado::after {
+        content: "";
+        position: absolute;
+        width: 230px;
+        height: 230px;
+        right: -65px;
+        top: -100px;
+        border: 35px solid rgba(255, 255, 255, 0.07);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .panel-etiqueta {
+        display: inline-block;
+        margin-bottom: 1rem;
+        padding: 0.4rem 0.8rem;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 30px;
+        font-size: 0.85rem;
+        letter-spacing: 0.04em;
+    }
+
+    .panel-encabezado h1 {
+        margin-bottom: 0.8rem;
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+        font-weight: 700;
+    }
+
+    .panel-encabezado p {
+        max-width: 650px;
+        margin-bottom: 0;
+        color: rgba(255, 255, 255, 0.88);
+        line-height: 1.7;
+    }
+
+    .panel-subtitulo {
+        margin-bottom: 1.2rem;
+        color: #243b53;
+        font-size: 1.35rem;
+        font-weight: 700;
+    }
+
+    .panel-tarjeta {
+        display: flex;
+        height: 100%;
+        min-height: 235px;
+        padding: 1.6rem;
+        color: #263747;
+        background: #fff;
+        border: 1px solid #e5eaf0;
+        border-radius: 16px;
+        box-shadow: 0 4px 14px rgba(25, 45, 70, 0.04);
+        transition: transform 0.2s ease, box-shadow 0.2s ease,
+                    border-color 0.2s ease;
+    }
+
+    .panel-tarjeta:hover {
+        color: #263747;
+        border-color: #c8d8e8;
+        box-shadow: 0 12px 26px rgba(25, 45, 70, 0.10);
+        transform: translateY(-4px);
+    }
+
+    .panel-tarjeta-contenido {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    .panel-icono {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 52px;
+        height: 52px;
+        margin-bottom: 1.2rem;
+        border-radius: 14px;
+        font-size: 1.7rem;
+        font-weight: 600;
+    }
+
+    .icono-verde {
+        color: #19734b;
+        background: #e4f5ec;
+    }
+
+    .icono-azul {
+        color: #245ca6;
+        background: #e8f0fc;
+    }
+
+    .icono-violeta {
+        color: #7142a6;
+        background: #f0e9fa;
+    }
+
+    .icono-ambar {
+        color: #98620c;
+        background: #fff2d8;
+    }
+
+    .panel-tarjeta h3 {
+        margin-bottom: 0.7rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .panel-tarjeta p {
+        margin-bottom: 1.4rem;
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+    .panel-enlace {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: auto;
+        color: #245b91;
+        font-weight: 600;
+    }
+
+    .panel-flecha {
+        font-size: 1.2rem;
+        transition: transform 0.2s ease;
+    }
+
+    .panel-tarjeta:hover .panel-flecha {
+        transform: translateX(4px);
+    }
+
+    .panel-pie {
+        margin-top: 3rem;
+        padding-top: 1.3rem;
+        border-top: 1px solid #e5eaf0;
+        color: #7b8794;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    @media (max-width: 576px) {
+        .panel-principal {
+            padding: 1rem 0.75rem 2.5rem;
+        }
+
+        .panel-encabezado {
+            padding: 1.7rem;
+            border-radius: 16px;
+        }
+
+        .panel-tarjeta {
+            min-height: auto;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .panel-tarjeta,
+        .panel-flecha {
+            transition: none;
+        }
+    }
+</style>
+
+<main class="panel-principal">
+
+    <header class="panel-encabezado">
+        <div class="panel-etiqueta">
+            Secretaría Académica · UNPA UARG
+        </div>
+
+        <h1>Bienvenido a eGraduados</h1>
+
+        <p>
+            Gestioná la documentación académica, consultá información
+            de graduados y accedé a las herramientas de gestión desde
+            un único lugar.
+        </p>
+    </header>
+
+    <!-- DOCUMENTACIÓN ACADÉMICA -->
+    <section class="mb-5">
+        <h2 class="panel-subtitulo">Documentación académica</h2>
+
+        <div class="row g-4">
+
+            <div class="col-12 col-md-6">
+                <a href="{% url 'titulo_en_tramite' %}"
+                   class="panel-tarjeta text-decoration-none">
+                    <div class="panel-tarjeta-contenido">
+                        <div class="panel-icono icono-verde"
+                             aria-hidden="true">▤</div>
+
+                        <h3>Generar título en trámite</h3>
+
+                        <p>
+                            Iniciá el proceso de generación de la
+                            documentación correspondiente al título
+                            en trámite de un graduado.
+                        </p>
+
+                        <div class="panel-enlace">
+                            <span>Iniciar trámite</span>
+                            <span class="panel-flecha"
+                                  aria-hidden="true">→</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </a>
 
-        <!-- Listado de graduados -->
-        <a href="{% url 'lista_graduados' %}" class="text-decoration-none text-dark">
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h3 class="card-title">Listado de graduados</h3>
-                    <p class="card-text">
-                        Lista completa con todos los gradudos <b>cargados en este sistema</b>
-                    </p>
-                </div>
+            <div class="col-12 col-md-6">
+                <a href="{% url 'generacion_analiticos' %}"
+                   class="panel-tarjeta text-decoration-none">
+                    <div class="panel-tarjeta-contenido">
+                        <div class="panel-icono icono-azul"
+                             aria-hidden="true">▧</div>
+
+                        <h3>Generar analítico</h3>
+
+                        <p>
+                            Cargá los datos personales y académicos
+                            del graduado junto con su certificado
+                            de notas para generar el analítico.
+                        </p>
+
+                        <div class="panel-enlace">
+                            <span>Generar documento</span>
+                            <span class="panel-flecha"
+                                  aria-hidden="true">→</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </a>
 
-        <!-- Estadisticas -->
-        <a href="{% url 'estadisticas' %}" class="text-decoration-none text-dark">
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h3 class="card-title">Estadísticas</h3>
-                    <p class="card-text">
-                        Estadisticas y graficos acerca de los graduados
-                    </p>
-                </div>
+        </div>
+    </section>
+
+    <!-- CONSULTAS Y GESTIÓN -->
+    <section>
+        <h2 class="panel-subtitulo">Consultas y gestión</h2>
+
+        <div class="row g-4">
+
+            <div class="col-12 col-md-6">
+                <a href="{% url 'lista_graduados' %}"
+                   class="panel-tarjeta text-decoration-none">
+                    <div class="panel-tarjeta-contenido">
+                        <div class="panel-icono icono-violeta"
+                             aria-hidden="true">☷</div>
+
+                        <h3>Listado de graduados</h3>
+
+                        <p>
+                            Consultá el listado de graduados y accedé
+                            a la información académica registrada
+                            en el sistema.
+                        </p>
+
+                        <div class="panel-enlace">
+                            <span>Consultar listado</span>
+                            <span class="panel-flecha"
+                                  aria-hidden="true">→</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </a>
 
-        <!-- Carga de datos -->
-        <a href="#" class="text-decoration-none text-dark">
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h3 class="card-title">Carga de datos</h3>
-                    <p class="card-text">
-                        Apartado para la carga masiva de datos
-                    </p>
-                </div>
+            <div class="col-12 col-md-6">
+                <a href="{% url 'estadisticas' %}"
+                   class="panel-tarjeta text-decoration-none">
+                    <div class="panel-tarjeta-contenido">
+                        <div class="panel-icono icono-ambar"
+                             aria-hidden="true">▥</div>
+
+                        <h3>Estadísticas</h3>
+
+                        <p>
+                            Explorá información estadística sobre
+                            graduados, carreras y tiempos de
+                            finalización de los estudios.
+                        </p>
+
+                        <div class="panel-enlace">
+                            <span>Ver estadísticas</span>
+                            <span class="panel-flecha"
+                                  aria-hidden="true">→</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </a>
 
-        <!-- Gestión de carrera -->
-        <a href="#" class="text-decoration-none text-dark">
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h3 class="card-title">Gestión de carrera</h3>
-                    <p class="card-text">
-                        Apartado para la gestión de las carreras
-                    </p>
-                </div>
+            <div class="col-12 col-md-6">
+                <a href="#"
+                   class="panel-tarjeta text-decoration-none">
+                    <div class="panel-tarjeta-contenido">
+                        <div class="panel-icono icono-azul"
+                             aria-hidden="true">＋</div>
+
+                        <h3>Carga de datos</h3>
+
+                        <p>
+                            Accedé al espacio destinado a incorporar
+                            y actualizar información académica
+                            en el sistema.
+                        </p>
+
+                        <div class="panel-enlace">
+                            <span>Próximamente</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </a>
-    </main>
 
-    {% endblock %}    
+            <div class="col-12 col-md-6">
+                <a href="#"
+                   class="panel-tarjeta text-decoration-none">
+                    <div class="panel-tarjeta-contenido">
+                        <div class="panel-icono icono-verde"
+                             aria-hidden="true">⚙</div>
+
+                        <h3>Gestión de carrera</h3>
+
+                        <p>
+                            Accedé al espacio destinado a administrar
+                            la información y los datos asociados
+                            a las carreras.
+                        </p>
+
+                        <div class="panel-enlace">
+                            <span>Próximamente</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="panel-pie">
+        Secretaría Académica · Universidad Nacional de la Patagonia Austral · UARG
+    </footer>
+
+</main>
+{% endblock %}
+```
