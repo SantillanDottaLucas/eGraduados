@@ -3,24 +3,24 @@ from datetime import date
 
 from django.db.models import Exists, OuterRef, Q
 
-from academico.models import Graduado, GraduadoCarrera, Analitico
+from academico.models import Graduado, GraduadoCarrera
 
 
 def obtener_graduados_filtrados(parametros):
     graduados = Graduado.objects.all()
 
-    # 1. Buscar por nombre o apellido completo o parcial.
-    nombre = parametros.get('nombre', '').strip()
+    # 1. Buscar por nombre o apellido, completo o parcial.
+    nombre = parametros.get("nombre", "").strip()
 
     if nombre:
         for palabra in nombre.split():
             graduados = graduados.filter(
-                Q(nombres_asociados__nombre__icontains=palabra)
-                | Q(apellidos_asociados__apellido__icontains=palabra)
+                Q(nombre__icontains=palabra)
+                | Q(apellido__icontains=palabra)
             )
 
     # 2. Buscar por legajo completo o parcial.
-    legajo = parametros.get('legajo', '').strip()
+    legajo = parametros.get("legajo", "").strip()
 
     if legajo:
         graduados = graduados.filter(
@@ -28,30 +28,34 @@ def obtener_graduados_filtrados(parametros):
         )
 
     # 3. Filtrar por carrera.
-    carrera = parametros.get('carrera', '').strip()
+    carrera = parametros.get("carrera", "").strip()
 
     if carrera:
         graduados_por_carrera = GraduadoCarrera.objects.filter(
-            graduado_id=OuterRef('pk'),
-            carrera_id=carrera
+            legajo_graduado_id=OuterRef("pk"),
+            codigo_carrera_id=carrera
         )
 
-        graduados = graduados.filter(Exists(graduados_por_carrera))
+        graduados = graduados.filter(
+            Exists(graduados_por_carrera)
+        )
 
     # 4. Filtrar por escuela.
-    escuela = parametros.get('escuela', '').strip()
+    escuela = parametros.get("escuela", "").strip()
 
     if escuela:
         graduados_por_escuela = GraduadoCarrera.objects.filter(
-            graduado_id=OuterRef('pk'),
-            carrera__escuela=escuela
+            legajo_graduado_id=OuterRef("pk"),
+            codigo_carrera__id_escuela_id=escuela
         )
 
-        graduados = graduados.filter(Exists(graduados_por_escuela))
+        graduados = graduados.filter(
+            Exists(graduados_por_escuela)
+        )
 
     # 5. Filtrar por fecha de egreso.
-    fecha_desde = parametros.get('fecha_desde', '').strip()
-    fecha_hasta = parametros.get('fecha_hasta', '').strip()
+    fecha_desde = parametros.get("fecha_desde", "").strip()
+    fecha_hasta = parametros.get("fecha_hasta", "").strip()
 
     try:
         fecha_desde = date.fromisoformat(fecha_desde) if fecha_desde else None
@@ -69,8 +73,8 @@ def obtener_graduados_filtrados(parametros):
         fecha_hasta = None
 
     if fecha_desde or fecha_hasta:
-        egresos = Analitico.objects.filter(
-            graduado_id=OuterRef('pk')
+        egresos = GraduadoCarrera.objects.filter(
+            legajo_graduado_id=OuterRef("pk")
         )
 
         if fecha_desde:
@@ -85,9 +89,5 @@ def obtener_graduados_filtrados(parametros):
 
         graduados = graduados.filter(Exists(egresos))
 
-    return (
-        graduados
-        .distinct()
-        .order_by('legajo_graduado')
-        .prefetch_related('nombres_asociados', 'apellidos_asociados')
-    )
+    # Devolver graduados sin duplicados, ordenados por legajo.
+    return graduados.order_by("legajo_graduado")

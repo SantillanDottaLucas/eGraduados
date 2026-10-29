@@ -6,7 +6,7 @@
 {% block content %}
 <style>
     .pagina {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: auto;
         padding: 2rem 1rem 3rem;
     }
@@ -26,17 +26,21 @@
     .panel {
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        background: white;
-        border: 1px solid #e5eaf0;
+        background: var(--bs-body-bg);
+        border: 1px solid var(--bs-border-color);
         border-radius: 16px;
         box-shadow: 0 4px 14px rgba(25, 45, 70, .05);
     }
 
-    .panel h2 {
-        margin-bottom: 1.25rem;
-        color: #243b53;
+    .panel h2,
+    .tabla-titulo h2 {
+        color: var(--bs-emphasis-color);
         font-size: 1.2rem;
         font-weight: 700;
+    }
+
+    .panel h2 {
+        margin-bottom: 1.25rem;
     }
 
     .panel .form-label {
@@ -51,21 +55,17 @@
 
     .tabla-contenedor {
         overflow: hidden;
-        background: white;
-        border: 1px solid #e5eaf0;
+        border: 1px solid var(--bs-border-color);
         border-radius: 16px;
     }
 
     .tabla-titulo {
         padding: 1.25rem 1.5rem;
-        border-bottom: 1px solid #e5eaf0;
+        border-bottom: 1px solid var(--bs-border-color);
     }
 
     .tabla-titulo h2 {
         margin: 0;
-        color: #243b53;
-        font-size: 1.2rem;
-        font-weight: 700;
     }
 
     .tabla {
@@ -75,8 +75,8 @@
 
     .tabla thead th {
         padding: 1rem;
-        color: #42566b;
-        background: #f4f7fa;
+        color: var(--bs-secondary-color);
+        background: var(--bs-tertiary-bg);
         white-space: nowrap;
     }
 
@@ -85,13 +85,14 @@
     }
 
     .legajo {
-        color: #245b91;
+        color: var(--bs-primary);
         font-weight: 700;
+        white-space: nowrap;
     }
 
     .sin-resultados {
         padding: 2rem !important;
-        color: #64748b;
+        color: var(--bs-secondary-color);
         text-align: center;
     }
 
@@ -156,10 +157,10 @@
                         <option value="">Todas las escuelas</option>
                         {% for escuela in escuelas %}
                             <option
-                                value="{{ escuela }}"
-                                {% if request.GET.escuela == escuela %}selected{% endif %}
+                                value="{{ escuela.id_escuela }}"
+                                {% if request.GET.escuela == escuela.id_escuela|stringformat:"s" %}selected{% endif %}
                             >
-                                {{ escuela }}
+                                {{ escuela.nombre_escuela }}
                             </option>
                         {% endfor %}
                     </select>
@@ -171,8 +172,8 @@
                         <option value="">Todas las carreras</option>
                         {% for carrera in carreras %}
                             <option
-                                value="{{ carrera.pk }}"
-                                {% if request.GET.carrera == carrera.pk|stringformat:"s" %}selected{% endif %}
+                                value="{{ carrera.codigo_carrera }}"
+                                {% if request.GET.carrera == carrera.codigo_carrera %}selected{% endif %}
                             >
                                 {{ carrera.nombre_carrera }}
                             </option>
@@ -216,13 +217,17 @@
                         Buscar graduados
                     </button>
 
-                    <a href="{% url 'lista_graduados' %}"
-                       class="btn btn-outline-secondary px-4">
+                    <a
+                        href="{% url 'lista_graduados' %}"
+                        class="btn btn-outline-secondary px-4"
+                    >
                         Limpiar filtros
                     </a>
 
-                    <a href="{% url 'descargar_graduados' %}?{{ request.GET.urlencode }}"
-                       class="btn btn-success px-4 ms-md-auto">
+                    <a
+                        href="{% url 'exportar_graduados' %}?{{ request.GET.urlencode }}"
+                        class="btn btn-success px-4 ms-md-auto"
+                    >
                         Descargar CSV
                     </a>
                 </div>
@@ -235,7 +240,7 @@
         <div class="tabla-titulo">
             <h2>Resultados de la búsqueda</h2>
             <span class="text-muted small">
-                {{ graduados|length }} registro(s)
+                {{ graduados|length }} graduado(s)
             </span>
         </div>
 
@@ -244,8 +249,12 @@
                 <thead>
                     <tr>
                         <th>Legajo</th>
+                        <th>DNI</th>
                         <th>Nombre</th>
                         <th>Apellido</th>
+                        <th>Carrera</th>
+                        <th>Ingreso a la carrera</th>
+                        <th>Egreso de la carrera</th>
                         <th>Promedio sin aplazo</th>
                         <th>Promedio con aplazo</th>
                     </tr>
@@ -253,38 +262,46 @@
 
                 <tbody>
                     {% for graduado in graduados %}
-                        <tr>
-                            <td class="legajo">
-                                {{ graduado.legajo_graduado }}
-                            </td>
+                        {% for registro in graduado.carreras_cursadas.all %}
+                            <tr>
+                                <td class="legajo">
+                                    {{ graduado.legajo_graduado }}
+                                </td>
 
-                            <td>
-                                {% for registro in graduado.nombres_asociados.all %}
-                                    {{ registro.nombre }}{% if not forloop.last %} {% endif %}
-                                {% empty %}
-                                    —
-                                {% endfor %}
-                            </td>
+                                <td>{{ graduado.dni }}</td>
+                                <td>{{ graduado.nombre }}</td>
+                                <td>{{ graduado.apellido }}</td>
 
-                            <td>
-                                {% for registro in graduado.apellidos_asociados.all %}
-                                    {{ registro.apellido }}{% if not forloop.last %} {% endif %}
-                                {% empty %}
-                                    —
-                                {% endfor %}
-                            </td>
+                                <td>
+                                    {{ registro.codigo_carrera.nombre_carrera }}
+                                </td>
 
-                            <td>
-                                {{ graduado.promedio_sin_aplazo|default_if_none:"—" }}
-                            </td>
+                                <td>
+                                    {{ registro.fecha_ingreso_carrera|date:"d/m/Y" }}
+                                </td>
 
-                            <td>
-                                {{ graduado.promedio_con_aplazo|default_if_none:"—" }}
-                            </td>
-                        </tr>
+                                <td>
+                                    {{ registro.fecha_egreso_carrera|date:"d/m/Y" }}
+                                </td>
+
+                                <td>
+                                    {{ registro.promedio_sin_aplazo|default_if_none:"—" }}
+                                </td>
+
+                                <td>
+                                    {{ registro.promedio_con_aplazo|default_if_none:"—" }}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="9" class="sin-resultados">
+                                    Este graduado no tiene carreras asociadas.
+                                </td>
+                            </tr>
+                        {% endfor %}
                     {% empty %}
                         <tr>
-                            <td colspan="5" class="sin-resultados">
+                            <td colspan="9" class="sin-resultados">
                                 No se encontraron graduados con esos filtros.
                             </td>
                         </tr>

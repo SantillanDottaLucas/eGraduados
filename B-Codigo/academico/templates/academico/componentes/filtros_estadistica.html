@@ -1,0 +1,100 @@
+<div class="mb-3">
+    <label class="form-label fw-semibold">Agrupar por</label>
+
+    <div class="form-check mb-2">
+        <input class="form-check-input"
+               id="{{ prefijo }}-todos"
+               type="radio"
+               name="filtro"
+               value="todos"
+               {% if request.GET.filtro == "todos" or not request.GET.filtro %}checked{% endif %}>
+        <label class="form-check-label" for="{{ prefijo }}-todos">
+            Todos los graduados
+        </label>
+    </div>
+
+    <div class="form-check mb-2">
+        <input class="form-check-input"
+               id="{{ prefijo }}-carrera"
+               type="radio"
+               name="filtro"
+               value="carrera"
+               {% if request.GET.filtro == "carrera" %}checked{% endif %}>
+        <label class="form-check-label" for="{{ prefijo }}-carrera">
+            Por carrera
+        </label>
+    </div>
+
+    <div class="form-check">
+        <input class="form-check-input"
+               id="{{ prefijo }}-escuela"
+               type="radio"
+               name="filtro"
+               value="escuela"
+               {% if request.GET.filtro == "escuela" %}checked{% endif %}>
+        <label class="form-check-label" for="{{ prefijo }}-escuela">
+            Por escuela
+        </label>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label for="{{ prefijo }}-select-carrera" class="form-label">Carrera</label>
+
+    <select id="{{ prefijo }}-select-carrera"
+            class="form-select campoCarrera"
+            name="carrera"
+            {% if request.GET.filtro != "carrera" %}disabled hidden{% endif %}>
+        <option value="">Seleccionar carrera</option>
+        {% for carrera in carreras %}
+            <option value="{{ carrera.codigo_carrera }}"
+                    {% if request.GET.carrera == carrera.codigo_carrera %}selected{% endif %}>
+                {{ carrera.nombre_carrera }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+
+<div class="mb-3">
+    <label for="{{ prefijo }}-select-escuela" class="form-label">Escuela</label>
+
+    <select
+        id="{{ prefijo }}-select-escuela"
+        class="form-select campoEscuela"
+        name="escuela"
+        {% if request.GET.filtro != "escuela" %}disabled hidden{% endif %}
+    >
+        <option value="">Seleccionar escuela</option>
+
+        {% for escuela in escuelas %}
+            <option
+                value="{{ escuela.id_escuela }}"
+                {% if request.GET.escuela == escuela.id_escuela|stringformat:"s" %}selected{% endif %}
+            >
+                {{ escuela.nombre_escuela }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+
+<hr>
+
+<p class="fw-semibold mb-2">Período de egreso</p>
+
+<div class="mb-3">
+    <label for="{{ prefijo }}-fecha-inicio" class="form-label">Desde</label>
+    <input class="form-control"
+           id="{{ prefijo }}-fecha-inicio"
+           type="date"
+           name="fechaInicio"
+           value="{{ request.GET.fechaInicio|default:'1997-01-01' }}">
+</div>
+
+<div class="mb-3">
+    <label for="{{ prefijo }}-fecha-fin" class="form-label">Hasta</label>
+    <input class="form-control"
+           id="{{ prefijo }}-fecha-fin"
+           type="date"
+           name="fechaFin"
+           value="{{ request.GET.fechaFin|default:fechaFin|date:'Y-m-d' }}">
+</div>

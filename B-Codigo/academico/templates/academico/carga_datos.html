@@ -1,0 +1,564 @@
+```html
+{% extends "academico/base.html" %}
+
+{% block title %}eGraduados | Carga de datos{% endblock %}
+
+{% block content %}
+<style>
+    .carga-contenedor {
+        max-width: 1050px;
+        margin: 0 auto;
+        padding: 2rem 1rem 4rem;
+    }
+
+    .carga-encabezado {
+        margin-bottom: 2rem;
+    }
+
+    .carga-volver {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        color: #245b91;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .carga-volver:hover {
+        color: #173b67;
+    }
+
+    .carga-encabezado h1 {
+        margin-bottom: 0.7rem;
+        color: #173b67;
+        font-size: clamp(1.8rem, 4vw, 2.4rem);
+        font-weight: 700;
+    }
+
+    .carga-encabezado p {
+        max-width: 720px;
+        margin-bottom: 0;
+        color: #64748b;
+        line-height: 1.7;
+    }
+
+    .carga-tarjeta {
+        margin-bottom: 1.5rem;
+        padding: 2rem;
+        background: #fff;
+        border: 1px solid #e5eaf0;
+        border-radius: 18px;
+        box-shadow: 0 4px 14px rgba(25, 45, 70, 0.04);
+    }
+
+    .carga-tarjeta h2 {
+        margin-bottom: 0.6rem;
+        color: #243b53;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .carga-descripcion {
+        margin-bottom: 1.5rem;
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+    .carga-icono {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 54px;
+        height: 54px;
+        margin-bottom: 1rem;
+        color: #245ca6;
+        background: #e8f0fc;
+        border-radius: 14px;
+        font-size: 1.8rem;
+    }
+
+    .carga-zona {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 245px;
+        padding: 2rem 1.5rem;
+        border: 2px dashed #cbd8e6;
+        border-radius: 14px;
+        background: #f8fafc;
+        text-align: center;
+        transition: border-color 0.2s ease,
+                    background-color 0.2s ease;
+    }
+
+    .carga-zona:hover,
+    .carga-zona:focus-within {
+        border-color: #5b8fc5;
+        background: #f2f7fd;
+    }
+
+    .carga-zona-icono {
+        margin-bottom: 1rem;
+        color: #527da9;
+        font-size: 2.7rem;
+    }
+
+    .carga-zona h3 {
+        margin-bottom: 0.5rem;
+        color: #263747;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+
+    .carga-zona p {
+        margin-bottom: 1rem;
+        color: #64748b;
+        font-size: 0.95rem;
+    }
+
+    .carga-archivo {
+        max-width: 100%;
+        color: #475569;
+        font-size: 0.9rem;
+    }
+
+    .carga-ayuda {
+        display: flex;
+        gap: 0.9rem;
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: #eef5fc;
+        border: 1px solid #dce9f7;
+        border-radius: 12px;
+    }
+
+    .carga-ayuda-icono {
+        flex-shrink: 0;
+        color: #245ca6;
+        font-size: 1.3rem;
+    }
+
+    .carga-ayuda strong {
+        display: block;
+        margin-bottom: 0.3rem;
+        color: #24486b;
+    }
+
+    .carga-ayuda p {
+        margin-bottom: 0;
+        color: #52677c;
+        font-size: 0.92rem;
+        line-height: 1.6;
+    }
+
+    .carga-requisitos {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .carga-requisito {
+        padding: 1rem;
+        background: #f8fafc;
+        border: 1px solid #e8edf3;
+        border-radius: 12px;
+    }
+
+    .carga-requisito strong {
+        display: block;
+        margin-bottom: 0.4rem;
+        color: #334155;
+        font-size: 0.95rem;
+    }
+
+    .carga-requisito p {
+        margin-bottom: 0;
+        color: #64748b;
+        font-size: 0.88rem;
+        line-height: 1.5;
+    }
+
+    .carga-acciones {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    .carga-boton {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        min-height: 44px;
+        padding: 0.7rem 1.2rem;
+        border-radius: 9px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background-color 0.2s ease;
+    }
+
+    .carga-boton-principal {
+        color: #fff;
+        background: #245b91;
+        border: 1px solid #245b91;
+    }
+
+    .carga-boton-principal:hover {
+        color: #fff;
+        background: #173b67;
+        border-color: #173b67;
+    }
+
+    .carga-boton-principal:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+    }
+
+    .carga-boton-secundario {
+        color: #475569;
+        background: #fff;
+        border: 1px solid #cbd5e1;
+    }
+
+    .carga-boton-secundario:hover {
+        color: #173b67;
+        background: #f8fafc;
+    }
+
+    .carga-pie {
+        margin-top: 2.5rem;
+        padding-top: 1.3rem;
+        border-top: 1px solid #e5eaf0;
+        color: #7b8794;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        .carga-requisitos {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .carga-contenedor {
+            padding: 1rem 0.75rem 2.5rem;
+        }
+
+        .carga-tarjeta {
+            padding: 1.25rem;
+        }
+
+        .carga-zona {
+            padding: 1.5rem 1rem;
+        }
+
+        .carga-acciones {
+            flex-direction: column-reverse;
+        }
+
+        .carga-acciones .carga-boton {
+            width: 100%;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .carga-zona,
+        .carga-boton {
+            transition: none;
+        }
+    }
+</style>
+
+<main class="carga-contenedor">
+
+    <header class="carga-encabezado">
+        <a href="{% url 'index' %}" class="carga-volver">
+            <span aria-hidden="true">←</span>
+            Volver al panel principal
+        </a>
+
+        <h1>Carga de datos</h1>
+
+        <p>
+            Incorporá información académica al sistema mediante
+            la carga de un archivo Excel. Verificá que el documento
+            respete el formato esperado antes de iniciar el proceso.
+        </p>
+    </header>
+
+    <!-- FORMULARIO DE CARGA -->
+    <section class="carga-tarjeta">
+
+        <div class="carga-icono" aria-hidden="true">⇧</div>
+
+        <h2>Importar archivo Excel</h2>
+
+        <p class="carga-descripcion">
+            Seleccioná el archivo que contiene los datos académicos
+            que querés incorporar a eGraduados.
+        </p>
+
+        <form method="post"
+              enctype="multipart/form-data"
+              id="formularioCarga">
+
+            {% csrf_token %}
+
+            <div class="carga-zona">
+                <div class="carga-zona-icono" aria-hidden="true">
+                    ▤
+                </div>
+
+                <h3>Seleccioná tu archivo</h3>
+
+                <p>
+                    Elegí un archivo Excel desde tu computadora.
+                </p>
+
+                <label for="archivoExcel"
+                       class="form-label fw-semibold">
+                    Archivo Excel
+                </label>
+
+                <input
+                    type="file"
+                    class="form-control carga-archivo"
+                    id="archivoExcel"
+                    name="archivo_excel"
+                    accept=".xlsx,.xls"
+                    required
+                    aria-describedby="ayudaArchivo"
+                />
+
+                <small id="ayudaArchivo"
+                       class="text-secondary mt-2">
+                    Formatos admitidos: .xlsx y .xls
+                </small>
+            </div>
+
+            <div class="carga-ayuda">
+                <div class="carga-ayuda-icono"
+                     aria-hidden="true">ⓘ</div>
+
+                <div>
+                    <strong>Antes de continuar</strong>
+                    <p>
+                        Asegurate de que el archivo tenga los encabezados
+                        y las columnas esperadas por el sistema.
+                        Evitá modificar su estructura sin verificar
+                        previamente el formato requerido.
+                    </p>
+                </div>
+            </div>
+
+            <div class="carga-acciones">
+                <a href="{% url 'index' %}"
+                   class="carga-boton carga-boton-secundario">
+                    Cancelar
+                </a>
+
+                <button type="submit"
+                        class="carga-boton carga-boton-principal"
+                        id="botonCargar">
+                    <span aria-hidden="true">⇧</span>
+                    Cargar archivo
+                </button>
+            </div>
+
+        </form>
+    </section>
+
+   ```html
+<!-- ESTRUCTURA REQUERIDA -->
+<section class="carga-tarjeta">
+
+    <h2>Estructura del archivo Excel</h2>
+
+    <p class="carga-descripcion">
+        El archivo debe contener las siguientes columnas,
+        respetando sus nombres y el orden indicado.
+        La primera fila debe contener los encabezados.
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">N.º</th>
+                    <th scope="col">Nombre de columna</th>
+                    <th scope="col">Descripción</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><code>legajo</code></td>
+                    <td>Legajo del graduado.</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><code>dni</code></td>
+                    <td>Documento nacional de identidad.</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><code>nombre</code></td>
+                    <td>Nombre del graduado.</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td><code>apellido</code></td>
+                    <td>Apellido del graduado.</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td><code>promedio_sin_aplazo</code></td>
+                    <td>Promedio sin aplazos.</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td><code>promedio_con_aplazo</code></td>
+                    <td>Promedio con aplazos.</td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td><code>fecha_ingreso_carrera</code></td>
+                    <td>Fecha de ingreso a la carrera.</td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td><code>fecha_egreso_carrera</code></td>
+                    <td>Fecha de egreso de la carrera.</td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td><code>codigo_carrera</code></td>
+                    <td>Código de la carrera correspondiente.</td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td><code>fecha_ingreso_universidad</code></td>
+                    <td>Fecha de ingreso a la universidad.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="carga-ayuda">
+        <div class="carga-ayuda-icono" aria-hidden="true">ⓘ</div>
+
+        <div>
+            <strong>Importante</strong>
+            <p>
+                No cambies los nombres de las columnas ni su orden.
+                Las fechas deben utilizar un formato uniforme
+                y los promedios deben contener valores numéricos.
+                Cada fila posterior a los encabezados debe representar
+                un registro académico de un graduado en una carrera.
+            </p>
+        </div>
+    </div>
+
+</section>
+```
+
+    <footer class="carga-pie">
+        Secretaría Académica · Universidad Nacional de la Patagonia Austral · UARG
+    </footer>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const formulario = document.getElementById("formularioCarga");
+    const archivoExcel = document.getElementById("archivoExcel");
+    const botonCargar = document.getElementById("botonCargar");
+    const estadoCarga = document.getElementById("estadoCarga");
+
+    formulario.addEventListener("submit", function (evento) {
+
+        evento.preventDefault();
+
+        if (!archivoExcel.files.length) {
+            return;
+        }
+
+        const archivo = archivoExcel.files[0];
+        const extensionesPermitidas = [".xlsx", ".xls"];
+        const extension = archivo.name
+            .substring(archivo.name.lastIndexOf("."))
+            .toLowerCase();
+
+        if (!extensionesPermitidas.includes(extension)) {
+            mostrarEstado(
+                "Seleccioná un archivo Excel con extensión .xlsx o .xls.",
+                "danger"
+            );
+            return;
+        }
+
+        const datosFormulario = new FormData(formulario);
+
+        botonCargar.disabled = true;
+        botonCargar.textContent = "Procesando archivo...";
+
+        mostrarEstado(
+            "El archivo se está enviando al servidor. Iniciando la carga de datos...",
+            "info"
+        );
+
+        fetch("{% url 'cargar_datos' %}", {
+            method: "POST",
+            body: datosFormulario,
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+        .then(function (respuesta) {
+            return respuesta.json().then(function (datos) {
+                if (!respuesta.ok) {
+                    throw new Error(
+                        datos.mensaje || "No se pudo procesar el archivo."
+                    );
+                }
+
+                return datos;
+            });
+        })
+        .then(function (datos) {
+            mostrarEstado(
+                datos.mensaje || "El proceso de carga finalizó.",
+                datos.exito ? "success" : "warning"
+            );
+
+            if (datos.exito) {
+                formulario.reset();
+            }
+        })
+        .catch(function (error) {
+            mostrarEstado(
+                error.message || "Ocurrió un error durante la carga.",
+                "danger"
+            );
+        })
+        .finally(function () {
+            botonCargar.disabled = false;
+            botonCargar.innerHTML = "<span aria-hidden=\"true\">⇧</span> Cargar archivo";
+        });
+
+    });
+
+    function mostrarEstado(mensaje, tipo) {
+        estadoCarga.className = "alert alert-" + tipo + " mt-4";
+        estadoCarga.textContent = mensaje;
+    }
+
+});
+</script>
+</main>
+{% endblock %}
+```

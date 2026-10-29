@@ -1,189 +1,446 @@
-from django.db import models
-from django.db.models import Q
 
-# Create your models here.
+from django.db import models
+
+
+# ==========================================================
+# ENUMERACIONES
+# ==========================================================
+
+class ResultadoExamen(models.TextChoices):
+    APROBADO = "Aprobado", "Aprobado"
+    REPROBADO = "Reprobado", "Reprobado"
+
+
+class Cuatrimestre(models.TextChoices):
+    PRIMERO = "1er", "1er"
+    SEGUNDO = "2do", "2do"
+    ANUAL = "A", "A"
+
+
+# ==========================================================
+# GRADUADO
+# ==========================================================
 
 class Graduado(models.Model):
-    legajo_graduado = models.CharField(max_length=14, primary_key=True)
-    dni_graduado = models.CharField(max_length=9, unique=True)
+    legajo_graduado = models.CharField(
+        max_length=50,
+        primary_key=True
+    )
+    dni = models.CharField(max_length=20, unique=True)
     fecha_ingreso_universidad = models.DateField()
-    promedio_sin_aplazo= models.DecimalField(max_digits=4, decimal_places=2)
-    promedio_con_aplazo= models.DecimalField(max_digits=4, decimal_places=2, null=True, blank= True)
+    nombre = models.CharField(max_length=100)
+    apellido = models.CharField(max_length=100)
 
     class Meta:
-        constraints= [
-            models.CheckConstraint(
-                condition=Q(promedio_sin_aplazo__gte=1) & Q(promedio_sin_aplazo__lte=10),
-                name='promedio_sin_aplazo'                
-            ),
-            models.CheckConstraint(
-                condition=(
-                    Q(promedio_con_aplazo__isnull=True) |
-                    Q(promedio_con_aplazo__gte=1) & Q(promedio_con_aplazo__lte=10)),
-                name='promedio_con_aplazo'
-            )            
-        ]
+        db_table = "GRADUADO"
 
     def __str__(self):
-        return self.legajo_graduado
+        return f"{self.apellido}, {self.nombre}"
+
+
+# ==========================================================
+# ESCUELA Y CARRERA
+# ==========================================================
+
+class Escuela(models.Model):
+    id_escuela = models.AutoField(primary_key=True)
+    nombre_escuela = models.CharField(max_length=150, unique=True)
+
+    class Meta:
+        db_table = "ESCUELA"
+
+    def __str__(self):
+        return self.nombre_escuela
 
 
 class Carrera(models.Model):
-    codigo_carrera = models.CharField(max_length=4, primary_key=True)
-    nombre_carrera= models.CharField(max_length=50)
-    escuela= models.CharField(max_length=100)
-    resolucion_nacional= models.CharField(max_length=8, null=True, blank=True)
-    notas= models.CharField(max_length=5, null=True, blank=True)
+    codigo_carrera = models.CharField(
+        max_length=50,
+        primary_key=True
+    )
+    nombre_carrera = models.CharField(max_length=150)
+
+    id_escuela = models.ForeignKey(
+        Escuela,
+        on_delete=models.PROTECT,
+        db_column="id_escuela",
+        related_name="carreras"
+    )
+
+    class Meta:
+        db_table = "CARRERA"
 
     def __str__(self):
-        return f"{self.codigo_carrera}, {self.nombre_carrera}, {self.escuela}"
+        return self.nombre_carrera
+
+
+# ==========================================================
+# PLAN DE ESTUDIOS Y MATERIA
+# ==========================================================
 
 class PlanEstudios(models.Model):
-    carrera = models.ForeignKey(Carrera, on_delete=models.CASCADE, related_name='planes')
-    codigo_plan = models.CharField(max_length=10)
-    vigente = models.BooleanField()
+    codigo_plan = models.CharField(
+        max_length=50,
+        primary_key=True
+    )
+
+    codigo_carrera = models.ForeignKey(
+        Carrera,
+        on_delete=models.PROTECT,
+        db_column="codigo_carrera",
+        related_name="planes_estudio"
+    )
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['carrera'],
-                name= 'fk_plan_carrera'
-            )
-        ]
+        db_table = "PLAN_ESTUDIOS"
+
+    def __str__(self):
+        return self.codigo_plan
+
 
 class Materia(models.Model):
-    codigo_materia=models.CharField(max_length=6, primary_key=True)
-    nombre_materia=models.CharField(max_length=100)
-    anio=models.CharField(max_length=1)
+    codigo_materia = models.CharField(
+        max_length=50,
+        primary_key=True
+    )
+    nombre_materia = models.CharField(max_length=150)
+
+    class Meta:
+        db_table = "MATERIA"
 
     def __str__(self):
-        return f"{self.codigo_materia}, {self.nombre_materia}"
+        return self.nombre_materia
 
 
-#ACLARACIÓN IMPORTANTE: Esto más que un "examen" representa una MESA DE EXAMEN. Se le pone examen para seguir el 
-#nombre que se encuentra en el analítico
-class Examen(models.Model): 
-    class TipoExamen(models.TextChoices):
-            EQUIVALENCIA= 'EQUIV','Equivalencia'
-            EXAMEN='EXAM','Examen'
-    tipo=models.CharField(max_length=20, choices=TipoExamen, default=TipoExamen.EXAMEN)
-    acta_respaldatoria= models.CharField(max_length=20, primary_key=True)
-    fecha_examen= models.DateField()
-    materia=models.ForeignKey(Materia, on_delete=models.CASCADE, related_name="examenes")
-    
+# ==========================================================
+# EXAMEN
+# ==========================================================
 
-    def __str__(self):
-        return f"{self.acta_respaldatoria},{self.tipo}"
+class Examen(models.Model):
+    acta_respaldatoria = models.CharField(
+        max_length=50,
+        primary_key=True
+    )
+    tipo_examen = models.CharField(max_length=100)
+    fecha_examen = models.DateField()
 
-class CarreraNombreTitulo(models.Model):
-    carrera=models.ForeignKey(Carrera, on_delete=models.CASCADE, related_name='nombresTitulos')
-    nombre_titulos=models.CharField(max_length=100)
+    codigo_materia = models.ForeignKey(
+        Materia,
+        on_delete=models.PROTECT,
+        db_column="codigo_materia",
+        related_name="examenes"
+    )
 
-    def __str__(self):
-        return f"{self.carrera.nombre_carrera}, {self.titulos}"
-
-class Analitico(models.Model):
-    graduado= models.ForeignKey(Graduado,on_delete=models.CASCADE, related_name='analiticos')
-    titulo_carrera=models.ForeignKey(CarreraNombreTitulo, on_delete=models.PROTECT, related_name='analiticos')
-    ciudad_secundario= models.CharField(max_length=200, null=True)
-    provincia_secundario=models.CharField(max_length=200, null=True)
-    nombre_secundario=models.CharField(max_length=200, null=True)
-    titulo_secundario=models.CharField(max_length=200, null=True)
-    fecha_egreso_carrera=models.DateField()
-
-    class Meta: #meta son las restricciones
-        constraints=[
-            models.UniqueConstraint( #restricción de UNIQUE para que no se repitan los siguientes campos
-                fields=['graduado','titulo_carrera'], #campos que NO pueden repetirse
-                name='fk_analitico'
-            )
-        ]
+    class Meta:
+        db_table = "EXAMEN"
 
     def __str__(self):
-        return f"Analitico - {self.graduado} ({self.titulo_carrera.nombre_titulos})"
+        return self.acta_respaldatoria
+
+
+# ==========================================================
+# TITULO
+# ==========================================================
+
+class Titulo(models.Model):
+    id_titulo = models.AutoField(primary_key=True)
+    nombre_titulo = models.CharField(max_length=150, unique=True)
+
+    codigo_carrera = models.ForeignKey(
+        Carrera,
+        on_delete=models.PROTECT,
+        db_column="codigo_carrera",
+        related_name="titulos"
+    )
+
+    class Meta:
+        db_table = "TITULO"
+
+    def __str__(self):
+        return self.nombre_titulo
+
+
+# ==========================================================
+# PROVINCIA Y CIUDAD
+# ==========================================================
+
+class Provincia(models.Model):
+    id_provincia = models.AutoField(primary_key=True)
+    nombre_provincia = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        db_table = "PROVINCIA"
+
+    def __str__(self):
+        return self.nombre_provincia
+
+
+class Ciudad(models.Model):
+    id_ciudad = models.AutoField(primary_key=True)
+    nombre_ciudad = models.CharField(max_length=100, unique=True)
+
+    id_provincia = models.ForeignKey(
+        Provincia,
+        on_delete=models.PROTECT,
+        db_column="id_provincia",
+        related_name="ciudades"
+    )
+
+    class Meta:
+        db_table = "CIUDAD"
+
+    def __str__(self):
+        return self.nombre_ciudad
+
+
+# ==========================================================
+# DATOS DE NACIMIENTO
+# ==========================================================
+
+class DatosNacimiento(models.Model):
+    id_datos = models.AutoField(primary_key=True)
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+
+    legajo_graduado = models.ForeignKey(
+        Graduado,
+        on_delete=models.CASCADE,
+        db_column="legajo_graduado",
+        related_name="datos_nacimiento"
+    )
+
+    id_provincia = models.ForeignKey(
+        Provincia,
+        on_delete=models.PROTECT,
+        db_column="id_provincia",
+        related_name="datos_nacimiento"
+    )
+
+    class Meta:
+        db_table = "DATOS_NACIMIENTO"
+
+
+# ==========================================================
+# SECUNDARIO
+# ==========================================================
+
+class Secundario(models.Model):
+    id_secundario = models.AutoField(primary_key=True)
+    nombre_secundario = models.CharField(max_length=200, unique=True)
+
+    legajo_graduado = models.ForeignKey(
+        Graduado,
+        on_delete=models.PROTECT,
+        db_column="legajo_graduado",
+        related_name="secundarios"
+    )
+
+    id_provincia = models.ForeignKey(
+        Provincia,
+        on_delete=models.PROTECT,
+        db_column="id_provincia",
+        related_name="secundarios"
+    )
+
+    class Meta:
+        db_table = "SECUNDARIO"
+
+    def __str__(self):
+        return self.nombre_secundario
+
+
+# ==========================================================
+# USUARIO
+# ==========================================================
+
+class Usuario(models.Model):
+    id_usuario = models.AutoField(primary_key=True)
+    nombre_usuario = models.CharField(max_length=100, unique=True)
+    email = models.EmailField(max_length=254, unique=True)
+
+    # Recomendación: almacenar contraseñas mediante
+    # el sistema de autenticación de Django, nunca como enteros.
+    contrasenia = models.CharField(max_length=128)
+
+    class Meta:
+        db_table = "USUARIO"
+
+    def __str__(self):
+        return self.nombre_usuario
+
+
+# ==========================================================
+# RESOLUCION
+# ==========================================================
+
+class Resolucion(models.Model):
+    resolucion = models.CharField(
+        max_length=100,
+        primary_key=True
+    )
+
+    class Meta:
+        db_table = "RESOLUCION"
+
+    def __str__(self):
+        return self.resolucion
+
+
+# ==========================================================
+# GRADUADO_CARRERA
+# Clave primaria compuesta
+# ==========================================================
 
 class GraduadoCarrera(models.Model):
-    carrera=models.ForeignKey(Carrera, on_delete=models.CASCADE, related_name='graduados_asociados')
-    graduado=models.ForeignKey(Graduado, on_delete=models.CASCADE, related_name='carreras_asociadas')
-    fecha_ingreso_carrera= models.DateField()
+    legajo_graduado = models.ForeignKey(
+        Graduado,
+        on_delete=models.CASCADE,
+        db_column="legajo_graduado",
+        related_name="carreras_cursadas"
+    )
+
+    codigo_carrera = models.ForeignKey(
+        Carrera,
+        on_delete=models.PROTECT,
+        db_column="codigo_carrera",
+        related_name="graduados"
+    )
+
+    fecha_ingreso_carrera = models.DateField()
+    fecha_egreso_carrera = models.DateField()
+    promedio_con_aplazo = models.FloatField()
+    promedio_sin_aplazo = models.FloatField()
+
+    pk = models.CompositePrimaryKey(
+        "legajo_graduado",
+        "codigo_carrera"
+    )
 
     class Meta:
-        constraints=[
-            models.UniqueConstraint(
-                fields=['graduado','carrera'],
-                name='unique_graduado_carrera'
-            )
-        ]
+        db_table = "GRADUADO_CARRERA"
 
-    
-class PlanMateria(models.Model):
-    materia= models.ForeignKey(Materia, on_delete=models.CASCADE, related_name='carreras_asociadas')
-    plan= models.ForeignKey(PlanEstudios, on_delete=models.CASCADE, related_name='materias_asociadas')
-    orden = models.CharField(max_length=2)
-    requisitos = models.BooleanField(default=False)
 
-    class Meta:
-        constraints=[
-            models.UniqueConstraint(
-                fields=['materia','plan'],
-                name='unique_plan_materia'
-            )
-        ]
+# ==========================================================
+# GRADUADO_EXAMEN
+# Clave primaria compuesta
+# ==========================================================
 
-class ExamenGraduado(models.Model):
-    examen=models.ForeignKey(Examen, on_delete=models.CASCADE,related_name='graduados_asociados')
-    graduado=models.ForeignKey(Graduado, on_delete=models.CASCADE, related_name='examenes_asociados')
-    nota= models.DecimalField(max_digits=4, decimal_places=2)
+class GraduadoExamen(models.Model):
+    acta_respaldatoria = models.ForeignKey(
+        Examen,
+        on_delete=models.PROTECT,
+        db_column="acta_respaldatoria",
+        related_name="resultados_graduados"
+    )
 
-    class Meta:
-        constraints=[
-            models.UniqueConstraint(
-                fields=['examen','graduado'],
-                name='unique_examen_graduado'
-            ),
-            models.CheckConstraint(
-                condition=Q(nota__gte=1) & Q(nota__lte=10),
-                name='notra_entre_uno_y_diez'
-            )
-        ]
+    legajo_graduado = models.ForeignKey(
+        Graduado,
+        on_delete=models.CASCADE,
+        db_column="legajo_graduado",
+        related_name="examenes"
+    )
 
-class GraduadoApellido (models.Model):
-    graduado=models.ForeignKey(Graduado, on_delete=models.CASCADE, related_name='apellidos_asociados')
-    apellido = models.CharField(max_length=50)
+    nota = models.IntegerField()
+    resultado = models.CharField(
+        max_length=10,
+        choices=ResultadoExamen.choices
+    )
+
+    pk = models.CompositePrimaryKey(
+        "acta_respaldatoria",
+        "legajo_graduado"
+    )
 
     class Meta:
-        constraints=[
-            models.UniqueConstraint(
-                fields=['apellido','graduado'],
-                name='unique_apellido_graduado'
-            )
-        ]
+        db_table = "GRADUADO_EXAMEN"
 
-class GraduadoNombre (models.Model):
-    graduado=models.ForeignKey(Graduado, on_delete=models.CASCADE, related_name='nombres_asociados')
-    nombre = models.CharField(max_length=50)
+
+# ==========================================================
+# GRUPO OPTATIVO
+# ==========================================================
+
+class GrupoOptativo(models.Model):
+    id_grupo_optativo = models.AutoField(primary_key=True)
+    nombre_grupo = models.CharField(max_length=150)
 
     class Meta:
-        constraints=[
-            models.UniqueConstraint(
-                fields=['nombre','graduado'],
-                name='unique_nombre_graduado'
-            )
-        ]
+        db_table = "GRUPO_OPTATIVO"
 
-class GraduadoMateria(models.Model):
-    graduado=models.ForeignKey(Graduado, on_delete=models.CASCADE, related_name='materias_asociadas')
-    materia= models.ForeignKey(Materia, on_delete=models.CASCADE, related_name='graduados_asociados')
+    def __str__(self):
+        return self.nombre_grupo
+
+
+# ==========================================================
+# PLAN_ESTUDIOS_MATERIA
+# Clave primaria compuesta
+# ==========================================================
+
+class PlanEstudiosMateria(models.Model):
+    codigo_plan = models.ForeignKey(
+        PlanEstudios,
+        on_delete=models.CASCADE,
+        db_column="codigo_plan",
+        related_name="materias_plan"
+    )
+
+    codigo_materia = models.ForeignKey(
+        Materia,
+        on_delete=models.PROTECT,
+        db_column="codigo_materia",
+        related_name="planes"
+    )
+
+    anio_materia = models.IntegerField()
+
+    cuatrimestre_materia = models.CharField(
+        max_length=3,
+        choices=Cuatrimestre.choices
+    )
+
+    orden_materia = models.IntegerField()
+    materia_requisito = models.BooleanField()
+
+    id_grupo_optativo = models.ForeignKey(
+        GrupoOptativo,
+        on_delete=models.SET_NULL,
+        db_column="id_grupo_optativo",
+        null=True,
+        blank=True,
+        related_name="materias"
+    )
+
+    pk = models.CompositePrimaryKey(
+        "codigo_plan",
+        "codigo_materia"
+    )
+
     class Meta:
-        constraints=[
-            models.UniqueConstraint(
-                fields=['graduado','materia'],
-                name='unique_graduado_materia'
-            )
-        ]
-
-class CarerraResolucionInstitucional(models.Model):
-    carrera= models.ForeignKey(Carrera, on_delete=models.CASCADE, related_name='resoluciones_relacionadas')
-    resolucion_institucional= models.CharField(max_length=10)
+        db_table = "PLAN_ESTUDIOS_MATERIA"
 
 
+# ==========================================================
+# CARRERA_RESOLUCION
+# Clave primaria compuesta
+# ==========================================================
+
+class CarreraResolucion(models.Model):
+    resolucion = models.ForeignKey(
+        Resolucion,
+        on_delete=models.CASCADE,
+        db_column="resolucion",
+        related_name="carreras_resolucion"
+    )
+
+    codigo_carrera = models.ForeignKey(
+        Carrera,
+        on_delete=models.CASCADE,
+        db_column="codigo_carrera",
+        related_name="resoluciones"
+    )
+
+    pk = models.CompositePrimaryKey(
+        "resolucion",
+        "codigo_carrera"
+    )
+
+    class Meta:
+        db_table = "CARRERA_RESOLUCION"

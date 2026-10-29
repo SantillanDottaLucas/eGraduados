@@ -1,10 +1,16 @@
+
 # academico/servicios/graficador_estadistico.py
+
 
 def graficar_promedio(resultado):
     """
-    Prepara los datos para representar el promedio académico.
-    La varianza se muestra como estadístico separado en el HTML.
+    Prepara los datos del promedio académico para el gráfico.
+
+    La varianza se consulta por separado y se muestra en el HTML.
     """
+    if not isinstance(resultado, dict):
+        return {"etiquetas": [], "valores": []}
+
     promedio = resultado.get("promedio")
 
     return {
@@ -15,10 +21,11 @@ def graficar_promedio(resultado):
 
 def graficar_total(resultado):
     """
-    Prepara los datos de cantidad de graduados.
-    Las etiquetas y los valores dependen del filtro seleccionado:
-    - Todos: cantidad por escuela.
-    - Escuela: cantidad por carrera.
+    Prepara los datos para el gráfico de cantidad de graduados.
+
+    Según el filtro seleccionado:
+    - Todos: cantidad de graduados por escuela.
+    - Escuela: cantidad de graduados por carrera.
     - Carrera: total de graduados de esa carrera.
     """
     if not isinstance(resultado, dict):
@@ -29,15 +36,19 @@ def graficar_total(resultado):
 
     return {
         "etiquetas": etiquetas,
-        "valores": [int(valor) for valor in valores]
+        "valores": [
+            int(valor) for valor in valores
+            if valor is not None
+        ]
     }
 
 
 def graficar_tiempos(resultado):
     """
-    Prepara los datos de tiempo de graduación.
+    Prepara los datos de duración de las carreras para el gráfico.
 
-    La consulta debe devolver las claves 'etiquetas' y 'valores'.
+    Las etiquetas identifican cada registro y los valores representan
+    los años transcurridos entre el ingreso y el egreso de la carrera.
     """
     if not isinstance(resultado, dict):
         return {"etiquetas": [], "valores": []}

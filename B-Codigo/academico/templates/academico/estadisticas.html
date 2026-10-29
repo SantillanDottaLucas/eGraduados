@@ -1,261 +1,349 @@
 {% extends "academico/base.html" %}
 {% load static %}
 
+{% block title %}Tablero estadístico | eGraduados{% endblock %}
+
 {% block content %}
 <div class="container-fluid px-3 px-lg-4 py-4 tablero-estadistico">
+
     <header class="mb-4">
-        <p class="text-uppercase text-secondary small fw-semibold mb-1">Secretaría Académica</p>
+        <p class="text-uppercase text-secondary small fw-semibold mb-1">
+            Secretaría Académica
+        </p>
         <h2 class="fw-bold mb-2">Tablero estadístico</h2>
         <p class="text-secondary mb-0">
-            Analizá los promedios, la cantidad de graduados y los tiempos de graduación
-            según la carrera, la escuela y el período seleccionado.
+            Analizá los promedios, la cantidad de graduados y los tiempos
+            de graduación según la carrera, la escuela y el período seleccionado.
         </p>
     </header>
 
     <!-- 1. PROMEDIOS ACADÉMICOS -->
-    <section class="mb-4" aria-labelledby="titulo-promedios">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-bottom py-3">
-                <h4 id="titulo-promedios" class="h5 fw-bold mb-1">1. Promedios académicos</h4>
-                <p class="text-secondary small mb-0">Compará los promedios de los graduados según los filtros seleccionados.</p>
-            </div>
-            <div class="card-body p-3 p-lg-4">
-                <div class="row g-4">
-                    <div class="col-12 col-lg-4">
-                        <form method="get" action="{% url 'estadisticas_promedios' %}" class="formulario-estadistica">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Tipo de promedio</label>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" id="promedio-sin-aplazo" type="radio" name="promedio" value="promedio_sin_aplazo"
-                                        {% if request.GET.promedio == 'promedio_sin_aplazo' or not request.GET.promedio %}checked{% endif %} required>
-                                    <label class="form-check-label" for="promedio-sin-aplazo">Sin aplazos</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" id="promedio-con-aplazo" type="radio" name="promedio" value="promedio_con_aplazo"
-                                        {% if request.GET.promedio == 'promedio_con_aplazo' %}checked{% endif %}>
-                                    <label class="form-check-label" for="promedio-con-aplazo">Con aplazos</label>
-                                </div>
+    <section class="card shadow-sm border-0 mb-4"
+             aria-labelledby="titulo-promedios">
+
+        <div class="card-header bg-white py-3">
+            <h4 id="titulo-promedios" class="h5 fw-bold mb-1">
+                1. Promedios académicos
+            </h4>
+            <p class="text-secondary small mb-0">
+                Compará los promedios de los graduados.
+            </p>
+        </div>
+
+        <div class="card-body p-3 p-lg-4">
+            <div class="row g-4">
+
+                <div class="col-12 col-lg-4">
+                    <form method="get"
+                          action="{% url 'estadisticas_promedios' %}"
+                          class="formulario-estadistica">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Tipo de promedio
+                            </label>
+
+                            <div class="form-check mb-2">
+                                <input class="form-check-input"
+                                       id="promedio-sin-aplazo"
+                                       type="radio"
+                                       name="promedio"
+                                       value="promedio_sin_aplazo"
+                                       {% if request.GET.promedio != 'promedio_con_aplazo' %}checked{% endif %}>
+                                <label class="form-check-label"
+                                       for="promedio-sin-aplazo">
+                                    Sin aplazos
+                                </label>
                             </div>
-                            <hr>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Agrupar por</label>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" id="promedio-todos" type="radio" name="filtro" value="todos"
-                                        {% if request.GET.filtro == 'todos' or not request.GET.filtro %}checked{% endif %} required>
-                                    <label class="form-check-label" for="promedio-todos">Todos los graduados</label>
-                                </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" id="promedio-carrera" type="radio" name="filtro" value="carrera"
-                                        {% if request.GET.filtro == 'carrera' %}checked{% endif %}>
-                                    <label class="form-check-label" for="promedio-carrera">Por carrera</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" id="promedio-escuela" type="radio" name="filtro" value="escuela"
-                                        {% if request.GET.filtro == 'escuela' %}checked{% endif %}>
-                                    <label class="form-check-label" for="promedio-escuela">Por escuela</label>
-                                </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input"
+                                    id="promedio-con-aplazo"
+                                    type="radio"
+                                    name="promedio"
+                                    value="promedio_con_aplazo"
+                                    {% if request.GET.promedio == 'promedio_con_aplazo' %}checked{% endif %}>
+
+                                <label class="form-check-label" for="promedio-con-aplazo">
+                                    Con aplazos
+                                </label>
                             </div>
-                            <div class="mb-3">
-                                <label for="promedio-select-carrera" class="form-label">Carrera</label>
-                                <select id="promedio-select-carrera" class="form-select campoCarrera" name="carrera"
-                                    {% if request.GET.filtro != 'carrera' %}disabled hidden{% endif %}>
-                                    <option value="">Seleccionar carrera</option>
-                                    {% for carrera in carreras %}
-                                        <option value="{{ carrera.codigo_carrera }}" {% if request.GET.carrera == carrera.codigo_carrera %}selected{% endif %}>{{ carrera.nombre_carrera }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="promedio-select-escuela" class="form-label">Escuela</label>
-                                <select id="promedio-select-escuela" class="form-select campoEscuela" name="escuela"
-                                    {% if request.GET.filtro != 'escuela' %}disabled hidden{% endif %}>
-                                    <option value="">Seleccionar escuela</option>
-                                    {% for escuela in escuelas %}
-                                        <option value="{{ escuela }}" {% if request.GET.escuela == escuela %}selected{% endif %}>{{ escuela }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <hr>
-                            <p class="fw-semibold mb-2">Período de egreso</p>
-                            <div class="mb-3">
-                                <label for="promedio-fecha-inicio" class="form-label">Desde</label>
-                                <input class="form-control" id="promedio-fecha-inicio" type="date" name="fechaInicio" value="{{ request.GET.fechaInicio|default:'1997-01-01' }}">
-                            </div>
-                            <div class="mb-4">
-                                <label for="promedio-fecha-fin" class="form-label">Hasta</label>
-                                <input class="form-control" id="promedio-fecha-fin" type="date" name="fechaFin" value="{{ request.GET.fechaFin|default:'' }}">
-                            </div>
-                            <button class="btn btn-primary w-100" type="submit">Generar estadística</button>
-                        </form>
-                    </div>
-                    <div class="col-12 col-lg-8">
-                        <div class="panel-resultado h-100">
-                            <h5 class="fw-semibold mb-3">Resultado del análisis</h5>
-                            <div class="row g-3 mb-3">
-                                <div class="col-12 col-md-6"><div class="indicador">
-                                    <p class="text-secondary small mb-1">Promedio calculado</p>
-                                    <p class="h3 fw-bold mb-0">{% if resultado_promedio != None %}{{ resultado_promedio|floatformat:2 }}{% else %}—{% endif %}</p>
-                                </div></div>
-                                <div class="col-12 col-md-6"><div class="indicador">
-                                    <p class="text-secondary small mb-1">Varianza</p>
-                                    <p class="h3 fw-bold mb-0">{% if varianza_promedios != None %}{{ varianza_promedios|floatformat:2 }}{% else %}—{% endif %}</p>
-                                </div></div>
-                            </div>
-                            <div class="grafico-contenedor" data-datos="datos-promedios">
-                                <canvas id="graficoPromedios"></canvas>
-                            </div>
-                            {{ datos_promedios|json_script:"datos-promedios" }}
-                            {% if resultado_promedio == None %}
-                                <p class="text-secondary small mt-3 mb-0">No hay datos disponibles para los filtros seleccionados.</p>
-                            {% endif %}
                         </div>
+
+                        <hr>
+
+                        {% include "academico/componentes/filtros_estadistica.html" with prefijo="promedio" %}
+
+                        <button class="btn btn-primary w-100 mt-3" type="submit">
+                            Aplicar filtros
+                        </button>
+                    </form>
+                </div>
+
+                <div class="col-12 col-lg-8">
+                    <div class="panel-resultado h-100">
+
+                        <h5 class="fw-semibold mb-3">Resultado del análisis</h5>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-6">
+                                <div class="indicador">
+                                    <p class="text-secondary small mb-1">
+                                        Promedio calculado
+                                    </p>
+                                    <p class="h3 fw-bold mb-0">
+                                        {% if resultado_promedio != None %}
+                                            {{ resultado_promedio|floatformat:2 }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <div class="indicador">
+                                    <p class="text-secondary small mb-1">
+                                        Varianza
+                                    </p>
+                                    <p class="h3 fw-bold mb-0">
+                                        {% if varianza_promedios != None %}
+                                            {{ varianza_promedios|floatformat:2 }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grafico-contenedor"
+                             data-datos="datos-promedios">
+                            <canvas id="graficoPromedios"
+                                    role="img"
+                                    aria-label="Gráfico de promedios académicos"></canvas>
+                            <p class="mensaje-sin-datos text-secondary small"
+                               hidden></p>
+                        </div>
+
                     </div>
                 </div>
+
             </div>
         </div>
     </section>
+
 
     <!-- 2. CANTIDAD DE GRADUADOS -->
-    <section class="mb-4" aria-labelledby="titulo-totales">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-bottom py-3">
-                <h4 id="titulo-totales" class="h5 fw-bold mb-1">2. Cantidad de graduados</h4>
-                <p class="text-secondary small mb-0">Consultá la cantidad de graduados para un período y una unidad académica.</p>
-            </div>
-            <div class="card-body p-3 p-lg-4">
-                <div class="row g-4">
-                    <div class="col-12 col-lg-4">
-                        <form method="get" action="{% url 'estadisticas_totales' %}" class="formulario-estadistica">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Agrupar por</label>
-                                <div class="form-check mb-2"><input class="form-check-input" id="totales-todos" type="radio" name="filtro" value="todos" {% if request.GET.filtro == 'todos' or not request.GET.filtro %}checked{% endif %} required><label class="form-check-label" for="totales-todos">Todos los graduados</label></div>
-                                <div class="form-check mb-2"><input class="form-check-input" id="totales-carrera" type="radio" name="filtro" value="carrera" {% if request.GET.filtro == 'carrera' %}checked{% endif %}><label class="form-check-label" for="totales-carrera">Por carrera</label></div>
-                                <div class="form-check"><input class="form-check-input" id="totales-escuela" type="radio" name="filtro" value="escuela" {% if request.GET.filtro == 'escuela' %}checked{% endif %}><label class="form-check-label" for="totales-escuela">Por escuela</label></div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="totales-select-carrera" class="form-label">Carrera</label>
-                                <select id="totales-select-carrera" class="form-select campoCarrera" name="carrera" {% if request.GET.filtro != 'carrera' %}disabled hidden{% endif %}>
-                                    <option value="">Seleccionar carrera</option>
-                                    {% for carrera in carreras %}<option value="{{ carrera.codigo_carrera }}" {% if request.GET.carrera == carrera.codigo_carrera %}selected{% endif %}>{{ carrera.nombre_carrera }}</option>{% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="totales-select-escuela" class="form-label">Escuela</label>
-                                <select id="totales-select-escuela" class="form-select campoEscuela" name="escuela" {% if request.GET.filtro != 'escuela' %}disabled hidden{% endif %}>
-                                    <option value="">Seleccionar escuela</option>
-                                    {% for escuela in escuelas %}<option value="{{ escuela }}" {% if request.GET.escuela == escuela %}selected{% endif %}>{{ escuela }}</option>{% endfor %}
-                                </select>
-                            </div>
-                            <hr><p class="fw-semibold mb-2">Período de egreso</p>
-                            <div class="mb-3"><label for="totales-fecha-inicio" class="form-label">Desde</label><input class="form-control" id="totales-fecha-inicio" type="date" name="fechaInicio" value="{{ request.GET.fechaInicio|default:'1997-01-01' }}"></div>
-                            <div class="mb-4"><label for="totales-fecha-fin" class="form-label">Hasta</label><input class="form-control" id="totales-fecha-fin" type="date" name="fechaFin" value="{{ request.GET.fechaFin|default:'' }}"></div>
-                            <button class="btn btn-primary w-100" type="submit">Generar estadística</button>
-                        </form>
-                    </div>
-                    <div class="col-12 col-lg-8">
-                        <div class="panel-resultado h-100">
-                            <h5 class="fw-semibold mb-3">Resultado del análisis</h5>
-                            <div class="indicador mb-3">
-                                <p class="text-secondary small mb-1">Total de graduados</p>
-                                <p class="h3 fw-bold mb-0">
-                                    {% if resultado_total %}
-                                        {% if request.GET.filtro == 'escuela' %}{{ resultado_total.total_escuela|default:0 }}
-                                        {% else %}{{ resultado_total.total|default:0 }}{% endif %}
-                                    {% else %}—{% endif %}
-                                </p>
-                            </div>
-                            <div class="grafico-contenedor" data-datos="datos-totales"><canvas id="graficoTotales"></canvas></div>
-                            {{ datos_totales|json_script:"datos-totales" }}
-                            {% if not resultado_total %}<p class="text-secondary small mt-3 mb-0">Generá la estadística para ver los resultados.</p>{% endif %}
+    <section class="card shadow-sm border-0 mb-4"
+             aria-labelledby="titulo-totales">
+
+        <div class="card-header bg-white py-3">
+            <h4 id="titulo-totales" class="h5 fw-bold mb-1">
+                2. Cantidad de graduados
+            </h4>
+            <p class="text-secondary small mb-0">
+                Consultá la cantidad de graduados por período y unidad académica.
+            </p>
+        </div>
+
+        <div class="card-body p-3 p-lg-4">
+            <div class="row g-4">
+
+                <div class="col-12 col-lg-4">
+                    <form method="get"
+                          action="{% url 'estadisticas_totales' %}"
+                          class="formulario-estadistica">
+
+                        {% include "academico/componentes/filtros_estadistica.html" with prefijo="totales" %}
+
+                        <button class="btn btn-primary w-100 mt-3" type="submit">
+                            Aplicar filtros
+                        </button>
+                    </form>
+                </div>
+
+                <div class="col-12 col-lg-8">
+                    <div class="panel-resultado h-100">
+
+                        <h5 class="fw-semibold mb-3">Resultado del análisis</h5>
+
+                        <div class="indicador mb-4">
+                            <p class="text-secondary small mb-1">
+                                Total de graduados
+                            </p>
+                            <p class="h3 fw-bold mb-0">
+                                {% if resultado_total %}
+                                    {{ resultado_total.total|default:0 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </p>
                         </div>
+
+                        <div class="grafico-contenedor"
+                             data-datos="datos-totales">
+                            <canvas id="graficoTotales"
+                                    role="img"
+                                    aria-label="Gráfico de cantidad de graduados"></canvas>
+                            <p class="mensaje-sin-datos text-secondary small"
+                               hidden></p>
+                        </div>
+
                     </div>
                 </div>
+
             </div>
         </div>
     </section>
 
+
     <!-- 3. TIEMPOS DE GRADUACIÓN -->
-    <section class="mb-4" aria-labelledby="titulo-tiempos">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-bottom py-3">
-                <h4 id="titulo-tiempos" class="h5 fw-bold mb-1">3. Tiempo promedio de graduación</h4>
-                <p class="text-secondary small mb-0">Analizá cuánto tiempo transcurre hasta el egreso.</p>
-            </div>
-            <div class="card-body p-3 p-lg-4">
-                <div class="row g-4">
-                    <div class="col-12 col-lg-4">
-                        <form method="get" action="{% url 'estadisticas_tiempos' %}" class="formulario-estadistica">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Agrupar por</label>
-                                <div class="form-check mb-2"><input class="form-check-input" id="tiempos-todos" type="radio" name="filtro" value="todos" {% if request.GET.filtro == 'todos' or not request.GET.filtro %}checked{% endif %} required><label class="form-check-label" for="tiempos-todos">Todos los graduados</label></div>
-                                <div class="form-check mb-2"><input class="form-check-input" id="tiempos-carrera" type="radio" name="filtro" value="carrera" {% if request.GET.filtro == 'carrera' %}checked{% endif %}><label class="form-check-label" for="tiempos-carrera">Por carrera</label></div>
-                                <div class="form-check"><input class="form-check-input" id="tiempos-escuela" type="radio" name="filtro" value="escuela" {% if request.GET.filtro == 'escuela' %}checked{% endif %}><label class="form-check-label" for="tiempos-escuela">Por escuela</label></div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="tiempos-select-carrera" class="form-label">Carrera</label>
-                                <select id="tiempos-select-carrera" class="form-select campoCarrera" name="carrera" {% if request.GET.filtro != 'carrera' %}disabled hidden{% endif %}>
-                                    <option value="">Seleccionar carrera</option>
-                                    {% for carrera in carreras %}<option value="{{ carrera.codigo_carrera }}" {% if request.GET.carrera == carrera.codigo_carrera %}selected{% endif %}>{{ carrera.nombre_carrera }}</option>{% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="tiempos-select-escuela" class="form-label">Escuela</label>
-                                <select id="tiempos-select-escuela" class="form-select campoEscuela" name="escuela" {% if request.GET.filtro != 'escuela' %}disabled hidden{% endif %}>
-                                    <option value="">Seleccionar escuela</option>
-                                    {% for escuela in escuelas %}<option value="{{ escuela }}" {% if request.GET.escuela == escuela %}selected{% endif %}>{{ escuela }}</option>{% endfor %}
-                                </select>
-                            </div>
-                            <hr><p class="fw-semibold mb-2">Período de egreso</p>
-                            <div class="mb-3"><label for="tiempos-fecha-inicio" class="form-label">Desde</label><input class="form-control" id="tiempos-fecha-inicio" type="date" name="fechaInicio" value="{{ request.GET.fechaInicio|default:'1997-01-01' }}"></div>
-                            <div class="mb-4"><label for="tiempos-fecha-fin" class="form-label">Hasta</label><input class="form-control" id="tiempos-fecha-fin" type="date" name="fechaFin" value="{{ request.GET.fechaFin|default:'' }}"></div>
-                            <button class="btn btn-primary w-100" type="submit">Generar estadística</button>
-                        </form>
-                    </div>
-                    <div class="col-12 col-lg-8">
-                        <div class="panel-resultado h-100">
-                            <h5 class="fw-semibold mb-3">Resultado del análisis</h5>
-                            <div class="indicador mb-3">
-                                <p class="text-secondary small mb-1">Tiempo promedio de graduación (años)</p>
-                                <p class="h3 fw-bold mb-0">{% if resultado_tiempo.promedio_tiempo != None %}{{ resultado_tiempo.promedio_tiempo|floatformat:2 }}{% else %}—{% endif %}</p>
-                            </div>
-                            <div class="grafico-contenedor" data-datos="datos-tiempos"><canvas id="graficoTiempos"></canvas></div>
-                            {{ datos_tiempos|json_script:"datos-tiempos" }}
-                            {% if not resultado_tiempo or resultado_tiempo.promedio_tiempo == None %}<p class="text-secondary small mt-3 mb-0">No hay datos disponibles para los filtros seleccionados.</p>{% endif %}
+    <section class="card shadow-sm border-0 mb-4"
+             aria-labelledby="titulo-tiempos">
+
+        <div class="card-header bg-white py-3">
+            <h4 id="titulo-tiempos" class="h5 fw-bold mb-1">
+                3. Tiempo promedio de graduación
+            </h4>
+            <p class="text-secondary small mb-0">
+                Analizá cuánto tiempo transcurre hasta el egreso.
+            </p>
+        </div>
+
+        <div class="card-body p-3 p-lg-4">
+            <div class="row g-4">
+
+                <div class="col-12 col-lg-4">
+                    <form method="get"
+                          action="{% url 'estadisticas_tiempos' %}"
+                          class="formulario-estadistica">
+
+                        {% include "academico/componentes/filtros_estadistica.html" with prefijo="tiempos" %}
+
+                        <button class="btn btn-primary w-100 mt-3" type="submit">
+                            Aplicar filtros
+                        </button>
+                    </form>
+                </div>
+
+                <div class="col-12 col-lg-8">
+                    <div class="panel-resultado h-100">
+
+                        <h5 class="fw-semibold mb-3">Resultado del análisis</h5>
+
+                        <div class="indicador mb-4">
+                            <p class="text-secondary small mb-1">
+                                Tiempo promedio de graduación
+                            </p>
+                            <p class="h3 fw-bold mb-0">
+                                {% if resultado_tiempo.promedio_tiempo != None %}
+                                    {{ resultado_tiempo.promedio_tiempo|floatformat:2 }} años
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </p>
                         </div>
+
+                        <div class="grafico-contenedor"
+                             data-datos="datos-tiempos">
+                            <canvas id="graficoTiempos"
+                                    role="img"
+                                    aria-label="Gráfico de tiempos de graduación"></canvas>
+                            <p class="mensaje-sin-datos text-secondary small"
+                               hidden></p>
+                        </div>
+
                     </div>
                 </div>
+
             </div>
         </div>
     </section>
+
 </div>
 
 <style>
-    .tablero-estadistico { max-width: 1600px; margin-inline: auto; }
-    .tablero-estadistico .card { border-radius: 12px; overflow: hidden; }
-    .tablero-estadistico .card-header { border-left: 4px solid var(--bs-primary); }
-    .formulario-estadistica { padding: 1rem; background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-radius: 10px; height: 100%; }
-    .formulario-estadistica .form-label { font-size: 0.925rem; }
-    .panel-resultado { padding: 1.25rem; border: 1px solid var(--bs-border-color); border-radius: 10px; background: var(--bs-body-bg); }
-    .indicador { padding: 1rem; border-radius: 8px; background: var(--bs-tertiary-bg); }
-    .indicador .h3 { overflow-wrap: anywhere; }
-    .grafico-contenedor { position: relative; width: 100%; min-height: 280px; }
-    .grafico-contenedor canvas { max-width: 100%; }
-    @media (max-width: 767px) { .panel-resultado { padding: 1rem; } .grafico-contenedor { min-height: 240px; } }
+    .tablero-estadistico {
+        max-width: 1600px;
+        margin-inline: auto;
+    }
+
+    .tablero-estadistico .card {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .tablero-estadistico .card-header {
+        border-left: 4px solid var(--bs-primary);
+    }
+
+    .formulario-estadistica {
+        padding: 1.1rem;
+        background: var(--bs-tertiary-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: 10px;
+        height: 100%;
+    }
+
+    .panel-resultado {
+        padding: 1.25rem;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 10px;
+        height: 100%;
+    }
+
+    .indicador {
+        padding: 1rem;
+        border-radius: 8px;
+        background: var(--bs-tertiary-bg);
+    }
+
+    .indicador .h3 {
+        overflow-wrap: anywhere;
+    }
+
+    .grafico-contenedor {
+        position: relative;
+        width: 100%;
+        height: 480px;
+        margin: 1.5rem auto;
+    }
+
+    .grafico-contenedor canvas {
+        display: block;
+        max-width: 100%;
+    }
+
+    @media (max-width: 767px) {
+        .panel-resultado {
+            padding: 1rem;
+        }
+
+        .grafico-contenedor {
+            height: 280px;
+        }
+    }
 </style>
+{{ datos_promedios|json_script:"datos-promedios" }}
+{{ datos_totales|json_script:"datos-totales" }}
+{{ datos_tiempos|json_script:"datos-tiempos" }}
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{% static 'js/estadisticas.js' %}"></script>
+
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.formulario-estadistica').forEach(function (formulario) {
-        formulario.addEventListener('submit', function (evento) {
-            const inicio = formulario.querySelector('input[name="fechaInicio"]').value;
-            const fin = formulario.querySelector('input[name="fechaFin"]').value;
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".formulario-estadistica").forEach(function (formulario) {
+        formulario.addEventListener("submit", function (evento) {
+            const inicio = formulario.querySelector('[name="fechaInicio"]')?.value;
+            const fin = formulario.querySelector('[name="fechaFin"]')?.value;
+
             if (inicio && fin && inicio > fin) {
                 evento.preventDefault();
-                alert('La fecha de inicio no puede ser posterior a la fecha de fin.');
+                alert("La fecha de inicio no puede ser posterior a la fecha de fin.");
             }
         });
     });
