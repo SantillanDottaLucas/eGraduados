@@ -1,72 +1,298 @@
- {% extends "academico/base.html" %}
+
+{% extends "academico/base.html" %}
+
+{% block title %}Lista de graduados | eGraduados{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Lista de graduados</h2>
+<style>
+    .pagina {
+        max-width: 1200px;
+        margin: auto;
+        padding: 2rem 1rem 3rem;
+    }
 
-    <form method="GET" class="row">
-        <div class="col-3">
-            <label>Escuela</label>
-            <select name="escuela" id="escuela">
-                <option value="">Todas</option>
-                {% for escuela in escuelas %}
-                <option value="{{escuela}}">
-                    {% if requets.GET.escuela == escuela %}selected{% endif %}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-3">
-            <label>Carrera</label>
-            <select name="carrera" id="carrera">
-                <option value="">Todas</option>
-                {% for carrera in carreras %}
-                <option value="{{escuela}}">
-                    {% if requets.GET.carrera == carrera %}selected{% endif %}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-3">
-            <label>Fechas</label>
-            <input type="date">
-            <input type="date">
-            </select>
-        </div>
- 
+    .encabezado {
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        background: linear-gradient(125deg, #173b67, #2d6596);
+        border-radius: 18px;
+    }
 
-    </form>
-    <table class="table table-striped table-bordered">
-        <thead>
-            <tr>
-                <th>Legajo</th>
-                <th>Nombre</th>
-                <th>Apellido</th>
-                <th>Promedio sin aplazo</th>
-                <th>Promedio con aplazo</th>
-            </tr>
-        </thead>
+    .encabezado h1 {
+        font-weight: 700;
+    }
 
-        <tbody>
-            {% for graduado in graduados %}
-            <tr>
-                <td>{{ graduado.legajo_graduado }}</td>
-                <td>{{ graduado.nombre_graduado }}</td>
-                <td>{{ graduado.apellido_graduado }}</td>
-                <td>{{graduado.promedio_sin_aplazo}} </td>
-                <td>{{graduado.promedio_con_aplazo}} </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3">No hay graduados registrados.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <button> <!--EL SEGUNDO parentesis ENVÍA lo que son LOS FILTROS-->
-        <a href="{% url 'descargar_graduados' %}?{{request.GET.urlencode}}">
-            Descargar listado
-        </a>
-    </button>
-</div>
+    .panel {
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        background: white;
+        border: 1px solid #e5eaf0;
+        border-radius: 16px;
+        box-shadow: 0 4px 14px rgba(25, 45, 70, .05);
+    }
+
+    .panel h2 {
+        margin-bottom: 1.25rem;
+        color: #243b53;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .panel .form-label {
+        font-weight: 600;
+    }
+
+    .panel .form-control,
+    .panel .form-select {
+        min-height: 43px;
+        border-radius: 9px;
+    }
+
+    .tabla-contenedor {
+        overflow: hidden;
+        background: white;
+        border: 1px solid #e5eaf0;
+        border-radius: 16px;
+    }
+
+    .tabla-titulo {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #e5eaf0;
+    }
+
+    .tabla-titulo h2 {
+        margin: 0;
+        color: #243b53;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .tabla {
+        margin-bottom: 0;
+        vertical-align: middle;
+    }
+
+    .tabla thead th {
+        padding: 1rem;
+        color: #42566b;
+        background: #f4f7fa;
+        white-space: nowrap;
+    }
+
+    .tabla tbody td {
+        padding: .9rem 1rem;
+    }
+
+    .legajo {
+        color: #245b91;
+        font-weight: 700;
+    }
+
+    .sin-resultados {
+        padding: 2rem !important;
+        color: #64748b;
+        text-align: center;
+    }
+
+    @media (max-width: 576px) {
+        .pagina {
+            padding: 1rem .65rem 2rem;
+        }
+
+        .encabezado,
+        .panel {
+            padding: 1.25rem;
+        }
+    }
+</style>
+
+<main class="pagina">
+
+    <header class="encabezado">
+        <h1>Listado de graduados</h1>
+        <p class="mb-0">
+            Buscá graduados por sus datos personales, carrera,
+            escuela o fecha de egreso. Podés descargar los
+            resultados en formato CSV.
+        </p>
+    </header>
+
+    <section class="panel">
+        <h2>Filtros de búsqueda</h2>
+
+        <form method="get" action="{% url 'lista_graduados' %}">
+            <div class="row g-3">
+
+                <div class="col-12 col-md-6">
+                    <label for="nombre" class="form-label">
+                        Nombre o apellido
+                    </label>
+                    <input
+                        type="text"
+                        id="nombre"
+                        name="nombre"
+                        class="form-control"
+                        placeholder="Nombre o apellido completo o parcial"
+                        value="{{ request.GET.nombre|default:'' }}"
+                    >
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="legajo" class="form-label">Legajo</label>
+                    <input
+                        type="text"
+                        id="legajo"
+                        name="legajo"
+                        class="form-control"
+                        placeholder="Legajo completo o parcial"
+                        value="{{ request.GET.legajo|default:'' }}"
+                    >
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="escuela" class="form-label">Escuela</label>
+                    <select id="escuela" name="escuela" class="form-select">
+                        <option value="">Todas las escuelas</option>
+                        {% for escuela in escuelas %}
+                            <option
+                                value="{{ escuela }}"
+                                {% if request.GET.escuela == escuela %}selected{% endif %}
+                            >
+                                {{ escuela }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="carrera" class="form-label">Carrera</label>
+                    <select id="carrera" name="carrera" class="form-select">
+                        <option value="">Todas las carreras</option>
+                        {% for carrera in carreras %}
+                            <option
+                                value="{{ carrera.pk }}"
+                                {% if request.GET.carrera == carrera.pk|stringformat:"s" %}selected{% endif %}
+                            >
+                                {{ carrera.nombre_carrera }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Fecha de egreso</label>
+                    <div class="row g-2">
+                        <div class="col-12 col-sm-6">
+                            <label for="fecha_desde" class="form-label small">
+                                Desde
+                            </label>
+                            <input
+                                type="date"
+                                id="fecha_desde"
+                                name="fecha_desde"
+                                class="form-control"
+                                value="{{ request.GET.fecha_desde|default:'' }}"
+                            >
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <label for="fecha_hasta" class="form-label small">
+                                Hasta
+                            </label>
+                            <input
+                                type="date"
+                                id="fecha_hasta"
+                                name="fecha_hasta"
+                                class="form-control"
+                                value="{{ request.GET.fecha_hasta|default:'' }}"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary px-4">
+                        Buscar graduados
+                    </button>
+
+                    <a href="{% url 'lista_graduados' %}"
+                       class="btn btn-outline-secondary px-4">
+                        Limpiar filtros
+                    </a>
+
+                    <a href="{% url 'descargar_graduados' %}?{{ request.GET.urlencode }}"
+                       class="btn btn-success px-4 ms-md-auto">
+                        Descargar CSV
+                    </a>
+                </div>
+
+            </div>
+        </form>
+    </section>
+
+    <section class="tabla-contenedor">
+        <div class="tabla-titulo">
+            <h2>Resultados de la búsqueda</h2>
+            <span class="text-muted small">
+                {{ graduados|length }} registro(s)
+            </span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover tabla">
+                <thead>
+                    <tr>
+                        <th>Legajo</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Promedio sin aplazo</th>
+                        <th>Promedio con aplazo</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for graduado in graduados %}
+                        <tr>
+                            <td class="legajo">
+                                {{ graduado.legajo_graduado }}
+                            </td>
+
+                            <td>
+                                {% for registro in graduado.nombres_asociados.all %}
+                                    {{ registro.nombre }}{% if not forloop.last %} {% endif %}
+                                {% empty %}
+                                    —
+                                {% endfor %}
+                            </td>
+
+                            <td>
+                                {% for registro in graduado.apellidos_asociados.all %}
+                                    {{ registro.apellido }}{% if not forloop.last %} {% endif %}
+                                {% empty %}
+                                    —
+                                {% endfor %}
+                            </td>
+
+                            <td>
+                                {{ graduado.promedio_sin_aplazo|default_if_none:"—" }}
+                            </td>
+
+                            <td>
+                                {{ graduado.promedio_con_aplazo|default_if_none:"—" }}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="sin-resultados">
+                                No se encontraron graduados con esos filtros.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
 {% endblock %}

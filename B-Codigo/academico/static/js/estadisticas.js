@@ -1,81 +1,165 @@
+document.addEventListener("DOMContentLoaded", function () {
 
-document.querySelectorAll("form").forEach(form => {
-    const filtroTodos = form.querySelector(".filtroTodos");
-    const filtroEscuela = form.querySelector(".filtroEscuela");
-    const filtroCarrera = form.querySelector(".filtroCarrera");
+    // ==========================================
+    // 1. CONTROL DE LOS FILTROS
+    // ==========================================
 
-    const campoEscuela = form.querySelector(".campoEscuela");
-    const campoCarrera = form.querySelector(".campoCarrera");
+    document.querySelectorAll(".formulario-estadistica").forEach(formulario => {
 
-    if (!filtroTodos || !filtroEscuela || !filtroCarrera ||
-        !campoEscuela || !campoCarrera) {
-        return;
-    }
+        const filtros = formulario.querySelectorAll('input[name="filtro"]');
+        const campoEscuela = formulario.querySelector(".campoEscuela");
+        const campoCarrera = formulario.querySelector(".campoCarrera");
 
-    function actualizarFiltro() {
-        campoEscuela.disabled = !filtroEscuela.checked;
-        campoEscuela.hidden = !filtroEscuela.checked;
-        campoEscuela.required = filtroEscuela.checked;
+        if (!campoEscuela || !campoCarrera || filtros.length === 0) {
+            return;
+        }
 
-        campoCarrera.disabled = !filtroCarrera.checked;
-        campoCarrera.hidden = !filtroCarrera.checked;
-        campoCarrera.required = filtroCarrera.checked;
-    }
+        function actualizarFiltro() {
+            const filtroSeleccionado =
+                formulario.querySelector('input[name="filtro"]:checked');
 
-    filtroTodos.addEventListener("change", actualizarFiltro);
-    filtroEscuela.addEventListener("change", actualizarFiltro);
-    filtroCarrera.addEventListener("change", actualizarFiltro);
+            const filtro = filtroSeleccionado
+                ? filtroSeleccionado.value
+                : "todos";
 
-    actualizarFiltro();
-});
+            // Habilitar solamente el campo correspondiente.
+            campoEscuela.disabled = filtro !== "escuela";
+            campoCarrera.disabled = filtro !== "carrera";
 
-const botonPromedios = document.getElementById("botonPromedios")
+            // Mostrar solamente el campo correspondiente.
+            campoEscuela.hidden = filtro !== "escuela";
+            campoCarrera.hidden = filtro !== "carrera";
+
+            // Exigir una selección cuando corresponda.
+            campoEscuela.required = filtro === "escuela";
+            campoCarrera.required = filtro === "carrera";
+
+            // Limpiar los campos que no se utilizan.
+            if (filtro !== "escuela") {
+                campoEscuela.value = "";
+            }
+
+            if (filtro !== "carrera") {
+                campoCarrera.value = "";
+            }
+        }
+
+        filtros.forEach(filtro => {
+            filtro.addEventListener("change", actualizarFiltro);
+        });
+
+        actualizarFiltro();
+    });
 
 
-botonPromedios.addEventListener("clic",function(){
-    const idDatos= d
-    }
-)
+    // ==========================================
+    // 2. GENERACIÓN DE LOS GRÁFICOS
+    // ==========================================
 
+    document.querySelectorAll(".grafico-contenedor").forEach(contenedor => {
 
-document.getElementById("").forEach(contenedor => {
-    const canvas = contenedor.querySelector(".graficoPromedios");
-    const mensaje = contenedor.querySelector(".mensajeSinDatos");
-    const idDatos = contenedor.dataset.datos;
-    const jsonDatos = document.getElementById(idDatos);
+        const canvas = contenedor.querySelector("canvas");
+        const idDatos = contenedor.dataset.datos;
+        const elementoDatos = document.getElementById(idDatos);
 
-    if (!canvas || !mensaje || !jsonDatos) {
-        return;
-    }
+        if (!canvas || !elementoDatos) {
+            return;
+        }
 
-    const datos = JSON.parse(jsonDatos.textContent);
+        let datos;
 
-    if (datos === null || !datos.valores || datos.valores.length === 0) {
-        canvas.hidden = true;
-        mensaje.hidden = false;
-    } else {
+        try {
+            datos = JSON.parse(elementoDatos.textContent);
+        } catch (error) {
+            console.error("No se pudieron interpretar los datos del gráfico:", error);
+            canvas.hidden = true;
+            return;
+        }
+
+        // Comprobar que existan etiquetas y valores.
+        if (
+            !datos ||
+            !Array.isArray(datos.etiquetas) ||
+            !Array.isArray(datos.valores) ||
+            datos.etiquetas.length === 0 ||
+            datos.valores.length === 0
+        ) {
+            canvas.hidden = true;
+            return;
+        }
+
+        // Evitar representar gráficos sin datos numéricos.
+        const hayValores = datos.valores.some(valor =>
+            valor !== null &&
+            valor !== "" &&
+            Number.isFinite(Number(valor))
+        );
+
+        if (!hayValores) {
+            canvas.hidden = true;
+            return;
+        }
+
         canvas.hidden = false;
-        mensaje.hidden = true;
+
+        // El título se determina según el conjunto de datos.
+        let titulo = "Estadística";
+
+        if (idDatos === "datos-promedios") {
+            titulo = "Promedios académicos";
+        } else if (idDatos === "datos-totales") {
+            titulo = "Cantidad de graduados";
+        } else if (idDatos === "datos-tiempos") {
+            titulo = "Tiempo promedio de graduación";
+        }
+
+        // El eje Y debe adaptarse a cada estadística.
+        const opcionesEscala = {
+            beginAtZero: true
+        };
+
+        if (idDatos === "datos-promedios") {
+            opcionesEscala.min = 0;
+            opcionesEscala.max = 10;
+        }
 
         new Chart(canvas, {
             type: "bar",
+
             data: {
                 labels: datos.etiquetas,
+
                 datasets: [{
-                    label: "Estadística",
-                    data: datos.valores
+                    label: titulo,
+                    data: datos.valores.map(valor =>
+                        valor === null || valor === ""
+                            ? null
+                            : Number(valor)
+                    ),
+                    borderWidth: 1,
+                    borderRadius: 5
                 }]
             },
+
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        min: 0,
-                        max: 12
+
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+
+                    tooltip: {
+                        enabled: true
                     }
+                },
+
+                scales: {
+                    y: opcionesEscala
                 }
             }
         });
-    }
+    });
+
 });

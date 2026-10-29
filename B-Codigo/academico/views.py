@@ -4,8 +4,14 @@ from .servicios.moduloEstadistica.consulta_estadisticas import *
 from .servicios.moduloEstadistica.graficador_estadistico import *
 from .models import Graduado, Carrera
 from datetime import date
-import csv
 from django.http import HttpResponse
+from academico.servicios.moduloGraduados.consulta_graduados import (
+    obtener_graduados_filtrados
+)
+from academico.servicios.moduloGraduados.exportar_graduados import (
+    generar_csv_graduados
+)
+
 
 
 
@@ -38,64 +44,133 @@ def titulo_en_tramite(request):
 
 #Redirige a estadísticas
 def estadisticas(request):
-    fechaFin= date.today()
-    return render(request,"academico/estadisticas.html", {'fechaFin':fechaFin})
+    contexto = obtener_contexto_base()
+
+    return render(
+        request,
+        "academico/estadisticas.html",
+        contexto
+    )
 
 def estadisticas_promedios(request):
     tipo_promedio = request.GET.get("promedio")
     filtro = request.GET.get("filtro")
     carrera = request.GET.get("carrera")
     escuela = request.GET.get("escuela")
-    fechaInicio = request.GET.get("fechaInicio")
-    fechaFin= request.GET.get("fechaFin")
+    fecha_inicio = request.GET.get("fechaInicio")
+    fecha_fin = request.GET.get("fechaFin")
 
-    resultado_promedio =consultar_promedios(tipo_promedio, filtro, carrera, escuela, fechaInicio, fechaFin)
+    resultado = consultar_promedios(
+        tipo_promedio, filtro, carrera, escuela,fecha_inicio, fecha_fin
+    )
 
-    datos = {'promedio':resultado_promedio['promedio'],
-            'varianza':resultado_promedio['varianza']         
-    }
-    return render(
-        request, 
-        'academico/estadisticas.html',
-        {'datos_promedios':datos}
-       )
+    datos_promedios = graficar_promedio(resultado)
+
+    contexto = obtener_contexto_base()
+    contexto.update({
+        "resultado_promedio": resultado["promedio"],
+        "varianza_promedios": resultado["varianza"],
+        "datos_promedios": datos_promedios,
+    })
+
+    return render(request, "academico/estadisticas.html", contexto)
 
 def estadisticas_totales(request):
-
     filtro = request.GET.get("filtro")
     carrera = request.GET.get("carrera")
     escuela = request.GET.get("escuela")
-    fechaInicio = request.GET.get("fechaInicio")
-    fechaFin= request.GET.get("fechaFin")
+    fecha_inicio = request.GET.get("fechaInicio")
+    fecha_fin = request.GET.get("fechaFin")
 
-    resultado_total = consultar_total(filtro, carrera, escuela, fechaInicio, fechaFin)
+    resultado_total = consultar_total(
+        filtro, carrera, escuela, fecha_inicio, fecha_fin
+    )
+
     datos_totales = graficar_total(resultado_total)
 
-    return render(request, 'academico/estadisticas.html', {'resultado_total':resultado_total,'datos_totales':datos_totales})
+    contexto = obtener_contexto_base()
+    contexto.update({
+        "resultado_total": resultado_total,
+        "datos_totales": datos_totales,
+    })
+
+    return render(request, "academico/estadisticas.html", contexto)
 
 def estadisticas_tiempos(request):
+    filtro = request.GET.get("filtro")
+    carrera = request.GET.get("carrera")
+    escuela = request.GET.get("escuela")
+    fecha_inicio = request.GET.get("fechaInicio")
+    fecha_fin = request.GET.get("fechaFin")
 
-    return render(request, 'academico/estadisticas.html', {'resultado_tiempo':resultado_tiempo,'datos_tiempos':datos_tiempos})
+    resultado_tiempo = consultar_tiempos(
+        filtro, carrera, escuela, fecha_inicio, fecha_fin
+    )
 
+    datos_tiempos = graficar_tiempos(resultado_tiempo)
+
+    contexto = obtener_contexto_base()
+    contexto.update({
+        "resultado_tiempo": resultado_tiempo,
+        "datos_tiempos": datos_tiempos,
+    })
+
+    return render(request, "academico/estadisticas.html", contexto)
+
+def obtener_contexto_base():
+    carreras = Carrera.objects.all().order_by("nombre_carrera")
+
+    escuelas = (
+        Carrera.objects
+        .exclude(escuela="")
+        .values_list("escuela", flat=True)
+        .distinct()
+        .order_by("escuela")
+    )
+
+    return {
+        "carreras": carreras,
+        "escuelas": escuelas,
+        "fechaFin": date.today(),
+    }
 
 
 def lista_graduados(request):
-    graduados = Graduado.objects.all()
+    graduados = obtener_graduados_filtrados(request.GET)
 
-    escuelas = Carrera.objects.filter(
-        'escuela', flat=True
-    ).distinct()
+    escuelas = (
+        Carrera.objects
+        .exclude(escuela='')
+        .values_list('escuela', flat=True)
+        .distinct()
+        .order_by('escuela')
+    )
 
-    carreras = Carrera.objects.all()
+    carreras = Carrera.objects.all().order_by('nombre_carrera')
 
+    return render(
+        request,
+        'academico/lista_graduados.html',
+        {
+            'graduados': graduados,
+            'escuelas': escuelas,
+            'carreras': carreras,
+        }
+    )
 
-    return render(request, 'academico/lista_graduados.html',{
-        'graduados':graduados,
-        'escuelas':escuelas,
-        'carreras':carreras
-    })
 
 def descargar_graduados(request):
-    graduados = consultar_graduados(request)
+    graduados = obtener_graduados_filtrados(request.GET)
 
-    respuesta = Httpresponse
+    contenido = generar_csv_graduados(graduados)
+
+    respuesta = HttpResponse(
+        contenido,
+        content_type='text/csv; charset=utf-8'
+    )
+
+    respuesta['Content-Disposition'] = (
+        'attachment; filename="graduados.csv"'
+    )
+
+    return respuesta

@@ -1,72 +1,167 @@
-
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>{% block title %}eGraduados{% endblock %}</title>
+    <title>{% block title %}eGraduados | Secretaría Académica{% endblock %}</title>
 
     {% load static %}
-    <!-- Bootstrap -->
+
+    <!-- Bootstrap CSS -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
 
+    <!-- Estilos generales -->
+    <style>
+        :root {
+            --color-institucional: #17365d;
+            --color-institucional-hover: #244a78;
+            --color-fondo: #f4f6f9;
+            --color-texto: #263238;
+            --color-borde: #dee2e6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            background-color: var(--color-fondo);
+            color: var(--color-texto);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        /* Encabezado */
+        .navbar-institucional {
+            background-color: var(--color-institucional);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        }
+
+        .navbar-institucional .navbar-brand {
+            color: #ffffff;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-institucional .navbar-brand:hover {
+            color: #e2eaf4;
+        }
+
+        .marca-subtitulo {
+            color: #d8e2ef;
+            font-size: 0.85rem;
+            font-weight: 400;
+        }
+
+        /* Contenido principal */
+        main {
+            flex: 1;
+            width: 100%;
+            padding-top: 2rem;
+            padding-bottom: 2.5rem;
+        }
+
+        .contenedor-principal {
+            width: 100%;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding-right: 1.25rem;
+            padding-left: 1.25rem;
+        }
+
+        /* Pie de página */
+        .footer-institucional {
+            padding: 1.25rem 1rem;
+            background-color: #ffffff;
+            border-top: 1px solid var(--color-borde);
+            color: #5f6b76;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .footer-institucional p {
+            margin: 0;
+        }
+
+        .footer-institucional strong {
+            color: var(--color-institucional);
+        }
+
+        /* Ajustes para pantallas pequeñas */
+        @media (max-width: 576px) {
+            main {
+                padding-top: 1.25rem;
+                padding-bottom: 1.5rem;
+            }
+
+            .contenedor-principal {
+                padding-right: 0.75rem;
+                padding-left: 0.75rem;
+            }
+
+            .navbar-institucional .navbar-brand {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+
+    {% block styles %}
+    {% endblock %}
 </head>
 
 <body>
 
-    <!-- Encabezado -->
+    <!-- Encabezado institucional -->
     <header>
+        <nav class="navbar navbar-expand-lg navbar-institucional">
+            <div class="container-fluid px-3 px-md-4">
 
-        <nav class="navbar navbar-expand-lg bg-primary">
-
-            <div class="container">
-
-                <a class="navbar-brand text-white" href="/">
-                    eGraduados
+                <a class="navbar-brand d-flex flex-column" href="/">
+                    <span>eGraduados</span>
+                    <span class="marca-subtitulo">
+                        Sistema de información de graduados
+                    </span>
                 </a>
 
+                {% block navbar %}
+                {% endblock %}
+
             </div>
-
         </nav>
-
     </header>
 
-
     <!-- Contenido de cada página -->
-    <main class="m-1">
-
-        {% block content %}
-        {% endblock %}
-
+    <main>
+        <div class="contenedor-principal">
+            {% block content %}
+            {% endblock %}
+        </div>
     </main>
 
-
-    <!-- Pie de página -->
-    <footer class="mt-5 py-3 text-center">
-
-        <p class="mb-0">
-            eGraduados - Secretaría Académica UNPA UARG
+    <!-- Pie de página institucional -->
+    <footer class="footer-institucional">
+        <p>
+            <strong>eGraduados</strong>
+            &middot; Secretaría Académica UNPA UARG
         </p>
-
     </footer>
-
 
     <!-- Bootstrap JavaScript -->
     <script
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">
     </script>
-    {% block scripts %}
 
-   {% endblock %}
+    {% block scripts %}
+    {% endblock %}
 
 </body>
-
 </html>
-
