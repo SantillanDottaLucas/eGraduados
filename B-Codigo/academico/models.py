@@ -417,6 +417,13 @@ class GraduadoExamen(models.Model):
         related_name="examenes"
     )
 
+    codigo_carrera = models.ForeignKey(
+        Carrera,
+        on_delete=models.CASCADE,
+        db_column="codigo_carrera",
+        related_name="examenes_carrera",
+    )
+
     nota = models.IntegerField(null=True, blank=True)
 
     resultado = models.CharField(
@@ -428,7 +435,7 @@ class GraduadoExamen(models.Model):
         db_table = "GRADUADO_EXAMEN"
         constraints = [
             models.UniqueConstraint(
-                fields=["id_examen", "legajo_graduado"],
+                fields=["id_examen", "legajo_graduado", "codigo_carrera"],
                 name="uniq_graduado_examen",
             ),
         ]

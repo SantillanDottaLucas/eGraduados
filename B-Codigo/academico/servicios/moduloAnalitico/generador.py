@@ -131,7 +131,10 @@ def examenes_ordenados_por_anio(graduado, carrera):
 
     examenes = (
         GraduadoExamen.objects
-        .filter(legajo_graduado=graduado)
+        .filter(
+            legajo_graduado=graduado,
+            codigo_carrera=carrera,
+        )
         .select_related(
             "id_examen",
             "id_examen__codigo_materia",

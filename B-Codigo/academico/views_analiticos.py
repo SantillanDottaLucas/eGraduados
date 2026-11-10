@@ -250,6 +250,17 @@ def _datos_precargados(graduado, registro):
             .values_list("resolucion", flat=True)
         )
 
+        institucionales = list(
+            Resolucion.objects
+            .filter(
+                resolucion__in=CarreraResolucion.objects.filter(
+                    codigo_carrera=registro.codigo_carrera,
+                ).values("resolucion")
+            )
+            .filter(tipo_resolucion=TipoResolucion.INSTITUCIONAL)
+            .values_list("resolucion", flat=True)
+        )
+
         otros = list(
             Resolucion.objects
             .filter(
@@ -263,6 +274,7 @@ def _datos_precargados(graduado, registro):
 
         datos["resoluciones_ministeriales"] = "; ".join(ministeriales)
         datos["otros_instrumentos"] = "; ".join(otros)
+        datos["resoluciones_institucionales"] = institucionales
 
     return datos
 
@@ -588,6 +600,49 @@ def _preview_con_bd(request, tipo_documento, graduado, registro,
     )
 
 
+def _preview_en_tramite_ro(request, graduado, registro, validado):
+    """
+    Preview de sólo lectura del título en trámite: muestra el
+    documento desde la base y permite generar/descargar.
+    """
+
+    tipo_documento = TipoDocumentoAnalitico.EN_TRAMITE
+    carrera = registro.codigo_carrera
+
+    contexto = contexto_analitico(graduado, carrera, tipo_documento)
+
+    filas = contexto["filas"]
+    datos = _datos_precargados(graduado, registro)
+
+    # Asegurar nombre/upper y formatos legibles para el RO.
+    datos = dict(datos)
+    datos["nombre"] = datos.get("nombre", "").upper()
+    datos["apellido"] = datos.get("apellido", "").upper()
+
+    registro_header = (
+        f"{datos['apellido']}, {datos['nombre']} "
+        f"· Legajo {datos['legajo']}"
+    )
+
+    return render(
+        request,
+        "academico/analitico_preview_ro.html",
+        {
+            "tipo_documento": tipo_documento,
+            "datos": datos,
+            "filas": filas,
+            "validado": validado,
+            "dni_puntos": contexto["dni_con_puntos"],
+            "fecha_egreso_formateada": contexto["fecha_egreso_larga"],
+            "carrera_nombre": carrera.nombre_carrera,
+            "registro_header": registro_header,
+            "resoluciones_institucionales": contexto[
+                "texto_resoluciones_institucionales"
+            ],
+        },
+    )
+
+
 @requiere_sesion
 def generacion_analiticos(request):
     """Generar analítico: carga desde cero (sin buscador)."""
@@ -770,6 +825,67 @@ def titulo_en_tramite(request):
 
             return redirect(destino)
 
+        if accion == "generar":
+            # El documento es de sólo lectura; «generar» sólo
+            # registra el documento como validado para habilitar
+            # la descarga.
+            legajo = _limpiar(request.POST.get("legajo"))
+            carrera = _limpiar(request.POST.get("carrera"))
+
+            graduado = Graduado.objects.filter(
+                legajo_graduado=legajo,
+            ).first()
+
+            registro = (
+                GraduadoCarrera.objects
+                .filter(
+                    legajo_graduado=graduado,
+                    codigo_carrera_id=carrera,
+                )
+                .first()
+                if graduado else None
+            )
+
+            if graduado is None or registro is None:
+                messages.error(
+                    request,
+                    "No hay un graduado con ese legajo en esa carrera.",
+                )
+
+                return redirect(url)
+
+            usuario = getattr(request, "usuario_actual", None)
+
+            Analitico.objects.update_or_create(
+                legajo_graduado=graduado,
+                codigo_carrera_id=carrera,
+                tipo_documento=tipo_documento,
+                defaults={
+                    "anio_ingreso_uarg": (
+                        registro.fecha_ingreso_carrera.year
+                        if registro.fecha_ingreso_carrera else None
+                    ),
+                    "id_usuario": (
+                        usuario if usuario and getattr(
+                            usuario, "id_usuario", None,
+                        ) else None
+                    ),
+                },
+            )
+
+            messages.success(
+                request,
+                "Título en trámite generado. Ya podés descargarlo.",
+            )
+
+            destino = f"{url}?" + urlencode({
+                "modo": "preview",
+                "legajo": legajo,
+                "carrera": carrera,
+            })
+
+            return redirect(destino)
+
         if accion == "validar":
             return _validar(request, tipo_documento)
 
@@ -804,9 +920,8 @@ def titulo_en_tramite(request):
 
             return redirect(url)
 
-        return _preview_con_bd(
+        return _preview_en_tramite_ro(
             request,
-            tipo_documento,
             graduado,
             registro,
             validado=analitico_existe,
@@ -1329,9 +1444,11 @@ def _validar(request, tipo_documento):
 
         _guardar_resoluciones(carrera, datos)
 
-        # --- Exámenes: reemplazar los del graduado.
+        # --- Exámenes: reemplazar los del graduado para
+        # esta carrera (no tocar las otras carreras).
         GraduadoExamen.objects.filter(
             legajo_graduado=graduado,
+            codigo_carrera=carrera,
         ).delete()
 
         for fila in filas:
@@ -1373,6 +1490,7 @@ def _validar(request, tipo_documento):
             GraduadoExamen.objects.create(
                 id_examen=examen,
                 legajo_graduado=graduado,
+                codigo_carrera=carrera,
                 nota=fila["nota"],
                 resultado=resultado,
             )

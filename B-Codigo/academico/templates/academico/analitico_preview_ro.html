@@ -1,0 +1,309 @@
+{% extends "academico/base.html" %}
+{% load static %}
+
+{% block title %}Título en trámite | eGraduados{% endblock %}
+
+{% block styles %}
+<style>
+    .tramite-ro-page {
+        --uarg-blue: #14532d;
+        --uarg-blue-light: #eef7ee;
+        --uarg-border: #dce4ed;
+        max-width: 980px;
+        margin: 2rem auto 4rem;
+        padding: 0 1rem;
+    }
+
+    .tramite-ro-header {
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+        color: #fff;
+        background: linear-gradient(125deg, #14532d, #1f6b43);
+        border-radius: 18px;
+    }
+
+    .tramite-ro-header .tramite-ro-eyebrow {
+        margin-bottom: .45rem;
+        color: #cdeed4;
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+    .tramite-ro-header h1 {
+        margin: 0 0 .3rem;
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        font-weight: 750;
+    }
+
+    .tramite-ro-header p { margin: 0; color: #e6f5ec; line-height: 1.6; max-width: 700px; }
+
+    .documento-ro {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: .82rem;
+        padding: 1.5rem;
+        background: #fff;
+        border: 1px solid var(--uarg-border);
+        border-radius: 16px;
+    }
+
+    .documento-ro h3 {
+        font-size: .95rem;
+        color: var(--uarg-blue);
+        border-bottom: 1px solid #e9eef4;
+        padding-bottom: .4rem;
+        margin-bottom: .9rem;
+    }
+
+    .documento-ro .ro-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: .5rem 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .documento-ro .ro-label {
+        color: #66758a;
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .documento-ro .ro-valor {
+        font-size: .82rem;
+        color: #243b53;
+        font-weight: 600;
+    }
+
+    .documento-ro .ro-full { grid-column: span 4; }
+    .ro-two { grid-column: span 2; }
+    .ro-table-wrap {
+        overflow-x: auto;
+        margin-bottom: 1rem;
+    }
+
+    .documento-ro table { width: 100%; border-collapse: collapse; font-size: .76rem; }
+
+    .documento-ro th {
+        background: var(--uarg-blue-light);
+        color: #14532d;
+        padding: .38rem .6rem;
+        text-align: left;
+        font-size: .68rem;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .documento-ro td {
+        padding: .32rem .6rem;
+        border-top: 1px solid #eef1f5;
+    }
+
+    .ro-empty {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #66758a;
+        font-style: italic;
+    }
+
+    .ro-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: .75rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .ro-actions .btn-primary {
+        background: #14532d;
+        border-color: #14532d;
+        min-height: 46px;
+        padding: 0 1.4rem;
+        font-weight: 700;
+    }
+
+    .ro-actions .btn-primary:hover { background: #0f3d22; border-color: #0f3d22; }
+
+    @media (max-width: 767.98px) {
+        .documento-ro .ro-grid { grid-template-columns: repeat(2, 1fr); }
+        .ro-full { grid-column: span 2; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tramite-ro-page">
+    <header class="tramite-ro-header">
+        <div class="tramite-ro-eyebrow">Secretaría Académica · UNPA UARG</div>
+        <h1>
+            {% if tipo_documento == 'en_tramite' %}
+                Título en trámite
+            {% else %}
+                Analítico
+            {% endif %}
+            · {{ carrera_nombre }}
+        </h1>
+        <p>{{ registro_header }}</p>
+    </header>
+
+    {% if validado %}
+        <div class="alert alert-success py-2 small" role="alert">
+            <strong>✓ Documento validado y guardado.</strong>
+            Podés descargarlo.
+        </div>
+    {% else %}
+        <div class="alert alert-warning py-2 small" role="alert">
+            Este documento todavía no fue validado. Presioná
+            <strong>Generar título en trámite</strong> para generarlo y habilitar la descarga.
+        </div>
+    {% endif %}
+
+    <section class="documento-ro">
+        <h3>Datos del graduado</h3>
+        <div class="ro-grid">
+            <div class="ro-two">
+                <div class="ro-label">Apellido</div>
+                <div class="ro-valor">{{ datos.apellido|upper }}</div>
+            </div>
+            <div class="ro-two">
+                <div class="ro-label">Nombre</div>
+                <div class="ro-valor">{{ datos.nombre|upper }}</div>
+            </div>
+            <div>
+                <div class="ro-label">DNI</div>
+                <div class="ro-valor">{{ dni_puntos }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Legajo</div>
+                <div class="ro-valor">{{ datos.legajo }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Año ingr. UARG</div>
+                <div class="ro-valor">{{ datos.anio_ingreso_uarg }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Año ingr. carrera</div>
+                <div class="ro-valor">{{ datos.anio_ingreso_carrera }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Fecha de egreso</div>
+                <div class="ro-valor">{{ fecha_egreso_formateada }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Promoción sin aplazos</div>
+                <div class="ro-valor">{{ datos.promedio_sin_aplazo }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Promoción con aplazos</div>
+                <div class="ro-valor">{{ datos.promedio_con_aplazo }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Fecha de nacimiento</div>
+                <div class="ro-valor">{{ datos.fecha_nacimiento }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Ciudad nac.</div>
+                <div class="ro-valor">{{ datos.ciudad_nacimiento|default:"—" }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Provincia nac.</div>
+                <div class="ro-valor">{{ datos.provincia_nacimiento|default:"—" }}</div>
+            </div>
+            <div class="ro-two">
+                <div class="ro-label">Secundario</div>
+                <div class="ro-valor">{{ datos.nombre_secundario|default:"—" }}</div>
+            </div>
+            <div class="ro-two">
+                <div class="ro-label">Título secundario</div>
+                <div class="ro-valor">{{ datos.titulo_secundario|default:"—" }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Ciudad sec.</div>
+                <div class="ro-valor">{{ datos.ciudad_secundario|default:"—" }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Provincia sec.</div>
+                <div class="ro-valor">{{ datos.provincia_secundario|default:"—" }}</div>
+            </div>
+            <div>
+                <div class="ro-label">Egreso sec.</div>
+                <div class="ro-valor">{{ datos.anio_egreso_secundario|default:"—" }}</div>
+            </div>
+            <div class="ro-two">
+                <div class="ro-label">Título a otorgar</div>
+                <div class="ro-valor">{{ datos.titulo_otorgado|default:"—" }}</div>
+            </div>
+            <div class="ro-full">
+                <div class="ro-label">Resoluciones institucionales</div>
+                <div class="ro-valor">{{ resoluciones_institucionales|default:"—" }}</div>
+            </div>
+            <div class="ro-two">
+                <div class="ro-label">Ministeriales / nacionales</div>
+                <div class="ro-valor">{{ datos.resoluciones_ministeriales|default:"—" }}</div>
+            </div>
+            <div class="ro-two">
+                <div class="ro-label">Otros instrumentos</div>
+                <div class="ro-valor">{{ datos.otros_instrumentos|default:"—" }}</div>
+            </div>
+        </div>
+
+        <h3>Detalle de asignaturas ({{ filas|length }})</h3>
+        <div class="ro-table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Año</th>
+                        <th>Espacio curricular</th>
+                        <th>Nota</th>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Respaldo</th>
+                        <th>Folio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in filas %}
+                        <tr>
+                            <td>{{ fila.orden }}</td>
+                            <td>{{ fila.anio|default:"-" }}</td>
+                            <td>{{ fila.espacio }}</td>
+                            <td>{{ fila.nota }}</td>
+                            <td>{{ fila.fecha }}</td>
+                            <td>{{ fila.tipo }}</td>
+                            <td>{{ fila.respaldo }}</td>
+                            <td>{{ fila.folio }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="8" class="ro-empty">Este graduado no tiene asignaturas cargadas para esta carrera.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="ro-actions">
+        <a href="{% url 'titulo_en_tramite' %}" class="btn btn-outline-secondary">
+            ← Buscar otro
+        </a>
+
+        <form method="post" action="{% url 'titulo_en_tramite' %}" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="legajo" value="{{ datos.legajo }}">
+            <input type="hidden" name="carrera" value="{{ datos.carrera }}">
+            {% if validado %}
+                <button type="submit" name="accion" value="descargar"
+                        class="btn btn-success btn-lg px-4">
+                    Descargar Título en trámite (.docx)
+                </button>
+            {% else %}
+                <button type="submit" name="accion" value="generar"
+                        class="btn btn-primary btn-lg px-4">
+                    Generar Título en trámite
+                </button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

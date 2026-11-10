@@ -1044,6 +1044,116 @@ class GeneracionAnaliticosTest(BasePrueba):
 
         self.assertEqual(GraduadoExamen.objects.count(), 3)
 
+    def test_examenes_se_aislan_por_carrera(self):
+        from academico.models import (
+            Analitico,
+            CarreraResolucion,
+            Graduado,
+            GraduadoCarrera,
+            GraduadoExamen,
+        )
+
+        alt = Carrera.objects.create(
+            codigo_carrera="PRA",
+            nombre_carrera="Carrera Alternativa",
+            id_escuela=self.escuela,
+        )
+        materia_alt = Materia.objects.create(
+            codigo_materia="9004",
+            nombre_materia="Materia Cuatro",
+        )
+        plan_alt = PlanEstudios.objects.create(
+            codigo_plan="PRA1",
+            codigo_carrera=alt,
+        )
+        PlanEstudiosMateria.objects.create(
+            codigo_plan=plan_alt,
+            codigo_materia=materia_alt,
+            anio_materia=1,
+            cuatrimestre_materia="1er",
+            orden_materia=1,
+            materia_requisito=False,
+        )
+
+        graduado = Graduado.objects.create(
+            legajo_graduado="LEGAJOAISLADO",
+            dni="42000000",
+            fecha_ingreso_universidad=date(2017, 3, 1),
+            nombre="Juan",
+            apellido="Perez",
+        )
+        GraduadoCarrera.objects.create(
+            legajo_graduado=graduado,
+            codigo_carrera=self.carrera,
+            fecha_ingreso_carrera=date(2018, 3, 1),
+            fecha_egreso_carrera=date(2024, 4, 24),
+            promedio_sin_aplazo=7.0,
+            promedio_con_aplazo=6.5,
+        )
+        GraduadoCarrera.objects.create(
+            legajo_graduado=graduado,
+            codigo_carrera=alt,
+            fecha_ingreso_carrera=date(2018, 3, 1),
+            fecha_egreso_carrera=date(2024, 4, 24),
+            promedio_sin_aplazo=7.0,
+            promedio_con_aplazo=6.5,
+        )
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+
+        # POST continuar con la lincoln (sólo contiene materias
+        # de la carrera PR1).
+        archivo = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+        payload = dict(self._form_base())
+        payload["accion"] = "continuar"
+        payload["legajo"] = "LEGAJOAISLADO"
+        payload["archivo_notas"] = archivo
+
+        self.client.post(url, payload)
+
+        # Validar contra PR1: las notas se guardan para PR1.
+        payload = dict(self._form_base())
+        payload["accion"] = "validar"
+        payload["legajo"] = "LEGAJOAISLADO"
+        payload["fila_indice"] = ["01", "02"]
+        payload["fila_anio"] = ["1", "2"]
+        payload["fila_espacio"] = ["Materia Uno", "Materia Dos"]
+        payload["fila_nota"] = ["7", "10"]
+        payload["fila_fecha"] = ["2023-03-01", "2021-12-16"]
+        payload["fila_tipo"] = ["Final", "Final"]
+        payload["fila_respaldo"] = ["RG00000001", "RG00000002"]
+        payload["fila_folio"] = ["001", "002"]
+        payload["fila_materia"] = ["9001", "9002"]
+
+        self.client.post(url, payload)
+
+        self.assertEqual(
+            GraduadoExamen.objects.filter(
+                legajo_graduado=graduado,
+                codigo_carrera=self.carrera,
+            ).count(),
+            2,
+        )
+
+        # PRA (la otra carrera del mismo graduado) no tiene notas.
+        self.assertEqual(
+            GraduadoExamen.objects.filter(
+                legajo_graduado=graduado,
+                codigo_carrera=alt,
+            ).count(),
+            0,
+        )
+
     def test_flujo_continuar_validar_descargar(self):
         from academico.models import (
             Analitico,
@@ -1267,23 +1377,32 @@ class TituloEnTramiteTest(BasePrueba):
         respuesta = self.client.get(respuesta.url)
 
         self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "Validar analítico")
+        self.assertContains(respuesta, "Generar Título en trámite")
 
-    def test_validar_con_tabla_vacia_y_descargar(self):
+    def test_generar_y_descargar_en_tramite(self):
         self.iniciar_sesion(self.titulos)
 
+        # Buscar → preview sin validar
         respuesta = self.client.post(
             reverse("titulo_en_tramite"),
             {"accion": "buscar", "legajo": "TRLEG", "carrera": "TR1"},
         )
 
-        validar = self.client.post(
+        self.assertEqual(respuesta.status_code, 302)
+
+        # Generar → valida y habilita descarga
+        generar = self.client.post(
             reverse("titulo_en_tramite"),
-            {**self._form_base(), "accion": "validar"},
+            {
+                "accion": "generar",
+                "legajo": "TRLEG",
+                "carrera": "TR1",
+            },
         )
 
-        self.assertEqual(validar.status_code, 302)
+        self.assertEqual(generar.status_code, 302)
 
+        # Descargar
         descargar = self.client.post(
             reverse("titulo_en_tramite"),
             {
@@ -1302,6 +1421,16 @@ class TituloEnTramiteTest(BasePrueba):
             ),
         )
 
+        from academico.models import Analitico
+
+        self.assertTrue(
+            Analitico.objects.filter(
+                legajo_graduado_id="TRLEG",
+                codigo_carrera=self.carrera,
+                tipo_documento="en_tramite",
+            ).exists()
+        )
+
     def test_quitar_plan_vacio_permite_validar(self):
         # Sin exámenes en la base igual se puede validar.
         self.iniciar_sesion(self.titulos)
@@ -1313,7 +1442,11 @@ class TituloEnTramiteTest(BasePrueba):
 
         respuesta = self.client.post(
             reverse("titulo_en_tramite"),
-            {**self._form_base(), "accion": "validar"},
+            {
+                "accion": "generar",
+                "legajo": "TRLEG",
+                "carrera": "TR1",
+            },
         )
 
         self.assertEqual(respuesta.status_code, 302)
