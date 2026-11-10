@@ -1,0 +1,37 @@
+﻿*** No CODEPAGE record, no encoding_override: will use 'iso-8859-1'
+==========================================================================================
+LincolnPrueba1.XLS
+------------------------------------------------------------ 'Equivalencia T' 10
+    Anßlisis y Dise±o de Software                 | acta_final= '          ' | res_final= '087/23-CS-UNPA' | fecha= '13/03/2024' | nota= 8.0
+    Requerimientos de Software                    | acta_final= '          ' | res_final= '087/23-CS-UNPA' | fecha= '13/03/2024' | nota= 9.0
+    Procesos de Desarrollo de Software            | acta_final= '          ' | res_final= '087/23-CS-UNPA' | fecha= '13/03/2024' | nota= 8.0
+    Matemßtica III                                | acta_final= '          ' | res_final= '087/23-CS-UNPA' | fecha= '13/03/2024' | nota= nan
+    Programaci¾n de Algoritmos                    | acta_final= '          ' | res_final= '087/23-CS-UNPA' | fecha= '13/03/2024' | nota= 9.0
+    Matemßtica I                                  | acta_final= '          ' | res_final= '087/23-CS-UNPA' | fecha= '13/03/2024' | nota= 7.0
+------------------------------------------------------------ 'Final' 34
+    Procesos de Desarrollo de Software            | acta_final= 'RG07205070' | res_final= nan | fecha= '14/07/2022' | nota= 8.0
+    Resoluci¾n de Problemas y Algoritmos          | acta_final= 'RG07205115' | res_final= nan | fecha= '01/12/2022' | nota= 9.0
+    Anßlisis y Producci¾n del Discurso            | acta_final= 'RG07205135' | res_final= nan | fecha= '14/12/2022' | nota= 6.0
+    Anßlisis Matemßtico I                         | acta_final= 'RG07205142' | res_final= nan | fecha= '16/12/2022' | nota= 8.0
+    Ciencia, Universidad y Sociedad               | acta_final= 'RG07205158' | res_final= nan | fecha= '02/03/2023' | nota= 7.0
+    Idioma Moderno (InglÚs)                       | acta_final= 'RG07205191' | res_final= nan | fecha= '10/07/2023' | nota= 7.0
+------------------------------------------------------------ 'Final Libre' 5
+    ┴lgebra                                       | acta_final= 'RG07205072' | res_final= nan | fecha= '02/08/2022' | nota= 7.0
+    Organizaci¾n de las Computadoras              | acta_final= 'RG07205120' | res_final= nan | fecha= '02/12/2022' | nota= 9.0
+    Matemßtica Discreta                           | acta_final= 'RG07205125' | res_final= nan | fecha= '12/12/2022' | nota= 9.0
+    Sistemas Operativos                           | acta_final= 'RG07206142' | res_final= nan | fecha= '08/07/2024' | nota= 10.0
+    Sistemas Distribuidos                         | acta_final= 'RG07206189' | res_final= nan | fecha= '24/09/2024' | nota= 9.0
+------------------------------------------------------------ 'Parcial' 1
+    Bases de Datos Distribuidas                   | acta_final= nan | res_final= nan | fecha= nan | nota= nan
+*** No CODEPAGE record, no encoding_override: will use 'iso-8859-1'
+==========================================================================================
+LincolnPrueba2.XLS
+------------------------------------------------------------ 'Final' 17
+    Aspectos Profesionales                        | acta_final= 'RG07206139' | res_final= nan | fecha= '08/07/2024' | nota= 10
+    Procesos de Desarrollo de Software            | acta_final= 'RG07206151' | res_final= nan | fecha= '11/07/2024' | nota= 8
+    Matemßtica I                                  | acta_final= 'RG07206157' | res_final= nan | fecha= '06/08/2024' | nota= 8
+    Resoluci¾n de Problemas y Algoritmos          | acta_final= 'RG07206176' | res_final= nan | fecha= '08/08/2024' | nota= 10
+    Organizaci¾n de las Computadoras              | acta_final= 'RG07207017' | res_final= nan | fecha= '05/12/2024' | nota= 9
+    Programaci¾n de Algoritmos                    | acta_final= 'RG07207021' | res_final= nan | fecha= '05/12/2024' | nota= 10
+------------------------------------------------------------ 'Final Libre' 1
+    Idioma Moderno (InglÚs)                       | acta_final= 'RG07207025' | res_final= nan | fecha= '12/12/2024' | nota= 9

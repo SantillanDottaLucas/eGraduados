@@ -10,15 +10,38 @@ from .models import (
     GrupoOptativo,
     Materia,
     PlanEstudios,
+    PlanEstudiosGrupoOptativo,
     PlanEstudiosMateria,
     Rol,
     Usuario,
+    Resolucion,
 )
 
 
 # ==================================================
 # AYUDAS
 # ==================================================
+
+def pk_compuesta_completa(instance):
+    """
+    True cuando la instancia tiene valor en TODAS las partes
+    de su clave primaria (simple o compuesta).
+
+    Una instancia nueva de un modelo con clave primaria
+    compuesta (ej. «(None, None)») es "truthy", por lo que
+    «if instance.pk» no alcanza.
+    """
+
+    pk = instance.pk
+
+    if pk is None:
+        return False
+
+    if isinstance(pk, tuple):
+        return all(valor is not None for valor in pk)
+
+    return bool(pk)
+
 
 def validar_email_gmail(email):
     """Exige una dirección de Gmail (@gmail.com)."""
@@ -170,6 +193,7 @@ class EdicionGraduadoForm(forms.Form):
 
     promedio_sin_aplazo = forms.FloatField(
         label="Promedio sin aplazo",
+        required=False,
         widget=forms.NumberInput(
             attrs={
                 "class": "form-control",
@@ -182,6 +206,7 @@ class EdicionGraduadoForm(forms.Form):
 
     promedio_con_aplazo = forms.FloatField(
         label="Promedio con aplazo",
+        required=False,
         widget=forms.NumberInput(
             attrs={
                 "class": "form-control",
@@ -190,6 +215,65 @@ class EdicionGraduadoForm(forms.Form):
                 "max": 10,
             }
         ),
+    )
+
+    fecha_nacimiento = forms.DateField(
+        label="Fecha de nacimiento",
+        required=False,
+        widget=forms.DateInput(
+            attrs={"type": "date", "class": "form-control"},
+            format="%Y-%m-%d",
+        ),
+    )
+
+    ciudad_nacimiento = forms.CharField(
+        label="Ciudad de nacimiento",
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(attrs={"class": "form-control", "list": "ciudades"}),
+    )
+
+    provincia_nacimiento = forms.CharField(
+        label="Provincia de nacimiento",
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(attrs={"class": "form-control", "list": "provincias"}),
+    )
+
+    nombre_secundario = forms.CharField(
+        label="Nombre del secundario",
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+
+    titulo_secundario = forms.CharField(
+        label="Título del secundario",
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+
+    ciudad_secundario = forms.CharField(
+        label="Ciudad del secundario",
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(attrs={"class": "form-control", "list": "ciudades"}),
+    )
+
+    provincia_secundario = forms.CharField(
+        label="Provincia del secundario",
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(attrs={"class": "form-control", "list": "provincias"}),
+    )
+
+    anio_egreso_secundario = forms.IntegerField(
+        label="Año de egreso del secundario",
+        required=False,
+        min_value=1900,
+        max_value=2100,
+        widget=forms.NumberInput(attrs={"class": "form-control"}),
     )
 
     def clean(self):
@@ -355,6 +439,10 @@ class PlanEstudiosMateriaForm(forms.ModelForm):
     """
     Asociación entre un plan de estudios y una materia
     (clave primaria compuesta).
+
+    Cuando se selecciona un grupo optativo, la materia pasa a ser
+    «miembro» del grupo: año, cuatrimestre y orden se dejan en
+    NULL y se heredan de la ubicación del grupo en el plan.
     """
 
     class Meta:
@@ -397,7 +485,7 @@ class PlanEstudiosMateriaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         # La clave primaria compuesta (plan + materia) no se edita.
-        if self.instance and self.instance.pk:
+        if self.instance is not None and pk_compuesta_completa(self.instance):
             self.fields["codigo_plan"].disabled = True
             self.fields["codigo_materia"].disabled = True
 
@@ -407,19 +495,50 @@ class PlanEstudiosMateriaForm(forms.ModelForm):
         self.fields["codigo_materia"].queryset = (
             Materia.objects.order_by("nombre_materia")
         )
-        self.fields["id_grupo_optativo"].queryset = (
-            GrupoOptativo.objects.order_by("nombre_grupo")
-        )
-        self.fields["id_grupo_optativo"].required = False
+
+        # Año/cuatrimestre/orden solo son obligatorios para
+        # materias comunes (no para miembros de un grupo optativo).
+        self.fields["anio_materia"].required = False
+        self.fields["cuatrimestre_materia"].required = False
+        self.fields["orden_materia"].required = False
 
         # Precargar el plan cuando se agrega una materia a un plan.
         if plan_inicial and not (
-            self.instance and self.instance.pk
+            self.instance is not None
+            and pk_compuesta_completa(self.instance)
         ):
             self.fields["codigo_plan"].initial = plan_inicial
 
+        # El selector de grupos lista solo los del plan elegido.
+        plan_codigo = self._plan_elegido(plan_inicial)
+        if plan_codigo:
+            grupos = GrupoOptativo.objects.filter(
+                codigo_plan=plan_codigo,
+            ).order_by("nombre_grupo")
+        else:
+            grupos = GrupoOptativo.objects.none()
+
+        self.fields["id_grupo_optativo"].queryset = grupos
+        self.fields["id_grupo_optativo"].required = False
+
+    def _plan_elegido(self, plan_inicial):
+        """
+        Devuelve el código de plan elegido (desde la instancia,
+        los datos enviados o el valor inicial).
+        """
+
+        if self.instance is not None and pk_compuesta_completa(
+            self.instance
+        ):
+            return self.instance.codigo_plan_id
+
+        if plan_inicial:
+            return plan_inicial
+
+        return (self.data.get("codigo_plan") or "").strip() or None
+
     def clean_anio_materia(self):
-        anio = self.cleaned_data["anio_materia"]
+        anio = self.cleaned_data.get("anio_materia")
 
         if anio is not None and anio < 1:
             raise forms.ValidationError(
@@ -427,3 +546,202 @@ class PlanEstudiosMateriaForm(forms.ModelForm):
             )
 
         return anio
+
+    def clean_orden_materia(self):
+        orden = self.cleaned_data.get("orden_materia")
+
+        if orden is not None and orden < 1:
+            raise forms.ValidationError(
+                "El orden de la materia debe ser mayor o igual a 1."
+            )
+
+        return orden
+
+    def clean(self):
+        datos = super().clean()
+
+        plan = datos.get("codigo_plan")
+        grupo = datos.get("id_grupo_optativo")
+
+        if grupo and plan:
+            # El grupo elegido debe pertenecer al plan.
+            if grupo.codigo_plan_id != plan.codigo_plan:
+                self.add_error(
+                    "id_grupo_optativo",
+                    "El grupo optativo elegido no pertenece a este plan.",
+                )
+                return datos
+
+            # Materia miembro: hereda año/cuatrimestre/orden
+            # de la ubicación del grupo en el plan.
+            datos["anio_materia"] = None
+            datos["cuatrimestre_materia"] = None
+            datos["orden_materia"] = None
+
+            ubicacion = PlanEstudiosGrupoOptativo.objects.filter(
+                codigo_plan=plan,
+                id_grupo_optativo=grupo,
+            ).first()
+
+            if ubicacion is None:
+                self.add_error(
+                    "id_grupo_optativo",
+                    (
+                        "El grupo optativo todavía no está ubicado "
+                        "en el cronograma del plan. Ubicalo primero "
+                        "en la pestaña «Grupos optativos»."
+                    ),
+                )
+
+            return datos
+
+        # Materia común: año/cuatrimestre/orden obligatorios.
+        if grupo is None:
+            for campo in (
+                "anio_materia",
+                "cuatrimestre_materia",
+                "orden_materia",
+            ):
+                if datos.get(campo) in (None, ""):
+                    self.add_error(
+                        campo,
+                        "Este campo es obligatorio para una materia común.",
+                    )
+
+        return datos
+
+# ==================================================
+# ABM ACADÉMICO: GRUPOS OPTATIVOS
+# ==================================================
+
+class GrupoOptativoForm(forms.ModelForm):
+    """
+    Definición de un grupo optativo de un plan
+    (nombre único dentro del plan).
+    """
+
+    class Meta:
+        model = GrupoOptativo
+        fields = ["nombre_grupo"]
+        labels = {"nombre_grupo": "Nombre del grupo optativo"}
+        widgets = {
+            "nombre_grupo": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Ej.: Optativas de Inteligencia Artificial",
+                }
+            ),
+        }
+
+    def __init__(self, *args, plan=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._plan = plan
+
+    def clean_nombre_grupo(self):
+        nombre = self.cleaned_data["nombre_grupo"].strip()
+
+        if not nombre:
+            raise forms.ValidationError(
+                "El nombre del grupo es obligatorio."
+            )
+
+        if self._plan is not None:
+            repetidos = GrupoOptativo.objects.filter(
+                codigo_plan=self._plan,
+                nombre_grupo__iexact=nombre,
+            )
+
+            if self.instance and self.instance.pk:
+                repetidos = repetidos.exclude(
+                    pk=self.instance.pk
+                )
+
+            if repetidos.exists():
+                raise forms.ValidationError(
+                    "Ya existe un grupo con ese nombre en este plan."
+                )
+
+        return nombre
+
+
+class PlanEstudiosGrupoOptativoForm(forms.Form):
+    """
+    Ubicación de un grupo optativo dentro del cronograma
+    de un plan de estudios (año, cuatrimestre y orden).
+    """
+
+    id_grupo_optativo = forms.ModelChoiceField(
+        queryset=GrupoOptativo.objects.none(),
+        label="Grupo optativo",
+        empty_label=None,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    anio_materia = forms.IntegerField(
+        min_value=1,
+        label="Año",
+        widget=forms.NumberInput(attrs={"class": "form-control"}),
+    )
+
+    cuatrimestre_materia = forms.ChoiceField(
+        choices=[("1er", "1er"), ("2do", "2do"), ("A", "A")],
+        label="Cuatrimestre",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    orden_materia = forms.IntegerField(
+        min_value=1,
+        label="Orden",
+        widget=forms.NumberInput(attrs={"class": "form-control"}),
+    )
+
+    def __init__(self, *args, plan=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._plan = plan
+
+        if plan is not None:
+            self.fields["id_grupo_optativo"].queryset = (
+                GrupoOptativo.objects
+                .filter(codigo_plan=plan)
+                .order_by("nombre_grupo")
+            )
+
+    def clean(self):
+        datos = super().clean()
+
+        grupo = datos.get("id_grupo_optativo")
+
+        if grupo and self._plan is not None:
+            if grupo.codigo_plan_id != self._plan.codigo_plan:
+                self.add_error(
+                    "id_grupo_optativo",
+                    "El grupo elegido no pertenece a este plan.",
+                )
+
+        return datos
+
+class ResolucionForm(forms.ModelForm):
+    """Alta de una resolución/instrumento legal (ABM Carrera)."""
+
+    class Meta:
+        model = Resolucion
+        fields = ["resolucion", "tipo_resolucion"]
+        labels = {
+            "resolucion": "Resolución / instrumento",
+            "tipo_resolucion": "Tipo",
+        }
+        widgets = {
+            "resolucion": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Ej.: 1496/99",
+                }
+            ),
+            "tipo_resolucion": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+        }
+
+    def clean_resolucion(self):
+        return self.cleaned_data["resolucion"].strip()

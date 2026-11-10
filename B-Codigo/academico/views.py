@@ -11,7 +11,7 @@ from .autenticacion import (
     requiere_sesion,
     url_siguiente_segura,
 )
-from .models import Carrera, Escuela, Usuario
+from .models import Carrera, Escuela, GraduadoCarrera, Usuario
 
 from academico.servicios.moduloCarga.carga_datos import CargaDatos
 
@@ -115,24 +115,6 @@ def logout(request):
 @requiere_sesion
 def index(request):
     return render(request, "academico/index.html")
-
-
-@requiere_sesion
-def generacion_analiticos(request):
-    if request.method == "POST":
-        nombre = request.POST.get("nombre", "")
-        apellido = request.POST.get("apellido", "")
-        legajo = request.POST.get("legajo", "")
-        archivo_notas = request.FILES.get("archivo_notas")
-
-        # Pendiente: implementar la generación del analítico.
-
-    return render(request, "academico/generacion_analiticos.html")
-
-
-@requiere_sesion
-def titulo_en_tramite(request):
-    return render(request, "academico/titulo_en_tramite.html")
 
 
 # ==========================================
@@ -304,10 +286,64 @@ def estadisticas(request):
 
 @requiere_sesion
 def lista_graduados(request):
+    from django.core.paginator import Paginator
+
+    from .models import Analitico
+
     graduados = obtener_graduados_filtrados(request.GET)
+    legajos = graduados.values_list("legajo_graduado", flat=True)
+
+    filas = (
+        GraduadoCarrera.objects
+        .filter(legajo_graduado_id__in=legajos)
+        .select_related(
+            "legajo_graduado",
+            "codigo_carrera",
+            "codigo_carrera__id_escuela",
+        )
+        .order_by("legajo_graduado_id", "codigo_carrera_id")
+    )
+
+    pagina = request.GET.get("pagina")
+    paginator = Paginator(filas, 25)
+    filas_pagina = paginator.get_page(pagina)
+
+    analiticos_titulo = set(
+        Analitico.objects.filter(
+            legajo_graduado_id__in=legajos,
+            tipo_documento="titulo",
+        ).values_list("legajo_graduado_id", "codigo_carrera_id")
+    )
+
+    analiticos_tramite = set(
+        Analitico.objects.filter(
+            legajo_graduado_id__in=legajos,
+            tipo_documento="en_tramite",
+        ).values_list("legajo_graduado_id", "codigo_carrera_id")
+    )
+
+    # Querystring sin «pagina» para los enlaces de paginado.
+    querystring = request.GET.copy()
+    querystring.pop("pagina", None)
+    filtros_qs = querystring.urlencode()
+
+    # Marcar las filas que tienen analíticos validados.
+    for fila in filas_pagina.object_list:
+        clave = (fila.legajo_graduado_id, fila.codigo_carrera_id)
+        fila.analitico_titulo = clave in analiticos_titulo
+        fila.analitico_tramite = clave in analiticos_tramite
 
     contexto = obtener_contexto_base()
-    contexto["graduados"] = graduados
+    contexto.update({
+        "filas": filas_pagina,
+        "page_obj": filas_pagina,
+        "paginator": paginator,
+        "total_filas": paginator.count,
+        "total_graduados": graduados.count(),
+        "analiticos_titulo": analiticos_titulo,
+        "analiticos_tramite": analiticos_tramite,
+        "filtros_qs": filtros_qs,
+    })
 
     return render(
         request,

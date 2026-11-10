@@ -1,0 +1,213 @@
+<form method="post" action="{{ request.path }}">
+    {% csrf_token %}
+    <input type="hidden" name="legajo" value="{{ datos.legajo }}">
+    <input type="hidden" name="carrera" value="{{ datos.carrera }}">
+
+    {% if validado %}
+        <div class="alert alert-success" role="alert">
+            <strong>✓ Analítico validado y guardado.</strong>
+            Podés descargarlo o ajustar datos y revalidarlo.
+        </div>
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            Editá lo necesario y presioná <strong>Validar analítico</strong> para guardar.
+            La descarga se habilita después de validar.
+        </div>
+    {% endif %}
+
+    <section class="documento mb-4">
+        <h3>
+            {% if tipo_documento == 'en_tramite' %}
+                Título en trámite · Analítico
+            {% else %}
+                Analítico
+            {% endif %}
+            — {{ datos.carrera }}
+        </h3>
+
+        <div class="row g-2">
+            <div class="col-6 col-md-3">
+                <label class="form-label small">Apellido</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="apellido" value="{{ datos.apellido }}" required>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small">Nombre</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="nombre" value="{{ datos.nombre }}" required>
+            </div>
+            <div class="col-4 col-md-2">
+                <label class="form-label small">DNI</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="dni" value="{{ datos.dni }}" required>
+            </div>
+            <div class="col-4 col-md-2">
+                <label class="form-label small">Año ingr. UARG</label>
+                <input type="number" class="form-control campo-documento" name="anio_ingreso_uarg" value="{{ datos.anio_ingreso_uarg }}" required>
+            </div>
+            <div class="col-4 col-md-2">
+                <label class="form-label small">Año ingr. carrera</label>
+                <input type="number" class="form-control campo-documento" name="anio_ingreso_carrera" value="{{ datos.anio_ingreso_carrera }}" required>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label small">Fecha de egreso de la carrera</label>
+                <input type="date" class="form-control campo-documento campo-documento-ancho" name="fecha_egreso_carrera" value="{{ datos.fecha_egreso_carrera }}" required>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small">Pron. sin aplazos</label>
+                <input type="number" class="form-control campo-documento" name="promedio_sin_aplazo" step="0.01" min="0" max="10" value="{{ datos.promedio_sin_aplazo }}" required>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small">Pron. con aplazos</label>
+                <input type="number" class="form-control campo-documento" name="promedio_con_aplazo" step="0.01" min="0" max="10" value="{{ datos.promedio_con_aplazo }}" required>
+            </div>
+
+            <div class="col-6 col-md-4">
+                <label class="form-label small">Fecha de nacimiento</label>
+                <input type="date" class="form-control campo-documento campo-documento-ancho" name="fecha_nacimiento" value="{{ datos.fecha_nacimiento }}">
+            </div>
+            <div class="col-6 col-md-4">
+                <label class="form-label small">Ciudad</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="ciudad_nacimiento" list="ciudades" value="{{ datos.ciudad_nacimiento }}">
+            </div>
+            <div class="col-6 col-md-4">
+                <label class="form-label small">Provincia</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="provincia_nacimiento" list="provincias" value="{{ datos.provincia_nacimiento }}">
+            </div>
+
+            <div class="col-6 col-md-4">
+                <label class="form-label small">Secundario</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="nombre_secundario" value="{{ datos.nombre_secundario }}">
+            </div>
+            <div class="col-6 col-md-4">
+                <label class="form-label small">Título secundario</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="titulo_secundario" value="{{ datos.titulo_secundario }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small">Ciudad sec.</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="ciudad_secundario" list="ciudades" value="{{ datos.ciudad_secundario }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small">Provincia sec.</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="provincia_secundario" list="provincias" value="{{ datos.provincia_secundario }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small">Año egr. sec.</label>
+                <input type="number" class="form-control campo-documento" name="anio_egreso_secundario" value="{{ datos.anio_egreso_secundario }}">
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label class="form-label small">Título a otorgar</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="titulo_otorgado" list="titulos" value="{{ datos.titulo_otorgado }}" required>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label small">Resoluciones institucionales</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="resoluciones_institucionales"
+                       value="{% if datos.resoluciones_institucionales %}{% for r in datos.resoluciones_institucionales %}{{ r }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}">
+            </div>
+            <div class="col-6 col-md-6">
+                <label class="form-label small">Ministeriales / nacionales</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="resoluciones_ministeriales" value="{{ datos.resoluciones_ministeriales }}">
+            </div>
+            <div class="col-6 col-md-6">
+                <label class="form-label small">Otros instrumentos</label>
+                <input type="text" class="form-control campo-documento campo-documento-ancho" name="otros_instrumentos" value="{{ datos.otros_instrumentos }}">
+            </div>
+        </div>
+    </section>
+
+    <section class="documento mb-4">
+        <h3>Exámenes ({{ filas|length }})</h3>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 documento-tabla">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Año</th>
+                        <th style="min-width: 220px;">Espacio curricular</th>
+                        <th>Nota</th>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Resp.</th>
+                        <th>Folio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in filas %}
+                        <tr class="{% if not fila.matcheada %}fila-sin-materia{% else %}fila-matcheada{% endif %}">
+                            <td>
+                                {{ fila.orden }}
+                                <input type="hidden" name="fila_indice" value="{{ fila.orden }}">
+                                <input type="hidden" name="fila_anio" value="{{ fila.anio }}">
+                            </td>
+                            <td>{{ fila.anio }}</td>
+                            <td>
+                                <input type="text" class="form-control campo-documento campo-documento-ancho"
+                                       name="fila_espacio" value="{{ fila.espacio }}" required>
+                                {% if not fila.matcheada %}
+                                    <select class="form-select form-select-sm mt-1" name="fila_materia">
+                                        <option value="">— Elegir materia del plan —</option>
+                                        {% for materia in materias_plan %}
+                                            <option value="{{ materia.codigo_materia }}">
+                                                {{ materia.nombre_materia }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                {% else %}
+                                    <input type="hidden" name="fila_materia" value="{{ fila.materia_codigo }}">
+                                {% endif %}
+                            </td>
+                            <td>
+                                <input type="number" class="form-control campo-documento" name="fila_nota"
+                                       min="1" max="10" value="{% if fila.nota != None %}{{ fila.nota }}{% endif %}">
+                            </td>
+                            <td>
+                                <input type="date" class="form-control campo-documento" name="fila_fecha"
+                                       value="{{ fila.fecha_examen }}">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control campo-documento campo-documento-ancho" name="fila_tipo"
+                                       value="{{ fila.tipo }}">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control campo-documento campo-documento-ancho" name="fila_respaldo"
+                                       value="{{ fila.respaldo }}">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control campo-documento" name="fila_folio"
+                                       value="{{ fila.folio }}">
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="analitico-actions">
+        <a href="?modo=carga&legajo={{ datos.legajo }}&carrera={{ datos.carrera }}"
+           class="btn btn-outline-secondary">
+            ← Volver
+        </a>
+        <button type="submit" name="accion" value="validar" class="btn btn-primary px-4">
+            Validar analítico
+        </button>
+        <button type="submit" name="accion" value="descargar"
+                class="btn btn-success px-4"
+                {% if not validado %}disabled aria-disabled="true"
+                    title="Validá el analítico primero"
+                {% endif %}>
+            Descargar analítico (.docx)
+        </button>
+    </div>
+
+    <datalist id="provincias">
+        {% for provincia in provincias %}<option value="{{ provincia }}">{% endfor %}
+    </datalist>
+    <datalist id="ciudades">
+        {% for ciudad in ciudades %}<option value="{{ ciudad }}">{% endfor %}
+    </datalist>
+    <datalist id="titulos">
+        {% for titulo in titulos %}<option value="{{ titulo.nombre_titulo }}">{% endfor %}
+    </datalist>
+</form>

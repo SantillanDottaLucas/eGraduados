@@ -1,0 +1,248 @@
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="alert alert-secondary py-2 small mb-3" role="status">
+        Completá los datos y presioná <strong>Continuar</strong>.
+        Si el graduado ya está guardado en el sistema, se te avisará antes de continuar.
+    </div>
+
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-6">
+            <section class="analitico-section h-100">
+                <div class="analitico-section-heading">
+                    <div class="analitico-section-number">01</div>
+                    <div>
+                        <h2>Datos del graduado</h2>
+                        <p>Información personal e ingreso a la universidad.</p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="nombre" class="form-label">Nombre/s <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="nombre" name="nombre"
+                           value="{{ datos.nombre }}" autocomplete="given-name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="apellido" class="form-label">Apellido/s <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="apellido" name="apellido"
+                           value="{{ datos.apellido }}" autocomplete="family-name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="legajo" class="form-label">Legajo <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="legajo" name="legajo"
+                           value="{{ datos.legajo }}" placeholder="UARG-24827" required>
+                </div>
+                <div class="mb-3">
+                    <label for="dni" class="form-label">DNI <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="dni" name="dni"
+                           value="{{ datos.dni }}" inputmode="numeric" placeholder="41734713" required>
+                </div>
+                <div class="mb-0">
+                    <label for="anio_ingreso_uarg" class="form-label">Año de ingreso a la UARG <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="anio_ingreso_uarg" name="anio_ingreso_uarg"
+                           value="{{ datos.anio_ingreso_uarg }}" min="1900" max="2100" required>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <section class="analitico-section h-100">
+                <div class="analitico-section-heading">
+                    <div class="analitico-section-number">02</div>
+                    <div>
+                        <h2>Carrera y resoluciones</h2>
+                        <p>Trayectoria, egreso y normativa del título.</p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="carrera" class="form-label">Carrera de la que se gradúa <span class="text-danger">*</span></label>
+                    <select id="carrera" name="carrera" class="form-select" required>
+                        <option value="">Seleccioná la carrera…</option>
+                        {% for carrera in carreras %}
+                            <option value="{{ carrera.codigo_carrera }}"
+                                    {% if datos.carrera == carrera.codigo_carrera %}selected{% endif %}>
+                                {{ carrera.nombre_carrera }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label for="anio_ingreso_carrera" class="form-label">Año de ingreso <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="anio_ingreso_carrera"
+                               name="anio_ingreso_carrera" value="{{ datos.anio_ingreso_carrera }}"
+                               min="1900" max="2100" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label for="fecha_egreso_carrera" class="form-label">Fecha de egreso <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="fecha_egreso_carrera"
+                               name="fecha_egreso_carrera" value="{{ datos.fecha_egreso_carrera }}" required>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-12 col-md-6">
+                        <label for="promedio_sin_aplazo" class="form-label">Promedio sin aplazos <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="promedio_sin_aplazo"
+                               name="promedio_sin_aplazo" value="{{ datos.promedio_sin_aplazo }}"
+                               min="0" max="10" step="0.01" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label for="promedio_con_aplazo" class="form-label">Promedio con aplazos <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="promedio_con_aplazo"
+                               name="promedio_con_aplazo" value="{{ datos.promedio_con_aplazo }}"
+                               min="0" max="10" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="mb-3 mt-3">
+                    <label for="resoluciones_institucionales" class="form-label">Resoluciones institucionales <span class="text-danger">*</span></label>
+                    <input class="form-control" id="resoluciones_institucionales" name="resoluciones_institucionales"
+                           value="{% if datos.resoluciones_institucionales %}{% for r in datos.resoluciones_institucionales %}{{ r }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}"
+                           placeholder="Ej.: 141/CS/98, 218/CS/00, 186/CS/06" required>
+                    <div class="form-text">Separá con comas o punto y coma. Se asocian a la carrera.</div>
+                </div>
+                <div class="mb-3">
+                    <label for="resoluciones_ministeriales" class="form-label">Resoluciones ministeriales / nacionales <span class="text-danger">*</span></label>
+                    <input class="form-control" id="resoluciones_ministeriales" name="resoluciones_ministeriales"
+                           value="{{ datos.resoluciones_ministeriales }}" placeholder="Ej.: 1496/99" required>
+                </div>
+                <div class="mb-0">
+                    <label for="otros_instrumentos" class="form-label">Otros instrumentos legales</label>
+                    <input class="form-control" id="otros_instrumentos" name="otros_instrumentos"
+                           value="{{ datos.otros_instrumentos }}" placeholder="Ej.: Nota DNGU N.° 1186/14">
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <section class="analitico-section h-100">
+                <div class="analitico-section-heading">
+                    <div class="analitico-section-number">03</div>
+                    <div>
+                        <h2>Datos de nacimiento</h2>
+                        <p>Información que figurará en la documentación.</p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="fecha_nacimiento" class="form-label">Fecha de nacimiento <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento"
+                           value="{{ datos.fecha_nacimiento }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="ciudad_nacimiento" class="form-label">Ciudad de nacimiento <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="ciudad_nacimiento" name="ciudad_nacimiento"
+                           list="ciudades" value="{{ datos.ciudad_nacimiento }}" required>
+                </div>
+                <div class="mb-0">
+                    <label for="provincia_nacimiento" class="form-label">Provincia de nacimiento <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="provincia_nacimiento" name="provincia_nacimiento"
+                           list="provincias" value="{{ datos.provincia_nacimiento }}" required>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <section class="analitico-section h-100">
+                <div class="analitico-section-heading">
+                    <div class="analitico-section-number">04</div>
+                    <div>
+                        <h2>Estudios secundarios</h2>
+                        <p>Establecimiento, título previo y egreso.</p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="nombre_secundario" class="form-label">Nombre del secundario <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="nombre_secundario" name="nombre_secundario"
+                           value="{{ datos.nombre_secundario }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="titulo_secundario" class="form-label">Título secundario <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="titulo_secundario" name="titulo_secundario"
+                           value="{{ datos.titulo_secundario }}" placeholder="Ej.: Bachiller en Ciencias Naturales" required>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label for="ciudad_secundario" class="form-label">Ciudad del secundario <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="ciudad_secundario" name="ciudad_secundario"
+                               list="ciudades" value="{{ datos.ciudad_secundario }}" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label for="provincia_secundario" class="form-label">Provincia del secundario <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="provincia_secundario" name="provincia_secundario"
+                               list="provincias" value="{{ datos.provincia_secundario }}" required>
+                    </div>
+                </div>
+                <div class="mt-3 mb-0">
+                    <label for="anio_egreso_secundario" class="form-label">Año de egreso secundario</label>
+                    <input type="number" class="form-control" id="anio_egreso_secundario" name="anio_egreso_secundario"
+                           value="{{ datos.anio_egreso_secundario }}" min="1900" max="2100">
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <section class="analitico-section h-100">
+                <div class="analitico-section-heading">
+                    <div class="analitico-section-number">05</div>
+                    <div>
+                        <h2>Título a otorgar</h2>
+                        <p>Denominación del título que se certifica.</p>
+                    </div>
+                </div>
+
+                <div class="mb-0">
+                    <label for="titulo_otorgado" class="form-label">Título <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="titulo_otorgado" name="titulo_otorgado"
+                           list="titulos" value="{{ datos.titulo_otorgado }}"
+                           placeholder="Ej.: Licenciada en Psicopedagogía" required>
+                    <div class="form-text">Elegí uno del plantel sugerido o escribilo.</div>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12">
+            <section class="analitico-section">
+                <div class="analitico-section-heading">
+                    <div class="analitico-section-number">06</div>
+                    <div>
+                        <h2>Información académica</h2>
+                        <p>Certificado Lincoln con las notas.</p>
+                    </div>
+                </div>
+
+                <div class="analitico-upload">
+                    <div class="mb-2 fw-bold text-primary-emphasis">Certificado Lincoln</div>
+                    <label for="archivo_notas" class="form-label">Seleccionar archivo Excel (.xls / .xlsx)</label>
+                    <input type="file" class="form-control" id="archivo_notas" name="archivo_notas"
+                           accept=".xlsx,.xls">
+                    <div class="form-text mt-2">
+                        Si el graduado ya tiene exámenes cargados, podés continuar sin adjuntar el archivo.
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="analitico-actions">
+        <span class="text-secondary small align-self-center">Revisá los datos antes de continuar.</span>
+        <button type="submit" name="accion" value="continuar" class="btn btn-primary btn-lg px-4">
+            Continuar →
+        </button>
+    </div>
+
+    <datalist id="provincias">
+        {% for provincia in provincias %}<option value="{{ provincia }}">{% endfor %}
+    </datalist>
+    <datalist id="ciudades">
+        {% for ciudad in ciudades %}<option value="{{ ciudad }}">{% endfor %}
+    </datalist>
+    <datalist id="titulos">
+        {% for titulo in titulos %}<option value="{{ titulo.nombre_titulo }}">{% endfor %}
+    </datalist>
+</form>

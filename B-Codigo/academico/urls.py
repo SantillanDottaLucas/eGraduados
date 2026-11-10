@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import views_abm
 from . import views_gestion
+from . import views_analiticos
 from django.urls import path, re_path
 
 urlpatterns = [
@@ -54,12 +55,12 @@ urlpatterns = [
     # Analíticos y títulos
     path(
         "generacion_analiticos/",
-        views.generacion_analiticos,
+        views_analiticos.generacion_analiticos,
         name="generacion_analiticos",
     ),
     path(
         "titulo_en_tramite/",
-        views.titulo_en_tramite,
+        views_analiticos.titulo_en_tramite,
         name="titulo_en_tramite",
     ),
     path(

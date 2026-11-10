@@ -222,6 +222,122 @@
             </div>
         </section>
 
+        <section class="editar-panel">
+            <h2>Datos de nacimiento</h2>
+            <p class="text-muted small mb-3">Opcionales (pueden venir vacíos en el sistema heredado).</p>
+
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label for="id_fecha_nacimiento" class="form-label fw-semibold">
+                        Fecha de nacimiento
+                    </label>
+                    {{ form.fecha_nacimiento }}
+                    {% if form.fecha_nacimiento.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.fecha_nacimiento.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="id_ciudad_nacimiento" class="form-label fw-semibold">
+                        Ciudad de nacimiento
+                    </label>
+                    {{ form.ciudad_nacimiento }}
+                    <datalist id="ciudades">
+                        {% for ciudad in ciudades %}<option value="{{ ciudad }}">{% endfor %}
+                    </datalist>
+                    {% if form.ciudad_nacimiento.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.ciudad_nacimiento.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="id_provincia_nacimiento" class="form-label fw-semibold">
+                        Provincia de nacimiento
+                    </label>
+                    {{ form.provincia_nacimiento }}
+                    <datalist id="provincias">
+                        {% for provincia in provincias %}<option value="{{ provincia }}">{% endfor %}
+                    </datalist>
+                    {% if form.provincia_nacimiento.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.provincia_nacimiento.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <section class="editar-panel">
+            <h2>Estudios secundarios</h2>
+            <p class="text-muted small mb-3">Opcionales (pueden venir vacíos en el sistema heredado).</p>
+
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label for="id_nombre_secundario" class="form-label fw-semibold">
+                        Nombre del secundario
+                    </label>
+                    {{ form.nombre_secundario }}
+                    {% if form.nombre_secundario.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.nombre_secundario.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_titulo_secundario" class="form-label fw-semibold">
+                        Título secundario
+                    </label>
+                    {{ form.titulo_secundario }}
+                    {% if form.titulo_secundario.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.titulo_secundario.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="id_ciudad_secundario" class="form-label fw-semibold">
+                        Ciudad del secundario
+                    </label>
+                    {{ form.ciudad_secundario }}
+                    {% if form.ciudad_secundario.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.ciudad_secundario.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="id_provincia_secundario" class="form-label fw-semibold">
+                        Provincia del secundario
+                    </label>
+                    {{ form.provincia_secundario }}
+                    {% if form.provincia_secundario.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.provincia_secundario.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="id_anio_egreso_secundario" class="form-label fw-semibold">
+                        Año de egreso del secundario
+                    </label>
+                    {{ form.anio_egreso_secundario }}
+                    {% if form.anio_egreso_secundario.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.anio_egreso_secundario.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
         <div class="editar-acciones">
             <a href="{% url 'lista_graduados' %}{% if volver %}?{{ volver }}{% endif %}"
                class="btn btn-outline-secondary px-4">

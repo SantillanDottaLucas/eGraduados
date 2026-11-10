@@ -70,18 +70,26 @@
 
     .tabla {
         margin-bottom: 0;
+        font-size: .875rem;
         vertical-align: middle;
     }
 
     .tabla thead th {
-        padding: 1rem;
+        padding: .6rem .75rem;
         color: var(--bs-secondary-color);
+        font-size: .75rem;
+        letter-spacing: .03em;
+        text-transform: uppercase;
         background: var(--bs-tertiary-bg);
         white-space: nowrap;
     }
 
     .tabla tbody td {
-        padding: .9rem 1rem;
+        padding: .45rem .75rem;
+    }
+
+    .tabla tbody tr:nth-child(even) {
+        background: rgba(36, 92, 166, .03);
     }
 
     .legajo {
@@ -94,6 +102,44 @@
         padding: 2rem !important;
         color: var(--bs-secondary-color);
         text-align: center;
+    }
+
+    .acciones-fila {
+        display: flex;
+        gap: .35rem;
+        flex-wrap: wrap;
+        min-width: 150px;
+    }
+
+    .badge-analitico {
+        display: inline-block;
+        margin-top: .25rem;
+        padding: .15rem .5rem;
+        border-radius: 20px;
+        font-size: .68rem;
+        font-weight: 700;
+        color: #0f5132;
+        background: #d1e7dd;
+    }
+
+    .paginacion {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: .75rem .75rem;
+        border-top: 1px solid var(--bs-border-color);
+        flex-wrap: wrap;
+    }
+
+    .paginacion-btns {
+        display: flex;
+        gap: .35rem;
+        align-items: center;
+    }
+
+    .paginacion .page-link {
+        border-radius: 8px;
     }
 
     @media (max-width: 576px) {
@@ -228,7 +274,7 @@
                         href="{% url 'exportar_graduados' %}?{{ request.GET.urlencode }}"
                         class="btn btn-success px-4 ms-md-auto"
                     >
-                        Descargar CSV
+                        Descargar Excel
                     </a>
                 </div>
 
@@ -240,82 +286,118 @@
         <div class="tabla-titulo">
             <h2>Resultados de la búsqueda</h2>
             <span class="text-muted small">
-                {{ graduados|length }} graduado(s)
+                {{ total_graduados }} graduado(s) · {{ total_filas }} fila(s)
             </span>
         </div>
+
+        {% if page_obj.has_other_pages %}
+            <div class="paginacion">
+                <span class="text-muted small">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                </span>
+                <div class="paginacion-btns">
+                    {% if page_obj.has_previous %}
+                        <a class="page-link" href="?{{ filtros_qs }}{% if filtros_qs %}&{% endif %}pagina={{ page_obj.previous_page_number }}">‹ Anterior</a>
+                    {% endif %}
+                    <span class="text-muted small px-2">{{ page_obj.start_index }}–{{ page_obj.end_index }}</span>
+                    {% if page_obj.has_next %}
+                        <a class="page-link" href="?{{ filtros_qs }}{% if filtros_qs %}&{% endif %}pagina={{ page_obj.next_page_number }}">Siguiente ›</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
 
         <div class="table-responsive">
             <table class="table table-hover tabla">
                 <thead>
                     <tr>
                         <th>Legajo</th>
-                        <th>DNI</th>
                         <th>Nombre</th>
                         <th>Apellido</th>
+                        <th>DNI</th>
                         <th>Carrera</th>
-                        <th>Ingreso a la carrera</th>
-                        <th>Egreso de la carrera</th>
-                        <th>Promedio sin aplazo</th>
-                        <th>Promedio con aplazo</th>
+                        <th>Escuela</th>
+                        <th>Ingreso</th>
+                        <th>Egreso</th>
+                        <th>P. sin aplazo</th>
+                        <th>P. con aplazo</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    {% for graduado in graduados %}
-                        {% for registro in graduado.carreras_cursadas.all %}
-                            <tr>
-                                <td class="legajo">
-                                    {{ graduado.legajo_graduado }}
-                                </td>
+                    {% for registro in filas %}
+                        <tr>
+                            <td class="legajo">
+                                {{ registro.legajo_graduado_id }}
+                            </td>
 
-                                <td>{{ graduado.dni }}</td>
-                                <td>{{ graduado.nombre }}</td>
-                                <td>{{ graduado.apellido }}</td>
+                            <td>{{ registro.legajo_graduado.nombre }}</td>
+                            <td>{{ registro.legajo_graduado.apellido }}</td>
+                            <td>{{ registro.legajo_graduado.dni }}</td>
 
-                                <td>
-                                    {{ registro.codigo_carrera.nombre_carrera }}
-                                </td>
+                            <td>{{ registro.codigo_carrera.nombre_carrera }}</td>
+                            <td>{{ registro.codigo_carrera.id_escuela.nombre_escuela }}</td>
 
-                                <td>
-                                    {{ registro.fecha_ingreso_carrera|date:"d/m/Y" }}
-                                </td>
+                            <td>{{ registro.fecha_ingreso_carrera|date:"d/m/Y" }}</td>
+                            <td>{{ registro.fecha_egreso_carrera|date:"d/m/Y" }}</td>
 
-                                <td>
-                                    {{ registro.fecha_egreso_carrera|date:"d/m/Y" }}
-                                </td>
+                            <td>{{ registro.promedio_sin_aplazo|default_if_none:"—" }}</td>
+                            <td>{{ registro.promedio_con_aplazo|default_if_none:"—" }}</td>
 
-                                <td>
-                                    {{ registro.promedio_sin_aplazo|default_if_none:"—" }}
-                                </td>
-
-                                <td>
-                                    {{ registro.promedio_con_aplazo|default_if_none:"—" }}
-                                </td>
-
-                                <td>
-                                    <a href="{% url 'editar_graduado' graduado.legajo_graduado registro.codigo_carrera_id %}?volver={{ request.GET.urlencode|urlencode }}"
+                            <td>
+                                <div class="acciones-fila">
+                                    <a href="{% url 'editar_graduado' registro.legajo_graduado_id registro.codigo_carrera_id %}?volver={{ request.GET.urlencode|urlencode }}"
                                        class="btn btn-outline-primary btn-sm">
                                         Editar
                                     </a>
-                                </td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="10" class="sin-resultados">
-                                    Este graduado no tiene carreras asociadas.
-                                </td>
-                            </tr>
-                        {% endfor %}
+
+                                    <a href="{% url 'generacion_analiticos' %}?modo=preview&legajo={{ registro.legajo_graduado_id|urlencode }}&carrera={{ registro.codigo_carrera_id|urlencode }}"
+                                       class="btn btn-outline-info btn-sm"
+                                       title="Generar, ver o descargar el analítico">
+                                        Analítico
+                                    </a>
+
+                                    <a href="{% url 'titulo_en_tramite' %}?modo=preview&legajo={{ registro.legajo_graduado_id|urlencode }}&carrera={{ registro.codigo_carrera_id|urlencode }}"
+                                       class="btn btn-outline-secondary btn-sm"
+                                       title="Generar, ver o descargar el título en trámite">
+                                        En trámite
+                                    </a>
+                                </div>
+
+                                {% if registro.analitico_titulo %}
+                                    <span class="badge-analitico">Analítico validado</span>
+                                {% endif %}
+                                {% if registro.analitico_tramite %}
+                                    <span class="badge-analitico" style="color:#664d03;background:#fff3cd">Título en trámite validado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="10" class="sin-resultados">
+                            <td colspan="11" class="sin-resultados">
                                 No se encontraron graduados con esos filtros.
                             </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <div class="paginacion">
+            <span class="text-muted small">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} ·
+                Mostrando {{ filas|length }} de {{ total_filas }} fila(s)
+            </span>
+            <div class="paginacion-btns">
+                {% if page_obj.has_previous %}
+                    <a class="page-link" href="?{{ filtros_qs }}{% if filtros_qs %}&{% endif %}pagina={{ page_obj.previous_page_number }}">‹ Anterior</a>
+                {% endif %}
+                <span class="text-muted small px-2">{{ page_obj.start_index }}–{{ page_obj.end_index }}</span>
+                {% if page_obj.has_next %}
+                    <a class="page-link" href="?{{ filtros_qs }}{% if filtros_qs %}&{% endif %}pagina={{ page_obj.next_page_number }}">Siguiente ›</a>
+                {% endif %}
+            </div>
         </div>
     </section>
 

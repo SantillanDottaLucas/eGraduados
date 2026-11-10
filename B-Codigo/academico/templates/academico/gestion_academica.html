@@ -48,6 +48,12 @@
                 Materias del plan
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link {% if entidad_activa == 'grupo_optativo' %}active{% endif %}"
+               href="{% url 'gestion_academica' %}?entidad=grupo_optativo{% if plan_seleccionado %}&plan={{ plan_seleccionado.codigo_plan }}{% endif %}">
+                Grupos optativos
+            </a>
+        </li>
     </ul>
 
     {# ================================================== #}
@@ -162,6 +168,40 @@
                             <div class="text-danger small mt-1">{{ form_carrera.id_escuela.errors.0 }}</div>
                         {% endif %}
                     </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Resoluciones / instrumentos legales</label>
+                        <div class="form-help mb-2">
+                            Seleccioná las resoluciones que amparan a esta carrera.
+                            Se autocompletan al generar un analítico, pero son modificables ahí.
+                        </div>
+                        <div class="row g-3">
+                            {% for grupo in resoluciones_agrupadas %}
+                                <div class="col-12 col-md-4">
+                                    <div class="border rounded-3 p-3 h-100" style="background: var(--bs-tertiary-bg);">
+                                        <div class="fw-semibold small text-uppercase text-secondary mb-2">
+                                            {{ grupo.etiqueta }}
+                                        </div>
+                                        {% for resolucion in grupo.items %}
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="resoluciones"
+                                                       id="res-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                                                       value="{{ resolucion.resolucion }}"
+                                                       {% if resolucion.resolucion in resoluciones_seleccionadas %}checked{% endif %}>
+                                                <label class="form-check-label" for="res-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                                                    {{ resolucion.resolucion }}
+                                                </label>
+                                            </div>
+                                        {% empty %}
+                                            <div class="text-muted small fst-italic">
+                                                Sin resoluciones de este tipo.
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <div class="col-12 d-flex gap-2">
                         <button type="submit" class="btn btn-primary">Guardar</button>
                         {% if form_carrera.instance.pk %}
@@ -170,6 +210,82 @@
                     </div>
                 </div>
             </form>
+        </section>
+
+        <section class="gestion-panel">
+            <h2>Catálogo de resoluciones</h2>
+            <p class="text-secondary small mb-3">
+                Alta y baja de resoluciones e instrumentos legales por tipo.
+            </p>
+
+            <form method="post" action="{% url 'gestion_academica' %}" class="mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="entidad" value="carrera">
+                <input type="hidden" name="accion" value="crear_resolucion">
+                {% if form_carrera.instance.pk %}
+                    <input type="hidden" name="id" value="{{ form_carrera.instance.codigo_carrera }}">
+                {% endif %}
+
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-5">
+                        <label for="id_resolucion" class="form-label fw-semibold">Resolución / instrumento</label>
+                        {{ form_resolucion.resolucion }}
+                        {% if form_resolucion.resolucion.errors %}
+                            <div class="text-danger small mt-1">{{ form_resolucion.resolucion.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label for="id_tipo_resolucion" class="form-label fw-semibold">Tipo</label>
+                        {{ form_resolucion.tipo_resolucion }}
+                        {% if form_resolucion.tipo_resolucion.errors %}
+                            <div class="text-danger small mt-1">{{ form_resolucion.tipo_resolucion.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Agregar resolución</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr class="text-secondary small">
+                            <th>Resolución</th>
+                            <th>Tipo</th>
+                            <th>Carreras</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for grupo in resoluciones_agrupadas %}
+                            {% for resolucion in grupo.items %}
+                                <tr>
+                                    <td class="fw-semibold">{{ resolucion.resolucion }}</td>
+                                    <td>{{ grupo.etiqueta }}</td>
+                                    <td>{{ resolucion.carreras_resolucion.count }}</td>
+                                    <td class="text-end">
+                                        <form method="post" action="{% url 'gestion_academica' %}"
+                                              onsubmit="return confirm('¿Eliminar la resolución «{{ resolucion.resolucion }}»?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="entidad" value="carrera">
+                                            <input type="hidden" name="accion" value="eliminar_resolucion">
+                                            <input type="hidden" name="id" value="{{ resolucion.resolucion }}">
+                                            <button type="submit"
+                                                    class="btn btn-outline-danger btn-sm py-0 px-2"
+                                                    {% if resolucion.carreras_resolucion.exists %}disabled title="Asociada a una carrera"{% endif %}>
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="4" class="text-muted small fst-italic">Sin resoluciones de este tipo.</td></tr>
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section class="gestion-tabla">
@@ -406,7 +522,7 @@
         {% else %}
             <section class="gestion-panel">
                 <h2>
-                    {% if form_plan_materia.instance.pk %}
+                    {% if form_plan_materia.instance.codigo_plan_id %}
                         Editar materia del plan {{ plan_seleccionado.codigo_plan }}
                     {% else %}
                         Agregar materia al plan {{ plan_seleccionado.codigo_plan }}
@@ -417,7 +533,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="entidad" value="plan_materia">
                     <input type="hidden" name="plan" value="{{ plan_seleccionado.codigo_plan }}">
-                    {% if form_plan_materia.instance.pk %}
+                    {% if form_plan_materia.instance.codigo_plan_id %}
                         <input type="hidden" name="id_plan" value="{{ form_plan_materia.instance.codigo_plan_id }}">
                         <input type="hidden" name="id_materia" value="{{ form_plan_materia.instance.codigo_materia_id }}">
                     {% endif %}
@@ -445,6 +561,7 @@
                         <div class="col-12 col-md-3">
                             <label for="id_anio_materia" class="form-label fw-semibold">Año</label>
                             {{ form_plan_materia.anio_materia }}
+                            <div class="form-help">Opcional si la materia es miembro de un grupo.</div>
                             {% if form_plan_materia.anio_materia.errors %}
                                 <div class="text-danger small mt-1">{{ form_plan_materia.anio_materia.errors.0 }}</div>
                             {% endif %}
@@ -452,6 +569,7 @@
                         <div class="col-12 col-md-3">
                             <label for="id_cuatrimestre_materia" class="form-label fw-semibold">Cuatrimestre</label>
                             {{ form_plan_materia.cuatrimestre_materia }}
+                            <div class="form-help">Opcional si la materia es miembro de un grupo.</div>
                             {% if form_plan_materia.cuatrimestre_materia.errors %}
                                 <div class="text-danger small mt-1">{{ form_plan_materia.cuatrimestre_materia.errors.0 }}</div>
                             {% endif %}
@@ -459,6 +577,7 @@
                         <div class="col-12 col-md-3">
                             <label for="id_orden_materia" class="form-label fw-semibold">Orden</label>
                             {{ form_plan_materia.orden_materia }}
+                            <div class="form-help">Opcional si la materia es miembro de un grupo.</div>
                             {% if form_plan_materia.orden_materia.errors %}
                                 <div class="text-danger small mt-1">{{ form_plan_materia.orden_materia.errors.0 }}</div>
                             {% endif %}
@@ -466,7 +585,12 @@
                         <div class="col-12 col-md-3">
                             <label for="id_id_grupo_optativo" class="form-label fw-semibold">Grupo optativo</label>
                             {{ form_plan_materia.id_grupo_optativo }}
-                            <div class="form-help">Opcional.</div>
+                            <div class="form-help">
+                                Opcional. Si elegís un grupo, la materia pasa a ser
+                                miembro del mismo y hereda año, cuatrimestre y orden
+                                de la ubicación del grupo (primero ubicá el grupo en
+                                la pestaña «Grupos optativos»).
+                            </div>
                             {% if form_plan_materia.id_grupo_optativo.errors %}
                                 <div class="text-danger small mt-1">{{ form_plan_materia.id_grupo_optativo.errors.0 }}</div>
                             {% endif %}
@@ -486,7 +610,7 @@
 
                         <div class="col-12 d-flex gap-2">
                             <button type="submit" class="btn btn-primary">Guardar asociación</button>
-                            {% if form_plan_materia.instance.pk %}
+                            {% if form_plan_materia.instance.codigo_plan_id %}
                                 <a href="{% url 'gestion_academica' %}?entidad=plan_materia&plan={{ plan_seleccionado.codigo_plan }}"
                                    class="btn btn-outline-secondary">Cancelar</a>
                             {% endif %}
@@ -497,7 +621,7 @@
 
             <section class="gestion-tabla">
                 <div class="gestion-tabla-titulo">
-                    Materias del plan {{ plan_seleccionado.codigo_plan }} ({{ materias_del_plan|length }})
+                    Cronograma del plan {{ plan_seleccionado.codigo_plan }} ({{ filas_plan|length }} filas)
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
@@ -506,45 +630,281 @@
                                 <th>Año</th>
                                 <th>Cuatr.</th>
                                 <th>Orden</th>
-                                <th>Materia</th>
+                                <th>Contenido</th>
                                 <th>Requisito</th>
-                                <th>Grupo optativo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for fila in materias_del_plan %}
-                                <tr>
-                                    <td>{{ fila.anio_materia }}</td>
-                                    <td>{{ fila.get_cuatrimestre_materia_display }}</td>
-                                    <td>{{ fila.orden_materia }}</td>
-                                    <td>{{ fila.codigo_materia.nombre_materia }}</td>
+                            {% for fila in filas_plan %}
+                                <tr {% if fila.tipo == 'grupo' %}class="table-primary"{% endif %}>
+                                    <td>{{ fila.anio|default:"—" }}</td>
+                                    <td>{{ fila.cuatrimestre|default:"—" }}</td>
+                                    <td>{{ fila.orden|default:"—" }}</td>
                                     <td>
-                                        {% if fila.materia_requisito %}
+                                        {% if fila.tipo == 'grupo' %}
+                                            <span class="badge text-bg-info me-2">Grupo optativo</span>
+                                            <strong>{{ fila.nombre }}</strong>
+                                            <span class="text-muted small">
+                                                ({{ fila.miembros|length }} materia{{ fila.miembros|length|pluralize }})
+                                            </span>
+                                        {% elif fila.tipo == 'miembro' %}
+                                            <span class="text-muted">↳</span> {{ fila.nombre }}
+                                            <span class="badge text-bg-light border text-dark ms-1">miembro</span>
+                                        {% elif fila.tipo == 'miembro_sin_ubicar' %}
+                                            <span class="text-muted">↳</span> {{ fila.nombre }}
+                                            <span class="badge text-bg-warning text-dark ms-1">
+                                                miembro sin ubicar
+                                            </span>
+                                        {% else %}
+                                            {{ fila.nombre }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if fila.tipo == 'grupo' %}
+                                            —
+                                        {% elif fila.requisito %}
                                             <span class="badge text-bg-primary">Sí</span>
                                         {% else %}
                                             <span class="badge text-bg-secondary">No</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ fila.id_grupo_optativo|default:"—" }}</td>
                                     <td>
-                                        <div class="gestion-acciones">
-                                            <a href="{% url 'gestion_academica' %}?entidad=plan_materia&plan={{ plan_seleccionado.codigo_plan }}&editar_plan={{ fila.codigo_plan_id }}&editar_materia={{ fila.codigo_materia_id }}"
-                                               class="btn btn-outline-primary btn-sm">Editar</a>
-                                            <form method="post" action="{% url 'gestion_academica' %}"
-                                                  onsubmit="return confirm('¿Quitar esta materia del plan?');">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="entidad" value="plan_materia">
-                                                <input type="hidden" name="accion" value="eliminar">
-                                                <input type="hidden" name="id_plan" value="{{ fila.codigo_plan_id }}">
-                                                <input type="hidden" name="id_materia" value="{{ fila.codigo_materia_id }}">
-                                                <button type="submit" class="btn btn-outline-danger btn-sm">Quitar</button>
-                                            </form>
-                                        </div>
+                                        {% if fila.tipo == 'grupo' %}
+                                            <a href="{% url 'gestion_academica' %}?entidad=grupo_optativo&plan={{ plan_seleccionado.codigo_plan }}&ubicar_grupo={{ fila.id_grupo }}"
+                                               class="btn btn-outline-primary btn-sm">Editar ubicación</a>
+                                        {% else %}
+                                            <div class="gestion-acciones">
+                                                <a href="{% url 'gestion_academica' %}?entidad=plan_materia&plan={{ plan_seleccionado.codigo_plan }}&editar_plan={{ fila.editar_plan }}&editar_materia={{ fila.editar_materia }}"
+                                                   class="btn btn-outline-primary btn-sm">Editar</a>
+                                                <form method="post" action="{% url 'gestion_academica' %}"
+                                                      onsubmit="return confirm('¿Quitar esta materia del plan?');">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="entidad" value="plan_materia">
+                                                    <input type="hidden" name="accion" value="eliminar">
+                                                    <input type="hidden" name="id_plan" value="{{ fila.editar_plan }}">
+                                                    <input type="hidden" name="id_materia" value="{{ fila.editar_materia }}">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">Quitar</button>
+                                                </form>
+                                            </div>
+                                        {% endif %}
                                     </td>
                                 </tr>
                             {% empty %}
-                                <tr><td colspan="7" class="text-center text-muted py-4">Este plan no tiene materias asociadas.</td></tr>
+                                <tr><td colspan="6" class="text-center text-muted py-4">Este plan no tiene materias asociadas.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        {% endif %}
+    {% endif %}
+
+    {# ================================================== #}
+    {# GRUPOS OPTATIVOS #}
+    {# ================================================== #}
+    {% if entidad_activa == 'grupo_optativo' %}
+        <section class="gestion-panel">
+            <h2>Plan a gestionar</h2>
+
+            <form method="get" action="{% url 'gestion_academica' %}">
+                <input type="hidden" name="entidad" value="grupo_optativo">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-8">
+                        <label for="plan" class="form-label fw-semibold">Plan de estudios</label>
+                        <select id="plan" name="plan" class="form-select" onchange="this.form.submit()">
+                            <option value="">Seleccioná un plan</option>
+                            {% for plan in planes %}
+                                <option value="{{ plan.codigo_plan }}"
+                                        {% if plan_seleccionado and plan_seleccionado.codigo_plan == plan.codigo_plan %}selected{% endif %}>
+                                    {{ plan.codigo_plan }} — {{ plan.codigo_carrera.nombre_carrera }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <noscript><button type="submit" class="btn btn-primary">Ver plan</button></noscript>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        {% if not plan_seleccionado %}
+            <div class="alert alert-info" role="alert">
+                No hay planes de estudio registrados. Creá uno en la pestaña
+                <a href="{% url 'gestion_academica' %}?entidad=plan" class="alert-link">Planes de estudio</a>.
+            </div>
+        {% else %}
+            <section class="gestion-panel">
+                <h2>
+                    {% if instancia_editar %}
+                        Renombrar grupo: {{ instancia_editar.nombre_grupo }}
+                    {% else %}
+                        Definir grupo optativo
+                    {% endif %}
+                </h2>
+
+                <form method="post" action="{% url 'gestion_academica' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="entidad" value="grupo_optativo">
+                    <input type="hidden" name="accion" value="guardar">
+                    <input type="hidden" name="plan" value="{{ plan_seleccionado.codigo_plan }}">
+                    {% if instancia_editar %}
+                        <input type="hidden" name="id" value="{{ instancia_editar.id_grupo_optativo }}">
+                    {% endif %}
+
+                    {% if form_grupo_optativo.non_field_errors %}
+                        <div class="alert alert-danger py-2 small">{{ form_grupo_optativo.non_field_errors.0 }}</div>
+                    {% endif %}
+
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-8">
+                            <label for="id_nombre_grupo" class="form-label fw-semibold">Nombre del grupo</label>
+                            {{ form_grupo_optativo.nombre_grupo }}
+                            {% if form_grupo_optativo.nombre_grupo.errors %}
+                                <div class="text-danger small mt-1">{{ form_grupo_optativo.nombre_grupo.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-md-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Guardar grupo</button>
+                            {% if instancia_editar %}
+                                <a href="{% url 'gestion_academica' %}?entidad=grupo_optativo&plan={{ plan_seleccionado.codigo_plan }}"
+                                   class="btn btn-outline-secondary">Cancelar</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section class="gestion-panel">
+                <h2>Ubicar grupo en el cronograma</h2>
+                <p class="text-secondary small mb-3">
+                    El grupo pasa a comportarse como una materia más del plan:
+                    indicá año, cuatrimestre y orden. Las materias miembro
+                    heredarán estos valores.
+                </p>
+
+                {% if grupos_del_plan %}
+                    <form method="post" action="{% url 'gestion_academica' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="entidad" value="grupo_optativo">
+                        <input type="hidden" name="accion" value="ubicar">
+                        <input type="hidden" name="plan" value="{{ plan_seleccionado.codigo_plan }}">
+
+                        {% if form_ubicacion.non_field_errors %}
+                            <div class="alert alert-danger py-2 small">{{ form_ubicacion.non_field_errors.0 }}</div>
+                        {% endif %}
+
+                        <div class="row g-3 align-items-end">
+                            <div class="col-12 col-md-4">
+                                <label for="id_id_grupo_optativo" class="form-label fw-semibold">Grupo</label>
+                                {{ form_ubicacion.id_grupo_optativo }}
+                                {% if form_ubicacion.id_grupo_optativo.errors %}
+                                    <div class="text-danger small mt-1">{{ form_ubicacion.id_grupo_optativo.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <label for="id_anio_materia" class="form-label fw-semibold">Año</label>
+                                {{ form_ubicacion.anio_materia }}
+                                {% if form_ubicacion.anio_materia.errors %}
+                                    <div class="text-danger small mt-1">{{ form_ubicacion.anio_materia.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <label for="id_cuatrimestre_materia" class="form-label fw-semibold">Cuatrimestre</label>
+                                {{ form_ubicacion.cuatrimestre_materia }}
+                                {% if form_ubicacion.cuatrimestre_materia.errors %}
+                                    <div class="text-danger small mt-1">{{ form_ubicacion.cuatrimestre_materia.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <label for="id_orden_materia" class="form-label fw-semibold">Orden</label>
+                                {{ form_ubicacion.orden_materia }}
+                                {% if form_ubicacion.orden_materia.errors %}
+                                    <div class="text-danger small mt-1">{{ form_ubicacion.orden_materia.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <button type="submit" class="btn btn-primary w-100">Ubicar</button>
+                            </div>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-info mb-0" role="alert">
+                        Todavía no hay grupos optativos en este plan. Definí uno arriba.
+                    </div>
+                {% endif %}
+            </section>
+
+            <section class="gestion-tabla">
+                <div class="gestion-tabla-titulo">
+                    Grupos optativos del plan {{ plan_seleccionado.codigo_plan }} ({{ grupos_del_plan|length }})
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Ubicación</th>
+                                <th>Materias miembro</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for grupo in grupos_del_plan %}
+                                {% with ubicacion=grupo.ubicaciones.all|first %}
+                                    <tr>
+                                        <td class="fw-semibold">{{ grupo.nombre_grupo }}</td>
+                                        <td>
+                                            {% if ubicacion %}
+                                                Año {{ ubicacion.anio_materia }} ·
+                                                {{ ubicacion.get_cuatrimestre_materia_display }} ·
+                                                orden {{ ubicacion.orden_materia }}
+                                            {% else %}
+                                                <span class="text-muted">Sin ubicar</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ grupo.materias.count }}</td>
+                                        <td>
+                                            <div class="gestion-acciones">
+                                                <a href="{% url 'gestion_academica' %}?entidad=grupo_optativo&plan={{ plan_seleccionado.codigo_plan }}&editar_grupo={{ grupo.id_grupo_optativo }}"
+                                                   class="btn btn-outline-primary btn-sm">Renombrar</a>
+                                                <a href="{% url 'gestion_academica' %}?entidad=grupo_optativo&plan={{ plan_seleccionado.codigo_plan }}&ubicar_grupo={{ grupo.id_grupo_optativo }}"
+                                                   class="btn btn-outline-secondary btn-sm">
+                                                    {% if ubicacion %}Editar ubicación{% else %}Ubicar{% endif %}
+                                                </a>
+
+                                                {% if ubicacion %}
+                                                    <form method="post" action="{% url 'gestion_academica' %}"
+                                                          onsubmit="return confirm('¿Quitar la ubicación del grupo?');">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="entidad" value="grupo_optativo">
+                                                        <input type="hidden" name="accion" value="eliminar_ubicacion">
+                                                        <input type="hidden" name="plan" value="{{ plan_seleccionado.codigo_plan }}">
+                                                        <input type="hidden" name="id" value="{{ grupo.id_grupo_optativo }}">
+                                                        <button type="submit" class="btn btn-outline-warning btn-sm">Quitar ubicación</button>
+                                                    </form>
+                                                {% endif %}
+
+                                                <form method="post" action="{% url 'gestion_academica' %}"
+                                                      onsubmit="return confirm('¿Eliminar el grupo «{{ grupo.nombre_grupo }}»?');">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="entidad" value="grupo_optativo">
+                                                    <input type="hidden" name="accion" value="eliminar_grupo">
+                                                    <input type="hidden" name="plan" value="{{ plan_seleccionado.codigo_plan }}">
+                                                    <input type="hidden" name="id" value="{{ grupo.id_grupo_optativo }}">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endwith %}
+                            {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        Este plan no tiene grupos optativos.
+                                    </td>
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>
