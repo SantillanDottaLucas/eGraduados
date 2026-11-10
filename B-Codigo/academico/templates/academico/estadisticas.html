@@ -71,41 +71,41 @@
                                     Por escuela
                                 </label>
                             </div>
+
+                            <div class="mt-3" id="bloque-carrera"
+                                 {% if request.GET.filtro != "carrera" %}hidden{% endif %}>
+                                <label for="select-carrera" class="form-label">Carrera</label>
+                                <select id="select-carrera"
+                                        class="form-select campoCarrera"
+                                        name="carrera"
+                                        {% if request.GET.filtro != "carrera" %}disabled{% endif %}>
+                                    <option value="">Seleccionar carrera</option>
+                                    {% for carrera in carreras %}
+                                        <option value="{{ carrera.codigo_carrera }}"
+                                                {% if request.GET.carrera == carrera.codigo_carrera %}selected{% endif %}>
+                                            {{ carrera.nombre_carrera }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mt-3" id="bloque-escuela"
+                                 {% if request.GET.filtro != "escuela" %}hidden{% endif %}>
+                                <label for="select-escuela" class="form-label">Escuela</label>
+                                <select id="select-escuela"
+                                        class="form-select campoEscuela"
+                                        name="escuela"
+                                        {% if request.GET.filtro != "escuela" %}disabled{% endif %}>
+                                    <option value="">Seleccionar escuela</option>
+                                    {% for escuela in escuelas %}
+                                        <option value="{{ escuela.id_escuela }}"
+                                                {% if request.GET.escuela == escuela.id_escuela|stringformat:"s" %}selected{% endif %}>
+                                            {{ escuela.nombre_escuela }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </fieldset>
-
-                        <div class="mt-3" id="bloque-carrera"
-                             {% if request.GET.filtro != "carrera" %}hidden{% endif %}>
-                            <label for="select-carrera" class="form-label">Carrera</label>
-                            <select id="select-carrera"
-                                    class="form-select campoCarrera"
-                                    name="carrera"
-                                    {% if request.GET.filtro != "carrera" %}disabled{% endif %}>
-                                <option value="">Seleccionar carrera</option>
-                                {% for carrera in carreras %}
-                                    <option value="{{ carrera.codigo_carrera }}"
-                                            {% if request.GET.carrera == carrera.codigo_carrera %}selected{% endif %}>
-                                        {{ carrera.nombre_carrera }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="mt-3" id="bloque-escuela"
-                             {% if request.GET.filtro != "escuela" %}hidden{% endif %}>
-                            <label for="select-escuela" class="form-label">Escuela</label>
-                            <select id="select-escuela"
-                                    class="form-select campoEscuela"
-                                    name="escuela"
-                                    {% if request.GET.filtro != "escuela" %}disabled{% endif %}>
-                                <option value="">Seleccionar escuela</option>
-                                {% for escuela in escuelas %}
-                                    <option value="{{ escuela.id_escuela }}"
-                                            {% if request.GET.escuela == escuela.id_escuela|stringformat:"s" %}selected{% endif %}>
-                                        {{ escuela.nombre_escuela }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
                     </div>
 
                     <div class="col-12 col-lg-4">
@@ -130,7 +130,7 @@
                     </div>
 
                     <div class="col-12 col-lg-4">
-                        <fieldset class="filtro-grupo">
+                        <fieldset class="filtro-grupo d-flex flex-column">
                             <legend class="form-label fw-semibold mb-2">Promedio académico</legend>
 
                             <div class="form-check mb-2">
@@ -150,16 +150,16 @@
                                     Con aplazos
                                 </label>
                             </div>
-                        </fieldset>
 
-                        <div class="d-grid gap-2 mt-4">
-                            <button class="btn btn-primary" type="submit">
-                                Aplicar filtros
-                            </button>
-                            <a href="{% url 'estadisticas' %}" class="btn btn-outline-secondary">
-                                Limpiar filtros
-                            </a>
-                        </div>
+                            <div class="d-grid gap-2 mt-auto pt-4">
+                                <button class="btn btn-primary" type="submit">
+                                    Aplicar filtros
+                                </button>
+                                <a href="{% url 'estadisticas' %}" class="btn btn-outline-secondary">
+                                    Limpiar filtros
+                                </a>
+                            </div>
+                        </fieldset>
                     </div>
                 </div>
             </form>

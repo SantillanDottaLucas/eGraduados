@@ -50,12 +50,12 @@ def validar_cronologia_fechas(
 ):
     """
     Comprueba la coherencia cronológica de las fechas de un
-    graduado: el ingreso a la universidad debe ser anterior al
-    ingreso a la carrera, y el egreso no puede ser anterior al
-    ingreso a la carrera.
+    graduado: el ingreso a la universidad debe ser el mismo día
+    o anterior al ingreso a la carrera, y el egreso no puede ser
+    anterior al ingreso a la carrera.
     """
 
-    if fecha_ingreso_universidad >= fecha_ingreso_carrera:
+    if fecha_ingreso_universidad > fecha_ingreso_carrera:
         raise ValueError(
             "El ingreso a la carrera no puede ser anterior "
             "al ingreso a la universidad."

@@ -13,6 +13,7 @@ from .models import (
     Rol,
     Usuario,
 )
+from .servicios.validaciones import validar_cronologia_fechas
 from .servicios.moduloEstadistica.consulta_estadisticas import (
     consultar_graduados_por_anio,
 )
@@ -152,6 +153,7 @@ class EdicionGraduadoTest(BasePrueba):
         respuesta = self.client.post(
             reverse("editar_graduado", args=["LEG1", "CAR1"]),
             {
+                "codigo_carrera": "CAR1",
                 "nombre": "Ana Maria",
                 "apellido": "Perez",
                 "dni": "12345678",
@@ -175,6 +177,7 @@ class EdicionGraduadoTest(BasePrueba):
         respuesta = self.client.post(
             reverse("editar_graduado", args=["LEG1", "CAR1"]),
             {
+                "codigo_carrera": "CAR1",
                 "nombre": "Ana",
                 "apellido": "Perez",
                 "dni": "12345678",
@@ -203,6 +206,7 @@ class EdicionGraduadoTest(BasePrueba):
         respuesta = self.client.post(
             reverse("editar_graduado", args=["LEG1", "CAR1"]),
             {
+                "codigo_carrera": "CAR1",
                 "nombre": "Ana",
                 "apellido": "Perez",
                 "dni": "99999999",
@@ -216,6 +220,125 @@ class EdicionGraduadoTest(BasePrueba):
 
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "DNI")
+
+    def test_cambio_de_carrera_valido(self):
+        nueva_carrera = Carrera.objects.create(
+            codigo_carrera="CAR2",
+            nombre_carrera="Otra carrera",
+            id_escuela=self.escuela,
+        )
+
+        self.iniciar_sesion(self.titulos)
+
+        respuesta = self.client.post(
+            reverse("editar_graduado", args=["LEG1", "CAR1"]),
+            {
+                "codigo_carrera": "CAR2",
+                "nombre": "Ana",
+                "apellido": "Perez",
+                "dni": "12345678",
+                "fecha_ingreso_universidad": "2015-03-01",
+                "fecha_ingreso_carrera": "2016-03-01",
+                "fecha_egreso_carrera": "2020-12-15",
+                "promedio_sin_aplazo": "8.5",
+                "promedio_con_aplazo": "8.0",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(
+            GraduadoCarrera.objects.filter(
+                legajo_graduado=self.graduado,
+                codigo_carrera="CAR1",
+            ).exists()
+        )
+        registro = GraduadoCarrera.objects.get(
+            legajo_graduado=self.graduado,
+            codigo_carrera=nueva_carrera,
+        )
+        self.assertEqual(registro.promedio_sin_aplazo, 8.5)
+
+    def test_cambio_de_carrera_duplicada_rechazado(self):
+        GraduadoCarrera.objects.create(
+            legajo_graduado=self.graduado,
+            codigo_carrera=Carrera.objects.create(
+                codigo_carrera="CAR2",
+                nombre_carrera="Otra carrera",
+                id_escuela=self.escuela,
+            ),
+            fecha_ingreso_carrera=date(2017, 3, 1),
+            fecha_egreso_carrera=date(2021, 12, 15),
+            promedio_con_aplazo=6.0,
+            promedio_sin_aplazo=7.0,
+        )
+
+        self.iniciar_sesion(self.titulos)
+
+        respuesta = self.client.post(
+            reverse("editar_graduado", args=["LEG1", "CAR1"]),
+            {
+                "codigo_carrera": "CAR2",
+                "nombre": "Ana",
+                "apellido": "Perez",
+                "dni": "12345678",
+                "fecha_ingreso_universidad": "2015-03-01",
+                "fecha_ingreso_carrera": "2016-03-01",
+                "fecha_egreso_carrera": "2020-12-15",
+                "promedio_sin_aplazo": "8.5",
+                "promedio_con_aplazo": "8.0",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(
+            respuesta,
+            "El graduado ya tiene datos cargados para esa carrera.",
+        )
+        # El registro original queda intacto.
+        self.assertTrue(
+            GraduadoCarrera.objects.filter(
+                legajo_graduado=self.graduado,
+                codigo_carrera="CAR1",
+            ).exists()
+        )
+        self.assertEqual(
+            GraduadoCarrera.objects.filter(
+                legajo_graduado=self.graduado,
+            ).count(),
+            2,
+        )
+
+
+class ValidacionFechasTest(TestCase):
+    def test_mismo_dia_valido(self):
+        validar_cronologia_fechas(
+            date(2016, 3, 1),
+            date(2016, 3, 1),
+            date(2020, 12, 15),
+        )
+
+    def test_carrera_posterior_valida(self):
+        validar_cronologia_fechas(
+            date(2015, 3, 1),
+            date(2016, 3, 1),
+            date(2020, 12, 15),
+        )
+
+    def test_carrera_anterior_rechazada(self):
+        with self.assertRaises(ValueError):
+            validar_cronologia_fechas(
+                date(2016, 3, 2),
+                date(2016, 3, 1),
+                date(2020, 12, 15),
+            )
+
+    def test_egreso_anterior_al_ingreso_rechazado(self):
+        with self.assertRaises(ValueError):
+            validar_cronologia_fechas(
+                date(2015, 3, 1),
+                date(2016, 3, 1),
+                date(2015, 12, 15),
+            )
 
 
 class EstadisticaPorAnioTest(BasePrueba):

@@ -156,6 +156,23 @@
 
             <div class="row g-3">
                 <div class="col-12 col-md-6">
+                    <label for="id_codigo_carrera" class="form-label fw-semibold">
+                        Carrera
+                    </label>
+                    {{ form.codigo_carrera }}
+                    <div class="form-text">
+                        Solo pueden elegirse carreras ya cargadas en el sistema.
+                    </div>
+                    {% if form.codigo_carrera.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.codigo_carrera.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6"></div>
+
+                <div class="col-12 col-md-6">
                     <label for="id_fecha_ingreso_carrera" class="form-label fw-semibold">
                         Ingreso a la carrera
                     </label>

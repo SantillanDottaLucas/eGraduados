@@ -103,11 +103,28 @@ class UsuarioForm(forms.ModelForm):
 # EDICIÓN DE GRADUADOS
 # ==================================================
 
+class CarreraModelChoiceField(forms.ModelChoiceField):
+    """Muestra las carreras como «código — nombre»."""
+
+    def label_from_instance(self, obj):
+        return f"{obj.codigo_carrera} — {obj.nombre_carrera}"
+
+
 class EdicionGraduadoForm(forms.Form):
     """
     Formulario de edición de los datos personales de un graduado
-    y de su relación con una carrera.
+    y de su relación con una carrera (incluye la posibilidad de
+    cambiar la carrera asociada).
     """
+
+    codigo_carrera = CarreraModelChoiceField(
+        queryset=Carrera.objects.select_related("id_escuela").order_by(
+            "nombre_carrera"
+        ),
+        label="Carrera",
+        empty_label=None,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
 
     nombre = forms.CharField(
         max_length=100,

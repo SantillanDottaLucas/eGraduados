@@ -131,9 +131,23 @@ def editar_graduado(request, legajo, carrera):
 
         if form.is_valid():
             datos = form.cleaned_data
+            carrera_nueva = datos["codigo_carrera"]
+            cambio_carrera = (
+                carrera_nueva.codigo_carrera != registro.codigo_carrera_id
+            )
+
+            # No puede duplicar la fila (legajo, nueva carrera).
+            if cambio_carrera and GraduadoCarrera.objects.filter(
+                legajo_graduado=graduado,
+                codigo_carrera=carrera_nueva,
+            ).exists():
+                form.add_error(
+                    "codigo_carrera",
+                    "El graduado ya tiene datos cargados para esa carrera.",
+                )
 
             # El DNI no puede pertenecer a otro legajo.
-            if not validar_dni_unico(datos["dni"], legajo):
+            elif not validar_dni_unico(datos["dni"], legajo):
                 form.add_error(
                     "dni",
                     "El DNI ya está asociado a otro graduado.",
@@ -149,19 +163,42 @@ def editar_graduado(request, legajo, carrera):
                     )
                     graduado.save()
 
-                    registro.fecha_ingreso_carrera = (
-                        datos["fecha_ingreso_carrera"]
-                    )
-                    registro.fecha_egreso_carrera = (
-                        datos["fecha_egreso_carrera"]
-                    )
-                    registro.promedio_sin_aplazo = (
-                        datos["promedio_sin_aplazo"]
-                    )
-                    registro.promedio_con_aplazo = (
-                        datos["promedio_con_aplazo"]
-                    )
-                    registro.save()
+                    # Un cambio de carrera modifica la clave
+                    # primaria compuesta (legajo, carrera).
+                    # Se migra la fila dentro de la transacción.
+                    if cambio_carrera:
+                        GraduadoCarrera.objects.create(
+                            legajo_graduado=graduado,
+                            codigo_carrera=carrera_nueva,
+                            fecha_ingreso_carrera=(
+                                datos["fecha_ingreso_carrera"]
+                            ),
+                            fecha_egreso_carrera=(
+                                datos["fecha_egreso_carrera"]
+                            ),
+                            promedio_sin_aplazo=(
+                                datos["promedio_sin_aplazo"]
+                            ),
+                            promedio_con_aplazo=(
+                                datos["promedio_con_aplazo"]
+                            ),
+                        )
+                        registro.delete()
+
+                    else:
+                        registro.fecha_ingreso_carrera = (
+                            datos["fecha_ingreso_carrera"]
+                        )
+                        registro.fecha_egreso_carrera = (
+                            datos["fecha_egreso_carrera"]
+                        )
+                        registro.promedio_sin_aplazo = (
+                            datos["promedio_sin_aplazo"]
+                        )
+                        registro.promedio_con_aplazo = (
+                            datos["promedio_con_aplazo"]
+                        )
+                        registro.save()
 
                 messages.success(
                     request,
@@ -176,6 +213,7 @@ def editar_graduado(request, legajo, carrera):
     else:
         form = EdicionGraduadoForm(
             initial={
+                "codigo_carrera": registro.codigo_carrera_id,
                 "nombre": graduado.nombre,
                 "apellido": graduado.apellido,
                 "dni": graduado.dni,
