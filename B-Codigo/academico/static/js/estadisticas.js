@@ -1,84 +1,93 @@
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("estadisticas.js cargado correctamente");
-  console.log("Chart disponible:", typeof Chart);
-  console.log(
-    "Formularios encontrados:",
-    document.querySelectorAll(".formulario-estadistica").length,
-  );
-  console.log(
-    "Gráficos encontrados:",
-    document.querySelectorAll(".grafico-contenedor").length,
-  );
-
-  document.querySelectorAll(".formulario-estadistica").forEach(formulario => {
-
-    formulario.addEventListener("submit", function () {
-        sessionStorage.setItem(
-            "posicionEstadisticas",
-            window.scrollY
-        );
-    });
-
-});
-
-const posicionGuardada = sessionStorage.getItem("posicionEstadisticas");
-
-if (posicionGuardada !== null) {
-    window.scrollTo(0, Number(posicionGuardada));
-    sessionStorage.removeItem("posicionEstadisticas");
-}
-
   // ==========================================
-  // 1. CONTROL DE LOS FILTROS
+  // 1. CONTROL DEL PANEL DE FILTROS (UNIFICADO)
   // ==========================================
 
-  document.querySelectorAll(".formulario-estadistica").forEach((formulario) => {
-    const filtros = formulario.querySelectorAll('input[name="filtro"]');
-    const campoEscuela = formulario.querySelector(".campoEscuela");
-    const campoCarrera = formulario.querySelector(".campoCarrera");
+  var formulario = document.getElementById(
+    "formulario-filtros-estadisticas"
+  );
+
+  if (formulario) {
+    var filtros = formulario.querySelectorAll('input[name="filtro"]');
+    var bloqueCarrera = document.getElementById("bloque-carrera");
+    var bloqueEscuela = document.getElementById("bloque-escuela");
+    var campoCarrera = formulario.querySelector(".campoCarrera");
+    var campoEscuela = formulario.querySelector(".campoEscuela");
+    var avisoCliente = document.getElementById(
+      "aviso-fechas-cliente"
+    );
 
     function actualizarFiltro() {
-      const seleccionado = formulario.querySelector(
-        'input[name="filtro"]:checked',
+      var seleccionado = formulario.querySelector(
+        'input[name="filtro"]:checked'
       );
+      var filtro = seleccionado ? seleccionado.value : "todos";
+      var mostrarCarrera = filtro === "carrera";
+      var mostrarEscuela = filtro === "escuela";
 
-      const filtro = seleccionado?.value || "todos";
-      const mostrarEscuela = filtro === "escuela";
-      const mostrarCarrera = filtro === "carrera";
-
-      if (campoEscuela) {
-        campoEscuela.hidden = !mostrarEscuela;
-        campoEscuela.disabled = !mostrarEscuela;
-        campoEscuela.required = mostrarEscuela;
-
-        if (!mostrarEscuela) {
-          campoEscuela.value = "";
-        }
+      if (bloqueCarrera) {
+        bloqueCarrera.hidden = !mostrarCarrera;
       }
-
       if (campoCarrera) {
-        campoCarrera.hidden = !mostrarCarrera;
         campoCarrera.disabled = !mostrarCarrera;
-        campoCarrera.required = mostrarCarrera;
-
         if (!mostrarCarrera) {
           campoCarrera.value = "";
         }
       }
+
+      if (bloqueEscuela) {
+        bloqueEscuela.hidden = !mostrarEscuela;
+      }
+      if (campoEscuela) {
+        campoEscuela.disabled = !mostrarEscuela;
+        if (!mostrarEscuela) {
+          campoEscuela.value = "";
+        }
+      }
     }
 
-    filtros.forEach((filtro) => {
-      filtro.addEventListener("change", actualizarFiltro);
+    filtros.forEach(function (radio) {
+      radio.addEventListener("change", actualizarFiltro);
     });
 
     actualizarFiltro();
-  });
+
+    // Validar el período en el cliente (el servidor
+    // también lo valida, como defensa adicional).
+    formulario.addEventListener("submit", function (evento) {
+      var inicio = formulario.querySelector(
+        '[name="fechaInicio"]'
+      );
+      var fin = formulario.querySelector('[name="fechaFin"]');
+
+      if (avisoCliente) {
+        avisoCliente.hidden = true;
+        avisoCliente.textContent = "";
+      }
+
+      if (
+        inicio &&
+        fin &&
+        inicio.value &&
+        fin.value &&
+        inicio.value > fin.value
+      ) {
+        evento.preventDefault();
+
+        if (avisoCliente) {
+          avisoCliente.hidden = false;
+          avisoCliente.textContent =
+            "La fecha de inicio no puede ser posterior a la fecha de fin.";
+        }
+      }
+    });
+  }
 
   // ==========================================
   // 2. CONFIGURACIÓN DE LOS GRÁFICOS
   // ==========================================
 
-  const configuraciones = {
+  var configuraciones = {
     "datos-promedios": {
       titulo: "Promedios académicos",
       etiqueta: "Promedio",
@@ -86,28 +95,38 @@ if (posicionGuardada !== null) {
       tipo: "bar",
       maximo: 10,
       decimales: 2,
+      color: "rgba(36, 92, 166, 0.75)",
+      borde: "rgba(36, 92, 166, 1)",
     },
-
     "datos-totales": {
       titulo: "Cantidad de graduados",
       etiqueta: "Graduados",
       ejeY: "Cantidad de graduados",
       tipo: "bar",
       decimales: 0,
+      color: "rgba(25, 115, 75, 0.75)",
+      borde: "rgba(25, 115, 75, 1)",
     },
-
     "datos-tiempos": {
       titulo: "Tiempo de graduación",
       etiqueta: "Duración",
       ejeY: "Años",
       tipo: "bar",
       decimales: 2,
+      sufijo: " años",
+      color: "rgba(113, 66, 166, 0.75)",
+      borde: "rgba(113, 66, 166, 1)",
+    },
+    "datos-anios": {
+      titulo: "Graduados por año",
+      etiqueta: "Graduados",
+      ejeY: "Cantidad de graduados",
+      tipo: "bar",
+      decimales: 0,
+      color: "rgba(152, 98, 12, 0.75)",
+      borde: "rgba(152, 98, 12, 1)",
     },
   };
-
-  // ==========================================
-  // 3. FORMATO DE LOS VALORES
-  // ==========================================
 
   function formatearNumero(valor, decimales) {
     return Number(valor).toLocaleString("es-AR", {
@@ -117,40 +136,36 @@ if (posicionGuardada !== null) {
   }
 
   // ==========================================
-  // 4. CREACIÓN DE LOS GRÁFICOS
+  // 3. CREACIÓN DE LOS GRÁFICOS
   // ==========================================
 
   if (typeof Chart === "undefined") {
-    console.error(
-      "Chart.js no está cargado. Revisá su inclusión en base.html.",
-    );
     return;
   }
 
-  document.querySelectorAll(".grafico-contenedor").forEach((contenedor) => {
-    const canvas = contenedor.querySelector("canvas");
-    const idDatos = contenedor.dataset.datos;
-    const elementoDatos = document.getElementById(idDatos);
-    const mensaje = contenedor.querySelector(".mensaje-sin-datos");
+  document.querySelectorAll(".grafico-contenedor").forEach(function (
+    contenedor
+  ) {
+    var canvas = contenedor.querySelector("canvas");
+    var idDatos = contenedor.dataset.datos;
+    var elementoDatos = document.getElementById(idDatos);
+    var mensaje = contenedor.querySelector(".mensaje-sin-datos");
 
     if (!canvas || !elementoDatos) {
-      console.warn("Falta el canvas o los datos para:", idDatos);
       return;
     }
 
-    let datos;
+    var datos;
 
     try {
       datos = JSON.parse(elementoDatos.textContent);
     } catch (error) {
-      console.error("Error al leer los datos de", idDatos, error);
       canvas.hidden = true;
-
       if (mensaje) {
         mensaje.hidden = false;
-        mensaje.textContent = "No se pudieron cargar los datos.";
+        mensaje.textContent =
+          "No se pudieron cargar los datos del gráfico.";
       }
-
       return;
     }
 
@@ -161,37 +176,33 @@ if (posicionGuardada !== null) {
       datos.etiquetas.length !== datos.valores.length
     ) {
       canvas.hidden = true;
-
       if (mensaje) {
         mensaje.hidden = false;
-        mensaje.textContent = "No hay datos disponibles para graficar.";
+        mensaje.textContent =
+          "No hay datos disponibles para los filtros seleccionados.";
       }
-
       return;
     }
 
-    const valores = datos.valores.map((valor) => {
+    var valores = datos.valores.map(function (valor) {
       if (valor === null || valor === "") {
         return null;
       }
-
-      const numero = Number(valor);
-
+      var numero = Number(valor);
       return Number.isFinite(numero) ? numero : null;
     });
 
-    if (!valores.some((valor) => valor !== null)) {
+    if (!valores.some(function (valor) { return valor !== null; })) {
       canvas.hidden = true;
-
       if (mensaje) {
         mensaje.hidden = false;
-        mensaje.textContent = "No hay valores numéricos para mostrar.";
+        mensaje.textContent =
+          "No hay valores numéricos para mostrar.";
       }
-
       return;
     }
 
-    const configuracion = configuraciones[idDatos] || {
+    var config = configuraciones[idDatos] || {
       titulo: "Estadística",
       etiqueta: "Valor",
       ejeY: "Valor",
@@ -200,105 +211,88 @@ if (posicionGuardada !== null) {
     };
 
     canvas.hidden = false;
-
     if (mensaje) {
       mensaje.hidden = true;
     }
 
-    // Evita duplicar gráficos si se vuelve a ejecutar el código.
-    const graficoExistente = Chart.getChart(canvas);
-
+    var graficoExistente = Chart.getChart(canvas);
     if (graficoExistente) {
       graficoExistente.destroy();
     }
 
     new Chart(canvas, {
-      type: configuracion.tipo,
-
+      type: config.tipo,
       data: {
         labels: datos.etiquetas,
-
         datasets: [
           {
-            label: configuracion.etiqueta,
+            label: config.etiqueta,
             data: valores,
             borderWidth: 2,
             borderRadius: 5,
             maxBarThickness: 65,
             tension: 0.3,
             spanGaps: false,
+            backgroundColor: config.color,
+            borderColor: config.borde,
           },
         ],
       },
-
       options: {
         responsive: true,
         maintainAspectRatio: false,
-
         interaction: {
           intersect: false,
           mode: "index",
         },
-
         plugins: {
           legend: {
             display: true,
             position: "bottom",
           },
-
           title: {
             display: true,
-            text: configuracion.titulo,
+            text: config.titulo,
           },
-
           tooltip: {
             callbacks: {
               label: function (contexto) {
-                const valor = contexto.parsed.y;
-
+                var valor = contexto.parsed.y;
                 if (valor === null || valor === undefined) {
                   return "Sin datos";
                 }
-
-                let texto =
-                  configuracion.etiqueta +
+                var texto =
+                  config.etiqueta +
                   ": " +
-                  formatearNumero(valor, configuracion.decimales);
-
-                if (idDatos === "datos-tiempos") {
-                  texto += " años";
+                  formatearNumero(valor, config.decimales);
+                if (config.sufijo) {
+                  texto += config.sufijo;
                 }
-
                 return texto;
               },
             },
           },
         },
-
         scales: {
           x: {
             title: {
               display: true,
               text: "Categoría",
             },
-
             ticks: {
               autoSkip: true,
               maxRotation: 45,
               minRotation: 0,
             },
           },
-
           y: {
             beginAtZero: true,
-
-            ...(configuracion.maximo !== undefined
-              ? { max: configuracion.maximo }
+            ...(config.maximo !== undefined
+              ? { max: config.maximo }
               : {}),
-
             title: {
               display: true,
-              text: configuracion.ejeY,
+              text: config.ejeY,
             },
           },
         },

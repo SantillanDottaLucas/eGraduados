@@ -1,0 +1,556 @@
+{% extends "academico/base.html" %}
+
+{% block title %}Gestión académica | eGraduados{% endblock %}
+
+{% block content %}
+<style>
+    .gestion-pagina { max-width: 1400px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+    .gestion-encabezado { padding: 2rem; margin-bottom: 1.5rem; color: #fff; background: linear-gradient(125deg, #173b67, #2d6596); border-radius: 18px; }
+    .gestion-encabezado h1 { margin: 0 0 .4rem; font-size: 1.7rem; font-weight: 700; }
+    .gestion-encabezado p { margin: 0; opacity: .9; }
+    .gestion-nav { margin-bottom: 1.25rem; gap: .35rem; flex-wrap: wrap; }
+    .gestion-nav .nav-link { color: #245b91; border-radius: 9px; font-weight: 600; }
+    .gestion-nav .nav-link.active { background: #245b91; color: #fff; }
+    .gestion-panel { padding: 1.5rem; margin-bottom: 1.5rem; background: #fff; border: 1px solid #e5eaf0; border-radius: 16px; box-shadow: 0 4px 14px rgba(25,45,70,.05); }
+    .gestion-panel h2 { margin-bottom: 1.1rem; color: #243b53; font-size: 1.15rem; font-weight: 700; }
+    .gestion-tabla { border: 1px solid #e5eaf0; border-radius: 16px; overflow: hidden; background: #fff; }
+    .gestion-tabla-titulo { padding: 1.1rem 1.5rem; border-bottom: 1px solid #e5eaf0; font-weight: 700; color: #243b53; }
+    .gestion-acciones { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .form-help { font-size: .82rem; color: #64748b; margin-top: .25rem; }
+</style>
+
+<div class="gestion-pagina">
+    <header class="gestion-encabezado">
+        <h1>Gestión académica</h1>
+        <p>Administrá escuelas, carreras, planes de estudio y materias, y asociá materias a cada plan.</p>
+    </header>
+
+    <ul class="nav nav-pills gestion-nav">
+        <li class="nav-item">
+            <a class="nav-link {% if entidad_activa == 'escuela' %}active{% endif %}"
+               href="{% url 'gestion_academica' %}?entidad=escuela">Escuelas</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if entidad_activa == 'carrera' %}active{% endif %}"
+               href="{% url 'gestion_academica' %}?entidad=carrera">Carreras</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if entidad_activa == 'plan' %}active{% endif %}"
+               href="{% url 'gestion_academica' %}?entidad=plan">Planes de estudio</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if entidad_activa == 'materia' %}active{% endif %}"
+               href="{% url 'gestion_academica' %}?entidad=materia">Materias</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if entidad_activa == 'plan_materia' %}active{% endif %}"
+               href="{% url 'gestion_academica' %}?entidad=plan_materia{% if plan_seleccionado %}&plan={{ plan_seleccionado.codigo_plan }}{% endif %}">
+                Materias del plan
+            </a>
+        </li>
+    </ul>
+
+    {# ================================================== #}
+    {# ESCUELAS #}
+    {# ================================================== #}
+    {% if entidad_activa == 'escuela' %}
+        <section class="gestion-panel">
+            <h2>{% if form_escuela.instance.pk %}Editar escuela{% else %}Nueva escuela{% endif %}</h2>
+
+            <form method="post" action="{% url 'gestion_academica' %}">
+                {% csrf_token %}
+                <input type="hidden" name="entidad" value="escuela">
+                {% if form_escuela.instance.pk %}
+                    <input type="hidden" name="id" value="{{ form_escuela.instance.id_escuela }}">
+                {% endif %}
+
+                {% if form_escuela.non_field_errors %}
+                    <div class="alert alert-danger py-2 small">{{ form_escuela.non_field_errors.0 }}</div>
+                {% endif %}
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-8">
+                        <label for="id_nombre_escuela" class="form-label fw-semibold">Nombre de la escuela</label>
+                        {{ form_escuela.nombre_escuela }}
+                        {% if form_escuela.nombre_escuela.errors %}
+                            <div class="text-danger small mt-1">{{ form_escuela.nombre_escuela.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 col-md-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        {% if form_escuela.instance.pk %}
+                            <a href="{% url 'gestion_academica' %}?entidad=escuela" class="btn btn-outline-secondary">Cancelar</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section class="gestion-tabla">
+            <div class="gestion-tabla-titulo">Escuelas registradas ({{ escuelas|length }})</div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th>ID</th><th>Nombre</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for escuela in escuelas %}
+                            <tr>
+                                <td>{{ escuela.id_escuela }}</td>
+                                <td class="fw-semibold">{{ escuela.nombre_escuela }}</td>
+                                <td>
+                                    <div class="gestion-acciones">
+                                        <a href="{% url 'gestion_academica' %}?entidad=escuela&editar={{ escuela.id_escuela }}"
+                                           class="btn btn-outline-primary btn-sm">Editar</a>
+                                        <form method="post" action="{% url 'gestion_academica' %}"
+                                              onsubmit="return confirm('¿Eliminar la escuela {{ escuela.nombre_escuela }}?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="entidad" value="escuela">
+                                            <input type="hidden" name="accion" value="eliminar">
+                                            <input type="hidden" name="id" value="{{ escuela.id_escuela }}">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-4">No hay escuelas registradas.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+
+    {# ================================================== #}
+    {# CARRERAS #}
+    {# ================================================== #}
+    {% if entidad_activa == 'carrera' %}
+        <section class="gestion-panel">
+            <h2>{% if form_carrera.instance.pk %}Editar carrera{% else %}Nueva carrera{% endif %}</h2>
+
+            <form method="post" action="{% url 'gestion_academica' %}">
+                {% csrf_token %}
+                <input type="hidden" name="entidad" value="carrera">
+                {% if form_carrera.instance.pk %}
+                    <input type="hidden" name="id" value="{{ form_carrera.instance.codigo_carrera }}">
+                {% endif %}
+
+                {% if form_carrera.non_field_errors %}
+                    <div class="alert alert-danger py-2 small">{{ form_carrera.non_field_errors.0 }}</div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-12 col-md-3">
+                        <label for="id_codigo_carrera" class="form-label fw-semibold">Código</label>
+                        {{ form_carrera.codigo_carrera }}
+                        {% if form_carrera.codigo_carrera.errors %}
+                            <div class="text-danger small mt-1">{{ form_carrera.codigo_carrera.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 col-md-5">
+                        <label for="id_nombre_carrera" class="form-label fw-semibold">Nombre de la carrera</label>
+                        {{ form_carrera.nombre_carrera }}
+                        {% if form_carrera.nombre_carrera.errors %}
+                            <div class="text-danger small mt-1">{{ form_carrera.nombre_carrera.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label for="id_id_escuela" class="form-label fw-semibold">Escuela</label>
+                        {{ form_carrera.id_escuela }}
+                        {% if form_carrera.id_escuela.errors %}
+                            <div class="text-danger small mt-1">{{ form_carrera.id_escuela.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        {% if form_carrera.instance.pk %}
+                            <a href="{% url 'gestion_academica' %}?entidad=carrera" class="btn btn-outline-secondary">Cancelar</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section class="gestion-tabla">
+            <div class="gestion-tabla-titulo">Carreras registradas ({{ carreras|length }})</div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th>Código</th><th>Nombre</th><th>Escuela</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for carrera in carreras %}
+                            <tr>
+                                <td class="fw-semibold">{{ carrera.codigo_carrera }}</td>
+                                <td>{{ carrera.nombre_carrera }}</td>
+                                <td>{{ carrera.id_escuela.nombre_escuela }}</td>
+                                <td>
+                                    <div class="gestion-acciones">
+                                        <a href="{% url 'gestion_academica' %}?entidad=carrera&editar={{ carrera.codigo_carrera }}"
+                                           class="btn btn-outline-primary btn-sm">Editar</a>
+                                        <form method="post" action="{% url 'gestion_academica' %}"
+                                              onsubmit="return confirm('¿Eliminar la carrera {{ carrera.nombre_carrera }}?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="entidad" value="carrera">
+                                            <input type="hidden" name="accion" value="eliminar">
+                                            <input type="hidden" name="id" value="{{ carrera.codigo_carrera }}">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">No hay carreras registradas.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+
+    {# ================================================== #}
+    {# PLANES DE ESTUDIO #}
+    {# ================================================== #}
+    {% if entidad_activa == 'plan' %}
+        <section class="gestion-panel">
+            <h2>{% if form_plan.instance.pk %}Editar plan de estudios{% else %}Nuevo plan de estudios{% endif %}</h2>
+
+            <form method="post" action="{% url 'gestion_academica' %}">
+                {% csrf_token %}
+                <input type="hidden" name="entidad" value="plan">
+                {% if form_plan.instance.pk %}
+                    <input type="hidden" name="id" value="{{ form_plan.instance.codigo_plan }}">
+                {% endif %}
+
+                {% if form_plan.non_field_errors %}
+                    <div class="alert alert-danger py-2 small">{{ form_plan.non_field_errors.0 }}</div>
+                {% endif %}
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-4">
+                        <label for="id_codigo_plan" class="form-label fw-semibold">Código de plan</label>
+                        {{ form_plan.codigo_plan }}
+                        {% if form_plan.codigo_plan.errors %}
+                            <div class="text-danger small mt-1">{{ form_plan.codigo_plan.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 col-md-5">
+                        <label for="id_codigo_carrera" class="form-label fw-semibold">Carrera</label>
+                        {{ form_plan.codigo_carrera }}
+                        {% if form_plan.codigo_carrera.errors %}
+                            <div class="text-danger small mt-1">{{ form_plan.codigo_carrera.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 col-md-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        {% if form_plan.instance.pk %}
+                            <a href="{% url 'gestion_academica' %}?entidad=plan" class="btn btn-outline-secondary">Cancelar</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section class="gestion-tabla">
+            <div class="gestion-tabla-titulo">Planes de estudio registrados ({{ planes|length }})</div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th>Código</th><th>Carrera</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for plan in planes %}
+                            <tr>
+                                <td class="fw-semibold">{{ plan.codigo_plan }}</td>
+                                <td>{{ plan.codigo_carrera.nombre_carrera }}</td>
+                                <td>
+                                    <div class="gestion-acciones">
+                                        <a href="{% url 'gestion_academica' %}?entidad=plan_materia&plan={{ plan.codigo_plan }}"
+                                           class="btn btn-outline-secondary btn-sm">Ver materias</a>
+                                        <a href="{% url 'gestion_academica' %}?entidad=plan&editar={{ plan.codigo_plan }}"
+                                           class="btn btn-outline-primary btn-sm">Editar</a>
+                                        <form method="post" action="{% url 'gestion_academica' %}"
+                                              onsubmit="return confirm('¿Eliminar el plan {{ plan.codigo_plan }}?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="entidad" value="plan">
+                                            <input type="hidden" name="accion" value="eliminar">
+                                            <input type="hidden" name="id" value="{{ plan.codigo_plan }}">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-4">No hay planes registrados.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+
+    {# ================================================== #}
+    {# MATERIAS #}
+    {# ================================================== #}
+    {% if entidad_activa == 'materia' %}
+        <section class="gestion-panel">
+            <h2>{% if form_materia.instance.pk %}Editar materia{% else %}Nueva materia{% endif %}</h2>
+
+            <form method="post" action="{% url 'gestion_academica' %}">
+                {% csrf_token %}
+                <input type="hidden" name="entidad" value="materia">
+                {% if form_materia.instance.pk %}
+                    <input type="hidden" name="id" value="{{ form_materia.instance.codigo_materia }}">
+                {% endif %}
+
+                {% if form_materia.non_field_errors %}
+                    <div class="alert alert-danger py-2 small">{{ form_materia.non_field_errors.0 }}</div>
+                {% endif %}
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-3">
+                        <label for="id_codigo_materia" class="form-label fw-semibold">Código</label>
+                        {{ form_materia.codigo_materia }}
+                        {% if form_materia.codigo_materia.errors %}
+                            <div class="text-danger small mt-1">{{ form_materia.codigo_materia.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label for="id_nombre_materia" class="form-label fw-semibold">Nombre de la materia</label>
+                        {{ form_materia.nombre_materia }}
+                        {% if form_materia.nombre_materia.errors %}
+                            <div class="text-danger small mt-1">{{ form_materia.nombre_materia.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 col-md-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        {% if form_materia.instance.pk %}
+                            <a href="{% url 'gestion_academica' %}?entidad=materia" class="btn btn-outline-secondary">Cancelar</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section class="gestion-tabla">
+            <div class="gestion-tabla-titulo">Materias registradas ({{ materias|length }})</div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th>Código</th><th>Nombre</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for materia in materias %}
+                            <tr>
+                                <td class="fw-semibold">{{ materia.codigo_materia }}</td>
+                                <td>{{ materia.nombre_materia }}</td>
+                                <td>
+                                    <div class="gestion-acciones">
+                                        <a href="{% url 'gestion_academica' %}?entidad=materia&editar={{ materia.codigo_materia }}"
+                                           class="btn btn-outline-primary btn-sm">Editar</a>
+                                        <form method="post" action="{% url 'gestion_academica' %}"
+                                              onsubmit="return confirm('¿Eliminar la materia {{ materia.nombre_materia }}?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="entidad" value="materia">
+                                            <input type="hidden" name="accion" value="eliminar">
+                                            <input type="hidden" name="id" value="{{ materia.codigo_materia }}">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-4">No hay materias registradas.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+
+    {# ================================================== #}
+    {# MATERIAS DEL PLAN #}
+    {# ================================================== #}
+    {% if entidad_activa == 'plan_materia' %}
+        <section class="gestion-panel">
+            <h2>Plan a gestionar</h2>
+
+            <form method="get" action="{% url 'gestion_academica' %}">
+                <input type="hidden" name="entidad" value="plan_materia">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-8">
+                        <label for="plan" class="form-label fw-semibold">Plan de estudios</label>
+                        <select id="plan" name="plan" class="form-select" onchange="this.form.submit()">
+                            <option value="">Seleccioná un plan</option>
+                            {% for plan in planes %}
+                                <option value="{{ plan.codigo_plan }}"
+                                        {% if plan_seleccionado and plan_seleccionado.codigo_plan == plan.codigo_plan %}selected{% endif %}>
+                                    {{ plan.codigo_plan }} — {{ plan.codigo_carrera.nombre_carrera }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <noscript><button type="submit" class="btn btn-primary">Ver plan</button></noscript>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        {% if not plan_seleccionado %}
+            <div class="alert alert-info" role="alert">
+                No hay planes de estudio registrados. Creá uno en la pestaña
+                <a href="{% url 'gestion_academica' %}?entidad=plan" class="alert-link">Planes de estudio</a>.
+            </div>
+        {% else %}
+            <section class="gestion-panel">
+                <h2>
+                    {% if form_plan_materia.instance.pk %}
+                        Editar materia del plan {{ plan_seleccionado.codigo_plan }}
+                    {% else %}
+                        Agregar materia al plan {{ plan_seleccionado.codigo_plan }}
+                    {% endif %}
+                </h2>
+
+                <form method="post" action="{% url 'gestion_academica' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="entidad" value="plan_materia">
+                    <input type="hidden" name="plan" value="{{ plan_seleccionado.codigo_plan }}">
+                    {% if form_plan_materia.instance.pk %}
+                        <input type="hidden" name="id_plan" value="{{ form_plan_materia.instance.codigo_plan_id }}">
+                        <input type="hidden" name="id_materia" value="{{ form_plan_materia.instance.codigo_materia_id }}">
+                    {% endif %}
+
+                    {% if form_plan_materia.non_field_errors %}
+                        <div class="alert alert-danger py-2 small">{{ form_plan_materia.non_field_errors.0 }}</div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label for="id_codigo_plan" class="form-label fw-semibold">Plan</label>
+                            {{ form_plan_materia.codigo_plan }}
+                            {% if form_plan_materia.codigo_plan.errors %}
+                                <div class="text-danger small mt-1">{{ form_plan_materia.codigo_plan.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="id_codigo_materia" class="form-label fw-semibold">Materia</label>
+                            {{ form_plan_materia.codigo_materia }}
+                            {% if form_plan_materia.codigo_materia.errors %}
+                                <div class="text-danger small mt-1">{{ form_plan_materia.codigo_materia.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label for="id_anio_materia" class="form-label fw-semibold">Año</label>
+                            {{ form_plan_materia.anio_materia }}
+                            {% if form_plan_materia.anio_materia.errors %}
+                                <div class="text-danger small mt-1">{{ form_plan_materia.anio_materia.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label for="id_cuatrimestre_materia" class="form-label fw-semibold">Cuatrimestre</label>
+                            {{ form_plan_materia.cuatrimestre_materia }}
+                            {% if form_plan_materia.cuatrimestre_materia.errors %}
+                                <div class="text-danger small mt-1">{{ form_plan_materia.cuatrimestre_materia.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label for="id_orden_materia" class="form-label fw-semibold">Orden</label>
+                            {{ form_plan_materia.orden_materia }}
+                            {% if form_plan_materia.orden_materia.errors %}
+                                <div class="text-danger small mt-1">{{ form_plan_materia.orden_materia.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label for="id_id_grupo_optativo" class="form-label fw-semibold">Grupo optativo</label>
+                            {{ form_plan_materia.id_grupo_optativo }}
+                            <div class="form-help">Opcional.</div>
+                            {% if form_plan_materia.id_grupo_optativo.errors %}
+                                <div class="text-danger small mt-1">{{ form_plan_materia.id_grupo_optativo.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check">
+                                {{ form_plan_materia.materia_requisito }}
+                                <label class="form-check-label fw-semibold" for="id_materia_requisito">
+                                    Es materia requisito (correlativa)
+                                </label>
+                            </div>
+                            {% if form_plan_materia.materia_requisito.errors %}
+                                <div class="text-danger small mt-1">{{ form_plan_materia.materia_requisito.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Guardar asociación</button>
+                            {% if form_plan_materia.instance.pk %}
+                                <a href="{% url 'gestion_academica' %}?entidad=plan_materia&plan={{ plan_seleccionado.codigo_plan }}"
+                                   class="btn btn-outline-secondary">Cancelar</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section class="gestion-tabla">
+                <div class="gestion-tabla-titulo">
+                    Materias del plan {{ plan_seleccionado.codigo_plan }} ({{ materias_del_plan|length }})
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Año</th>
+                                <th>Cuatr.</th>
+                                <th>Orden</th>
+                                <th>Materia</th>
+                                <th>Requisito</th>
+                                <th>Grupo optativo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fila in materias_del_plan %}
+                                <tr>
+                                    <td>{{ fila.anio_materia }}</td>
+                                    <td>{{ fila.get_cuatrimestre_materia_display }}</td>
+                                    <td>{{ fila.orden_materia }}</td>
+                                    <td>{{ fila.codigo_materia.nombre_materia }}</td>
+                                    <td>
+                                        {% if fila.materia_requisito %}
+                                            <span class="badge text-bg-primary">Sí</span>
+                                        {% else %}
+                                            <span class="badge text-bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ fila.id_grupo_optativo|default:"—" }}</td>
+                                    <td>
+                                        <div class="gestion-acciones">
+                                            <a href="{% url 'gestion_academica' %}?entidad=plan_materia&plan={{ plan_seleccionado.codigo_plan }}&editar_plan={{ fila.codigo_plan_id }}&editar_materia={{ fila.codigo_materia_id }}"
+                                               class="btn btn-outline-primary btn-sm">Editar</a>
+                                            <form method="post" action="{% url 'gestion_academica' %}"
+                                                  onsubmit="return confirm('¿Quitar esta materia del plan?');">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="entidad" value="plan_materia">
+                                                <input type="hidden" name="accion" value="eliminar">
+                                                <input type="hidden" name="id_plan" value="{{ fila.codigo_plan_id }}">
+                                                <input type="hidden" name="id_materia" value="{{ fila.codigo_materia_id }}">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">Quitar</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="7" class="text-center text-muted py-4">Este plan no tiene materias asociadas.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

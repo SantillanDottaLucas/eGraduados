@@ -249,17 +249,39 @@ class Secundario(models.Model):
 
 
 # ==========================================================
-# USUARIO
+# ROL Y USUARIO
 # ==========================================================
+
+class Rol(models.Model):
+    id_rol = models.AutoField(primary_key=True)
+    nombre_rol = models.CharField(max_length=100, unique=True)
+
+    # Un rol administrador accede, además de las pantallas
+    # básicas, al ABM de usuarios y roles.
+    puede_administrar = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "ROL"
+
+    def __str__(self):
+        return self.nombre_rol
+
 
 class Usuario(models.Model):
     id_usuario = models.AutoField(primary_key=True)
     nombre_usuario = models.CharField(max_length=100, unique=True)
     email = models.EmailField(max_length=254, unique=True)
 
-    # Recomendación: almacenar contraseñas mediante
-    # el sistema de autenticación de Django, nunca como enteros.
-    contrasenia = models.CharField(max_length=128)
+    # El código de acceso de 6 caracteres se almacena
+    # hasheado mediante make_password / check_password.
+    codigo_acceso = models.CharField(max_length=128)
+
+    id_rol = models.ForeignKey(
+        Rol,
+        on_delete=models.PROTECT,
+        db_column="id_rol",
+        related_name="usuarios"
+    )
 
     class Meta:
         db_table = "USUARIO"

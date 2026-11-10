@@ -1,21 +1,31 @@
 from datetime import date
 
-from django.shortcuts import render
-from django.http import HttpResponse
+from django.contrib.auth.hashers import check_password
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import redirect, render
 
-from .models import Carrera, Escuela
+from .autenticacion import (
+    CLAVE_SESION,
+    codigo_valido,
+    obtener_usuario_sesion,
+    requiere_sesion,
+    url_siguiente_segura,
+)
+from .models import Carrera, Escuela, Usuario
 
 from academico.servicios.moduloCarga.carga_datos import CargaDatos
 
 from .servicios.moduloAnalitico import *
 
 from .servicios.moduloEstadistica.consulta_estadisticas import (
+    consultar_graduados_por_anio,
     consultar_promedios,
     consultar_total,
     consultar_tiempos,
 )
 
 from .servicios.moduloEstadistica.graficador_estadistico import (
+    graficar_graduados_por_anio,
     graficar_promedio,
     graficar_total,
     graficar_tiempos,
@@ -31,13 +41,83 @@ from .servicios.moduloGraduados.exportar_graduados import (
 
 
 # ==========================================
+# 0. INGRESO Y SALIDA
+# ==========================================
+
+def login(request):
+    """
+    Página de ingreso: el usuario carga su email de Gmail
+    (que debe existir en la base de datos) y un código
+    alfanumérico de 6 caracteres.
+    """
+
+    error = None
+    siguiente = request.GET.get("next", "")
+
+    # Un usuario ya logueado no necesita ver el login.
+    if obtener_usuario_sesion(request) is not None:
+        return redirect("index")
+
+    if request.method == "POST":
+        email = (request.POST.get("email") or "").strip().lower()
+        codigo = (request.POST.get("codigo") or "").strip()
+
+        if not email or not codigo:
+            error = "Completá tu email y tu código de acceso."
+
+        elif not codigo_valido(codigo):
+            error = (
+                "El código debe tener exactamente 6 "
+                "caracteres alfanuméricos."
+            )
+
+        else:
+            usuario = (
+                Usuario.objects
+                .filter(email__iexact=email)
+                .select_related("id_rol")
+                .first()
+            )
+
+            # Mensaje genérico: no revela si el email existe.
+            if usuario is None or not check_password(
+                codigo,
+                usuario.codigo_acceso,
+            ):
+                error = "El email o el código son incorrectos."
+
+            else:
+                request.session[CLAVE_SESION] = usuario.id_usuario
+
+                destino = url_siguiente_segura(request, siguiente)
+                return redirect(destino or "index")
+
+    return render(
+        request,
+        "academico/login.html",
+        {"error": error},
+    )
+
+
+def logout(request):
+    """Cierra la sesión del usuario."""
+
+    if request.method == "POST":
+        request.session.flush()
+
+    return redirect("login")
+
+
+# ==========================================
 # 1. PÁGINAS PRINCIPALES
 # ==========================================
 
+@requiere_sesion
 def index(request):
     return render(request, "academico/index.html")
 
 
+@requiere_sesion
 def generacion_analiticos(request):
     if request.method == "POST":
         nombre = request.POST.get("nombre", "")
@@ -50,6 +130,7 @@ def generacion_analiticos(request):
     return render(request, "academico/generacion_analiticos.html")
 
 
+@requiere_sesion
 def titulo_en_tramite(request):
     return render(request, "academico/titulo_en_tramite.html")
 
@@ -77,58 +158,22 @@ def obtener_contexto_base():
 # 3. ESTADÍSTICAS
 # ==========================================
 
+@requiere_sesion
 def estadisticas(request):
+    """
+    Tablero estadístico unificado.
+
+    Un único panel de filtros alimenta las cuatro
+    estadísticas: promedios, cantidades, tiempos de
+    graduación y graduados por año.
+    """
+
     contexto = obtener_contexto_base()
 
-    # Valores iniciales: todas las carreras, todas las escuelas
-    # y sin restricción de fechas.
-    filtro = "todos"
-    carrera = None
-    escuela = None
-    fecha_inicio = None
-    fecha_fin = None
+    # ==========================================
+    # 1. Leer los filtros
+    # ==========================================
 
-    # Consultar las tres estadísticas.
-    resultado_promedios = consultar_promedios(
-        "promedio_sin_aplazo",
-        filtro,
-        carrera,
-        escuela,
-        fecha_inicio,
-        fecha_fin,
-    )
-
-    resultado_total = consultar_total(
-        filtro,
-        carrera,
-        escuela,
-        fecha_inicio,
-        fecha_fin,
-    )
-
-    resultado_tiempos = consultar_tiempos(
-        filtro,
-        carrera,
-        escuela,
-        fecha_inicio,
-        fecha_fin,
-    )
-
-    # Preparar los datos para Chart.js.
-    contexto.update({
-        "datos_promedios": graficar_promedio(resultado_promedios),
-        "datos_totales": graficar_total(resultado_total),
-        "datos_tiempos": graficar_tiempos(resultado_tiempos),
-    })
-
-    return render(
-        request,
-        "academico/estadisticas.html",
-        contexto,
-    )
-
-
-def estadisticas_promedios(request):
     tipo_promedio = request.GET.get(
         "promedio",
         "promedio_sin_aplazo",
@@ -139,76 +184,111 @@ def estadisticas_promedios(request):
     fecha_inicio = request.GET.get("fechaInicio") or None
     fecha_fin = request.GET.get("fechaFin") or None
 
-    resultado = consultar_promedios(
+    if tipo_promedio not in (
+        "promedio_sin_aplazo",
+        "promedio_con_aplazo",
+    ):
+        tipo_promedio = "promedio_sin_aplazo"
+
+    if filtro not in ("todos", "carrera", "escuela"):
+        filtro = "todos"
+
+    # ==========================================
+    # 2. Validar el período en el servidor
+    # ==========================================
+
+    aviso_fechas = None
+    fecha_inicio_valida = None
+    fecha_fin_valida = None
+
+    if fecha_inicio or fecha_fin:
+
+        try:
+            fecha_inicio_valida = (
+                date.fromisoformat(fecha_inicio)
+                if fecha_inicio else None
+            )
+
+            fecha_fin_valida = (
+                date.fromisoformat(fecha_fin)
+                if fecha_fin else None
+            )
+
+        except ValueError:
+            aviso_fechas = (
+                "El período indicado no es válido y fue ignorado."
+            )
+
+        else:
+            if (
+                fecha_inicio_valida
+                and fecha_fin_valida
+                and fecha_inicio_valida > fecha_fin_valida
+            ):
+                aviso_fechas = (
+                    "La fecha de inicio no puede ser posterior a "
+                    "la fecha de fin; el período fue ignorado."
+                )
+
+                fecha_inicio_valida = None
+                fecha_fin_valida = None
+
+    # ==========================================
+    # 3. Consultar las cuatro estadísticas
+    # ==========================================
+
+    resultado_promedios = consultar_promedios(
         tipo_promedio,
         filtro,
         carrera,
         escuela,
-        fecha_inicio,
-        fecha_fin,
+        fecha_inicio_valida,
+        fecha_fin_valida,
     )
-
-    contexto = obtener_contexto_base()
-    contexto.update({
-        "resultado_promedio": resultado["promedio"],
-        "varianza_promedios": resultado["varianza"],
-        "datos_promedios": graficar_promedio(resultado),
-    })
-
-    return render(
-        request,
-        "academico/estadisticas.html",
-        contexto,
-    )
-
-
-def estadisticas_totales(request):
-    filtro = request.GET.get("filtro", "todos")
-    carrera = request.GET.get("carrera") or None
-    escuela = request.GET.get("escuela") or None
-    fecha_inicio = request.GET.get("fechaInicio") or None
-    fecha_fin = request.GET.get("fechaFin") or None
 
     resultado_total = consultar_total(
         filtro,
         carrera,
         escuela,
-        fecha_inicio,
-        fecha_fin,
+        fecha_inicio_valida,
+        fecha_fin_valida,
     )
 
-    contexto = obtener_contexto_base()
-    contexto.update({
-        "resultado_total": resultado_total,
-        "datos_totales": graficar_total(resultado_total),
-    })
-
-    return render(
-        request,
-        "academico/estadisticas.html",
-        contexto,
-    )
-
-
-def estadisticas_tiempos(request):
-    filtro = request.GET.get("filtro", "todos")
-    carrera = request.GET.get("carrera") or None
-    escuela = request.GET.get("escuela") or None
-    fecha_inicio = request.GET.get("fechaInicio") or None
-    fecha_fin = request.GET.get("fechaFin") or None
-
-    resultado_tiempo = consultar_tiempos(
+    resultado_tiempos = consultar_tiempos(
         filtro,
         carrera,
         escuela,
-        fecha_inicio,
-        fecha_fin,
+        fecha_inicio_valida,
+        fecha_fin_valida,
     )
 
-    contexto = obtener_contexto_base()
+    resultado_anios = consultar_graduados_por_anio(
+        filtro,
+        carrera,
+        escuela,
+        fecha_inicio_valida,
+        fecha_fin_valida,
+    )
+
+    # ==========================================
+    # 4. Preparar los datos para Chart.js
+    # ==========================================
+
     contexto.update({
-        "resultado_tiempo": resultado_tiempo,
-        "datos_tiempos": graficar_tiempos(resultado_tiempo),
+        "tipo_promedio": tipo_promedio,
+
+        "aviso_fechas": aviso_fechas,
+
+        "resultado_promedio": resultado_promedios.get("promedio"),
+        "varianza_promedios": resultado_promedios.get("varianza"),
+        "resultado_total": resultado_total,
+        "resultado_tiempo": resultado_tiempos,
+        "resultado_anios": resultado_anios,
+
+        "datos_promedios": graficar_promedio(resultado_promedios),
+        "datos_totales": graficar_total(resultado_total),
+        "datos_tiempos": graficar_tiempos(resultado_tiempos),
+        "datos_anios": graficar_graduados_por_anio(resultado_anios),
     })
 
     return render(
@@ -222,6 +302,7 @@ def estadisticas_tiempos(request):
 # 4. LISTADO DE GRADUADOS
 # ==========================================
 
+@requiere_sesion
 def lista_graduados(request):
     graduados = obtener_graduados_filtrados(request.GET)
 
@@ -239,6 +320,7 @@ def lista_graduados(request):
 # 5. EXPORTACIÓN A EXCEL
 # ==========================================
 
+@requiere_sesion
 def exportar_graduados(request):
     graduados = obtener_graduados_filtrados(request.GET)
 
@@ -258,19 +340,18 @@ def exportar_graduados(request):
 
     return respuesta
 
-import json
 
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.http import require_http_methods
+# ==========================================
+# 6. CARGA DE DATOS POR EXCEL
+# ==========================================
 
-@require_http_methods(["GET", "POST"])
-def cargar_datos(request):
+@requiere_sesion
+def carga_datos(request):
 
     if request.method == "GET":
         return render(
             request,
-            "academico/cargar_datos.html"
+            "academico/carga_datos.html"
         )
 
     archivo = request.FILES.get("archivo_excel")

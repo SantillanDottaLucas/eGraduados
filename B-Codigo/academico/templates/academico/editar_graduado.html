@@ -1,0 +1,220 @@
+{% extends "academico/base.html" %}
+
+{% block title %}Editar graduado | eGraduados{% endblock %}
+
+{% block content %}
+<style>
+    .editar-pagina {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 2rem 1rem 3rem;
+    }
+
+    .editar-encabezado {
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        color: #ffffff;
+        background: linear-gradient(125deg, #173b67, #2d6596);
+        border-radius: 18px;
+    }
+
+    .editar-encabezado h1 {
+        margin-bottom: 0.5rem;
+        font-size: 1.7rem;
+        font-weight: 700;
+    }
+
+    .editar-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .editar-chip {
+        display: inline-flex;
+        padding: 0.35rem 0.75rem;
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.16);
+        font-size: 0.88rem;
+    }
+
+    .editar-panel {
+        padding: 1.6rem;
+        margin-bottom: 1.5rem;
+        background: #ffffff;
+        border: 1px solid #e5eaf0;
+        border-radius: 16px;
+        box-shadow: 0 4px 14px rgba(25, 45, 70, 0.05);
+    }
+
+    .editar-panel h2 {
+        margin-bottom: 1.2rem;
+        color: #243b53;
+        font-size: 1.15rem;
+        font-weight: 700;
+    }
+
+    .editar-acciones {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+
+    .editar-errores {
+        margin-bottom: 1.2rem;
+    }
+
+    @media (max-width: 576px) {
+        .editar-encabezado,
+        .editar-panel {
+            padding: 1.25rem;
+        }
+
+        .editar-acciones {
+            flex-direction: column-reverse;
+        }
+    }
+</style>
+
+<div class="editar-pagina">
+
+    <header class="editar-encabezado">
+        <h1>Editar datos del graduado</h1>
+        <p class="mb-0">
+            Actualizá la información personal y los datos académicos
+            de la carrera seleccionada.
+        </p>
+
+        <div class="editar-meta">
+            <span class="editar-chip">
+                Legajo: {{ graduado.legajo_graduado }}
+            </span>
+            <span class="editar-chip">
+                Carrera: {{ registro.codigo_carrera.nombre_carrera }}
+            </span>
+        </div>
+    </header>
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="volver" value="{{ volver }}">
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger editar-errores" role="alert">
+                {% for error in form.non_field_errors %}
+                    <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <section class="editar-panel">
+            <h2>Datos personales</h2>
+
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label for="id_nombre" class="form-label fw-semibold">Nombre</label>
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}
+                        <div class="text-danger small mt-1">{{ form.nombre.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_apellido" class="form-label fw-semibold">Apellido</label>
+                    {{ form.apellido }}
+                    {% if form.apellido.errors %}
+                        <div class="text-danger small mt-1">{{ form.apellido.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_dni" class="form-label fw-semibold">DNI</label>
+                    {{ form.dni }}
+                    {% if form.dni.errors %}
+                        <div class="text-danger small mt-1">{{ form.dni.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_fecha_ingreso_universidad" class="form-label fw-semibold">
+                        Ingreso a la universidad
+                    </label>
+                    {{ form.fecha_ingreso_universidad }}
+                    {% if form.fecha_ingreso_universidad.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.fecha_ingreso_universidad.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <section class="editar-panel">
+            <h2>Datos de la carrera</h2>
+
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label for="id_fecha_ingreso_carrera" class="form-label fw-semibold">
+                        Ingreso a la carrera
+                    </label>
+                    {{ form.fecha_ingreso_carrera }}
+                    {% if form.fecha_ingreso_carrera.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.fecha_ingreso_carrera.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_fecha_egreso_carrera" class="form-label fw-semibold">
+                        Egreso de la carrera
+                    </label>
+                    {{ form.fecha_egreso_carrera }}
+                    {% if form.fecha_egreso_carrera.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.fecha_egreso_carrera.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_promedio_sin_aplazo" class="form-label fw-semibold">
+                        Promedio sin aplazo
+                    </label>
+                    {{ form.promedio_sin_aplazo }}
+                    {% if form.promedio_sin_aplazo.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.promedio_sin_aplazo.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_promedio_con_aplazo" class="form-label fw-semibold">
+                        Promedio con aplazo
+                    </label>
+                    {{ form.promedio_con_aplazo }}
+                    {% if form.promedio_con_aplazo.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.promedio_con_aplazo.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <div class="editar-acciones">
+            <a href="{% url 'lista_graduados' %}{% if volver %}?{{ volver }}{% endif %}"
+               class="btn btn-outline-secondary px-4">
+                Volver al listado
+            </a>
+
+            <button type="submit" class="btn btn-primary px-4">
+                Guardar cambios
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

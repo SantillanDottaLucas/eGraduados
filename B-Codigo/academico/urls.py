@@ -1,27 +1,19 @@
 from django.urls import path
 from . import views
+from . import views_abm
+from . import views_gestion
+from django.urls import path, re_path
 
 urlpatterns = [
+    # Ingreso y salida
+    path("login/", views.login, name="login"),
+    path("logout/", views.logout, name="logout"),
+
     # Página principal
     path("", views.index, name="index"),
 
     # Estadísticas
     path("estadisticas/", views.estadisticas, name="estadisticas"),
-    path(
-        "estadisticas/promedios/",
-        views.estadisticas_promedios,
-        name="estadisticas_promedios",
-    ),
-    path(
-        "estadisticas/totales/",
-        views.estadisticas_totales,
-        name="estadisticas_totales",
-    ),
-    path(
-        "estadisticas/tiempos/",
-        views.estadisticas_tiempos,
-        name="estadisticas_tiempos",
-    ),
 
     # Graduados
     path(
@@ -33,6 +25,30 @@ urlpatterns = [
         "descargar_graduados/",
         views.exportar_graduados,
         name="exportar_graduados",
+    ),    
+    re_path(
+        r'^graduados/(?P<legajo>.+)/(?P<carrera>[^/]+)/editar/$',
+        views_gestion.editar_graduado,
+        name='editar_graduado'
+    ),
+
+    # Gestión académica (escuelas, carreras, planes y materias)
+    path(
+        "gestion/",
+        views_gestion.gestion_academica,
+        name="gestion_academica",
+    ),
+
+    # ABM de usuarios y roles (solo administradores)
+    path(
+        "usuarios/",
+        views_abm.abm_usuarios,
+        name="abm_usuarios",
+    ),
+    path(
+        "roles/",
+        views_abm.abm_roles,
+        name="abm_roles",
     ),
 
     # Analíticos y títulos
@@ -51,4 +67,5 @@ urlpatterns = [
         views.carga_datos,
         name="carga_datos"
     ),
+
 ]

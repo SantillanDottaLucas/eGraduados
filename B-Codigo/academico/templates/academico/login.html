@@ -1,0 +1,172 @@
+{% extends "academico/base.html" %}
+
+{% block title %}Ingresar | eGraduados{% endblock %}
+
+{% block content %}
+<style>
+    .login-pagina {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: calc(100vh - 260px);
+        padding: 2rem 1rem 3rem;
+    }
+
+    .login-tarjeta {
+        width: 100%;
+        max-width: 430px;
+        margin: 0 auto;
+        padding: 2.5rem;
+        background: #ffffff;
+        border: 1px solid #e5eaf0;
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(25, 45, 70, 0.08);
+    }
+
+    .login-icono {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 58px;
+        height: 58px;
+        margin-bottom: 1.1rem;
+        color: #245ca6;
+        background: #e8f0fc;
+        border-radius: 16px;
+        font-size: 1.8rem;
+    }
+
+    .login-tarjeta h1 {
+        margin-bottom: 0.5rem;
+        color: #173b67;
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .login-tarjeta .login-subtitulo {
+        margin-bottom: 1.6rem;
+        color: #64748b;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    .login-etiqueta {
+        color: #334155;
+        font-weight: 600;
+        font-size: 0.92rem;
+    }
+
+    .login-campo {
+        min-height: 44px;
+        border-radius: 9px;
+    }
+
+    .login-codigo {
+        font-size: 1.15rem;
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+    }
+
+    .login-boton {
+        width: 100%;
+        min-height: 46px;
+        margin-top: 1.5rem;
+        background: #245b91;
+        border: 1px solid #245b91;
+        border-radius: 9px;
+        color: #fff;
+        font-weight: 600;
+    }
+
+    .login-boton:hover {
+        background: #173b67;
+        border-color: #173b67;
+        color: #fff;
+    }
+
+    .login-pie {
+        margin-top: 1.6rem;
+        color: #94a3b8;
+        font-size: 0.85rem;
+        text-align: center;
+    }
+
+    @media (max-width: 576px) {
+        .login-tarjeta {
+            padding: 1.6rem;
+        }
+    }
+</style>
+
+<div class="login-pagina">
+    <div class="login-tarjeta">
+
+        <div class="login-icono" aria-hidden="true">⚿</div>
+
+        <h1>Ingresar al sistema</h1>
+
+        <p class="login-subtitulo">
+            Cargá tu email de Gmail registrado en el sistema y
+            el código de acceso de 6 caracteres que te fue asignado.
+        </p>
+
+        {% if error %}
+            <div class="alert alert-danger py-2 small" role="alert">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'login' %}" novalidate>
+
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label for="email" class="form-label login-etiqueta">
+                    Email de Gmail
+                </label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    class="form-control login-campo"
+                    placeholder="usuario@gmail.com"
+                    autocomplete="email"
+                    required
+                    autofocus
+                >
+            </div>
+
+            <div class="mb-2">
+                <label for="codigo" class="form-label login-etiqueta">
+                    Código de acceso
+                </label>
+                <input
+                    type="text"
+                    id="codigo"
+                    name="codigo"
+                    class="form-control login-campo login-codigo"
+                    placeholder="●●●●●●"
+                    maxlength="6"
+                    minlength="6"
+                    pattern="[A-Za-z0-9]{6}"
+                    autocomplete="one-time-code"
+                    title="6 caracteres alfanuméricos"
+                    required
+                >
+                <div class="form-text">
+                    6 caracteres alfanuméricos.
+                </div>
+            </div>
+
+            <button type="submit" class="btn login-boton">
+                Ingresar
+            </button>
+        </form>
+
+        <p class="login-pie">
+            Si no recordás tu código, pedí a un administrador
+            que lo regenere.
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,21 +1,39 @@
 
 # academico/servicios/graficador_estadistico.py
+#
+# Prepara los datos de cada estadística para los gráficos
+# de Chart.js (formato etiquetas / valores).
+
+
+def _limpiar(resultado):
+    """Devuelve (etiquetas, valores) de un resultado."""
+
+    if not isinstance(resultado, dict):
+        return [], []
+
+    return (
+        resultado.get("etiquetas") or [],
+        resultado.get("valores") or [],
+    )
 
 
 def graficar_promedio(resultado):
     """
     Prepara los datos del promedio académico para el gráfico.
 
-    La varianza se consulta por separado y se muestra en el HTML.
+    Según el filtro, muestra el promedio por escuela, por
+    carrera o el promedio de una única carrera. La varianza
+    se consulta por separado y se muestra en el HTML.
     """
-    if not isinstance(resultado, dict):
-        return {"etiquetas": [], "valores": []}
 
-    promedio = resultado.get("promedio")
+    etiquetas, valores = _limpiar(resultado)
 
     return {
-        "etiquetas": ["Promedio académico"] if promedio is not None else [],
-        "valores": [float(promedio)] if promedio is not None else []
+        "etiquetas": etiquetas,
+        "valores": [
+            round(float(valor), 2) if valor is not None else None
+            for valor in valores
+        ],
     }
 
 
@@ -28,18 +46,15 @@ def graficar_total(resultado):
     - Escuela: cantidad de graduados por carrera.
     - Carrera: total de graduados de esa carrera.
     """
-    if not isinstance(resultado, dict):
-        return {"etiquetas": [], "valores": []}
 
-    etiquetas = resultado.get("etiquetas", [])
-    valores = resultado.get("valores", [])
+    etiquetas, valores = _limpiar(resultado)
 
     return {
         "etiquetas": etiquetas,
         "valores": [
             int(valor) for valor in valores
             if valor is not None
-        ]
+        ],
     }
 
 
@@ -50,16 +65,32 @@ def graficar_tiempos(resultado):
     Las etiquetas identifican cada registro y los valores representan
     los años transcurridos entre el ingreso y el egreso de la carrera.
     """
-    if not isinstance(resultado, dict):
-        return {"etiquetas": [], "valores": []}
 
-    etiquetas = resultado.get("etiquetas", [])
-    valores = resultado.get("valores", [])
+    etiquetas, valores = _limpiar(resultado)
 
     return {
         "etiquetas": etiquetas,
         "valores": [
             float(valor) if valor is not None else None
             for valor in valores
-        ]
+        ],
+    }
+
+
+def graficar_graduados_por_anio(resultado):
+    """
+    Prepara los datos de graduados por año de egreso.
+
+    Las etiquetas son los años y los valores la cantidad de
+    graduados que egresaron en cada uno.
+    """
+
+    etiquetas, valores = _limpiar(resultado)
+
+    return {
+        "etiquetas": etiquetas,
+        "valores": [
+            int(valor) for valor in valores
+            if valor is not None
+        ],
     }

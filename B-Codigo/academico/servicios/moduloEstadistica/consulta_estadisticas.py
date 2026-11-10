@@ -1,5 +1,5 @@
 
-from django.db.models import Avg, Variance, Count, Exists, OuterRef
+from django.db.models import Avg, Variance, Count, Exists, OuterRef, F
 
 from academico.models import GraduadoCarrera, Carrera
 from collections import defaultdict
@@ -75,6 +75,10 @@ def consultar_promedios(
     """
     Calcula el promedio y la varianza de los promedios
     académicos de las relaciones graduado-carrera filtradas.
+
+    Filtro 'todos': promedio por escuela (y global).
+    Filtro 'escuela': promedio por carrera (y global).
+    Filtro 'carrera': promedio de esa carrera.
     """
 
     campos_validos = {
@@ -86,6 +90,8 @@ def consultar_promedios(
         return {
             "promedio": None,
             "varianza": None,
+            "etiquetas": [],
+            "valores": [],
         }
 
     registros = obtener_graduados_carrera(
@@ -100,10 +106,77 @@ def consultar_promedios(
         escuela
     )
 
-    return registros.aggregate(
+    # Valores globales y varianza poblacional, coherente
+    # con la varianza usada en las demás estadísticas.
+    resultado = registros.aggregate(
         promedio=Avg(tipoPromedio),
-        varianza=Variance(tipoPromedio),
+        varianza=Variance(tipoPromedio, sample=False),
     )
+
+    # UNA CARRERA: un único promedio.
+    if filtro == "carrera":
+
+        nombre_carrera = (
+            Carrera.objects
+            .filter(pk=carrera)
+            .values_list("nombre_carrera", flat=True)
+            .first()
+        )
+
+        resultado["etiquetas"] = [nombre_carrera or "Carrera"]
+
+        resultado["valores"] = [
+            resultado["promedio"]
+        ]
+
+    # UNA ESCUELA: promedio por carrera.
+    elif filtro == "escuela":
+
+        agrupados = (
+            registros
+            .values(
+                "codigo_carrera_id",
+                "codigo_carrera__nombre_carrera",
+            )
+            .annotate(promedio_grupo=Avg(tipoPromedio))
+            .order_by("codigo_carrera__nombre_carrera")
+        )
+
+        resultado["etiquetas"] = [
+            fila["codigo_carrera__nombre_carrera"]
+            for fila in agrupados
+        ]
+
+        resultado["valores"] = [
+            fila["promedio_grupo"]
+            for fila in agrupados
+        ]
+
+    # TODOS LOS GRADUADOS: promedio por escuela.
+    else:
+
+        agrupados = (
+            registros
+            .values(
+                "codigo_carrera__id_escuela__nombre_escuela",
+            )
+            .annotate(promedio_grupo=Avg(tipoPromedio))
+            .order_by("codigo_carrera__id_escuela__nombre_escuela")
+        )
+
+        resultado["etiquetas"] = [
+            fila[
+                "codigo_carrera__id_escuela__nombre_escuela"
+            ]
+            for fila in agrupados
+        ]
+
+        resultado["valores"] = [
+            fila["promedio_grupo"]
+            for fila in agrupados
+        ]
+
+    return resultado
 
 
 # ==================================================
@@ -305,10 +378,6 @@ def consultar_total(
 # EVOLUCIÓN / TIEMPO DE GRADUACIÓN
 # ==================================================
 
-from collections import defaultdict
-from statistics import mean
-
-
 def consultar_tiempos(
     filtro,
     carrera,
@@ -392,3 +461,58 @@ def consultar_tiempos(
                 if todos_los_tiempos else None
             ),
         }
+
+
+# ==================================================
+# GRADUADOS POR AÑO
+# ==================================================
+
+def consultar_graduados_por_anio(
+    filtro,
+    carrera,
+    escuela,
+    fechaInicio,
+    fechaFin
+):
+    """
+    Cantidad de graduados por año de egreso, respetando
+    los mismos filtros que las demás estadísticas.
+    """
+
+    registros = obtener_graduados_carrera(
+        fechaInicio,
+        fechaFin
+    )
+
+    registros = filtrar_graduados_carrera(
+        registros,
+        filtro,
+        carrera,
+        escuela
+    )
+
+    # Un graduado que egresa de dos carreras en años distintos
+    # cuenta en cada año; en un mismo año se cuenta una vez.
+    agrupados = (
+        registros
+        .values(anio=F("fecha_egreso_carrera__year"))
+        .annotate(
+            total_anio=Count("legajo_graduado_id", distinct=True)
+        )
+        .order_by("anio")
+    )
+
+    etiquetas = [
+        str(fila["anio"]) for fila in agrupados
+    ]
+
+    valores = [
+        fila["total_anio"] for fila in agrupados
+    ]
+
+    return {
+        "etiquetas": etiquetas,
+        "valores": valores,
+        "total": sum(valores),
+        "anios": len(valores),
+    }

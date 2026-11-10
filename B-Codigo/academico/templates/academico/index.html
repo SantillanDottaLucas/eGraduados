@@ -328,33 +328,85 @@
                         </p>
 
                         <div class="panel-enlace">
-                            <span>Próximamente</span>
+                            <span>Ingresar datos</span>
+                            <span class="panel-flecha"
+                                  aria-hidden="true">→</span>
                         </div>
                     </div>
                 </a>
             </div>
 
             <div class="col-12 col-md-6">
-                <a href="#"
+                <a href="{% url 'gestion_academica' %}"
                    class="panel-tarjeta text-decoration-none">
                     <div class="panel-tarjeta-contenido">
                         <div class="panel-icono icono-verde"
                              aria-hidden="true">⚙</div>
 
-                        <h3>Gestión de carrera</h3>
+                        <h3>Gestión académica</h3>
 
                         <p>
-                            Accedé al espacio destinado a administrar
-                            la información y los datos asociados
-                            a las carreras.
+                            Administrá escuelas, carreras, planes de
+                            estudio y materias, incluyendo la
+                            asociación de materias a cada plan.
                         </p>
 
                         <div class="panel-enlace">
-                            <span>Próximamente</span>
+                            <span>Abrir gestión</span>
+                            <span class="panel-flecha"
+                                  aria-hidden="true">→</span>
                         </div>
                     </div>
                 </a>
             </div>
+
+            {% if usuario_actual and usuario_actual.id_rol.puede_administrar %}
+                <div class="col-12 col-md-6">
+                    <a href="{% url 'abm_usuarios' %}"
+                       class="panel-tarjeta text-decoration-none">
+                        <div class="panel-tarjeta-contenido">
+                            <div class="panel-icono icono-violeta"
+                                 aria-hidden="true">⚉</div>
+
+                            <h3>Usuarios del sistema</h3>
+
+                            <p>
+                                Creá y administrá los usuarios, asigná
+                                roles y regenerá los códigos de acceso.
+                            </p>
+
+                            <div class="panel-enlace">
+                                <span>Administrar usuarios</span>
+                                <span class="panel-flecha"
+                                      aria-hidden="true">→</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <a href="{% url 'abm_roles' %}"
+                       class="panel-tarjeta text-decoration-none">
+                        <div class="panel-tarjeta-contenido">
+                            <div class="panel-icono icono-ambar"
+                                 aria-hidden="true">▣</div>
+
+                            <h3>Roles del sistema</h3>
+
+                            <p>
+                                Definí los roles disponibles y sus
+                                permisos de administración.
+                            </p>
+
+                            <div class="panel-enlace">
+                                <span>Administrar roles</span>
+                                <span class="panel-flecha"
+                                      aria-hidden="true">→</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            {% endif %}
 
         </div>
     </section>

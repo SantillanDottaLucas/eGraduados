@@ -6,6 +6,9 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 
 from academico.models import Graduado, Carrera, GraduadoCarrera
+from academico.servicios.validaciones import (
+    validar_cronologia_fechas,
+)
 
 
 class CargaDatos:
@@ -137,17 +140,11 @@ class CargaDatos:
                 )
 
                 # Comprobar coherencia cronológica.
-                if fecha_ingreso_universidad > fecha_ingreso_carrera:
-                    raise ValueError(
-                        "El ingreso a la carrera no puede ser anterior "
-                        "al ingreso a la universidad."
-                    )
-
-                if fecha_ingreso_carrera > fecha_egreso_carrera:
-                    raise ValueError(
-                        "El egreso de la carrera no puede ser anterior "
-                        "al ingreso a la carrera."
-                    )
+                validar_cronologia_fechas(
+                    fecha_ingreso_universidad,
+                    fecha_ingreso_carrera,
+                    fecha_egreso_carrera,
+                )
 
                 # No admitir dos registros para la misma carrera
                 # del mismo graduado dentro del archivo.

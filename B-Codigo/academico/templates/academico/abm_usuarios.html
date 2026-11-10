@@ -1,0 +1,189 @@
+{% extends "academico/base.html" %}
+
+{% block title %}Usuarios | eGraduados{% endblock %}
+
+{% block content %}
+<style>
+    .abm-pagina { max-width: 1300px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+    .abm-encabezado { padding: 2rem; margin-bottom: 1.5rem; color: #fff; background: linear-gradient(125deg, #173b67, #2d6596); border-radius: 18px; }
+    .abm-encabezado h1 { margin: 0 0 .4rem; font-size: 1.7rem; font-weight: 700; }
+    .abm-encabezado p { margin: 0; opacity: .9; }
+    .abm-enlaces { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+    .abm-panel { padding: 1.5rem; margin-bottom: 1.5rem; background: #fff; border: 1px solid #e5eaf0; border-radius: 16px; box-shadow: 0 4px 14px rgba(25,45,70,.05); }
+    .abm-panel h2 { margin-bottom: 1.1rem; color: #243b53; font-size: 1.15rem; font-weight: 700; }
+    .abm-tabla { border: 1px solid #e5eaf0; border-radius: 16px; overflow: hidden; background: #fff; }
+    .abm-tabla-titulo { padding: 1.1rem 1.5rem; border-bottom: 1px solid #e5eaf0; font-weight: 700; color: #243b53; }
+    .codigo-temporal { font-size: 1.2rem; letter-spacing: .25em; font-weight: 700; color: #173b67; }
+</style>
+
+<div class="abm-pagina">
+    <header class="abm-encabezado">
+        <h1>Administración de usuarios</h1>
+        <p>Creá usuarios, asigná roles y generá o regenerá sus códigos de acceso.</p>
+        <div class="abm-enlaces">
+            <a href="{% url 'abm_roles' %}" class="btn btn-outline-light btn-sm">Ir a roles</a>
+            <a href="{% url 'index' %}" class="btn btn-outline-light btn-sm">Volver al panel</a>
+        </div>
+    </header>
+
+    {% if codigo_temporal %}
+        <div class="alert alert-warning" role="alert">
+            <strong>Código de acceso generado (copialo ahora; se muestra una sola vez):</strong><br>
+            Usuario: <strong>{{ codigo_temporal.usuario }}</strong><br>
+            Código: <span class="codigo-temporal">{{ codigo_temporal.codigo }}</span>
+        </div>
+    {% endif %}
+
+    <section class="abm-panel">
+        <h2>{% if usuario_editar %}Editar usuario: {{ usuario_editar.nombre_usuario }}{% else %}Nuevo usuario{% endif %}</h2>
+
+        <form method="post" action="{% url 'abm_usuarios' %}">
+            {% csrf_token %}
+            {% if usuario_editar %}
+                <input type="hidden" name="id_usuario" value="{{ usuario_editar.id_usuario }}">
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2 small">{{ form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label for="id_nombre_usuario" class="form-label fw-semibold">Nombre de usuario</label>
+                    {{ form.nombre_usuario }}
+                    {% if form.nombre_usuario.errors %}
+                        <div class="text-danger small mt-1">{{ form.nombre_usuario.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="id_email" class="form-label fw-semibold">Email de Gmail</label>
+                    {{ form.email }}
+                    {% if usuario_editar %}
+                        <div class="form-text">El email no se puede modificar.</div>
+                    {% endif %}
+                    {% if form.email.errors %}
+                        <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="id_id_rol" class="form-label fw-semibold">Rol</label>
+                    {{ form.id_rol }}
+                    {% if form.id_rol.errors %}
+                        <div class="text-danger small mt-1">{{ form.id_rol.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4">
+                        {% if usuario_editar %}Guardar cambios{% else %}Crear usuario{% endif %}
+                    </button>
+                    {% if usuario_editar %}
+                        <a href="{% url 'abm_usuarios' %}" class="btn btn-outline-secondary">Cancelar</a>
+                    {% else %}
+                        <span class="text-muted small align-self-center ms-2">
+                            Al crear el usuario se generará un código de 6 caracteres.
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <section class="abm-panel">
+        <h2>Buscar usuarios</h2>
+        <form method="get" action="{% url 'abm_usuarios' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-5">
+                    <label for="q" class="form-label fw-semibold">Nombre o email</label>
+                    <input type="text" id="q" name="q" class="form-control"
+                           value="{{ busqueda }}" placeholder="Buscar...">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label for="rol" class="form-label fw-semibold">Rol</label>
+                    <select id="rol" name="rol" class="form-select">
+                        <option value="">Todos los roles</option>
+                        {% for rol in roles %}
+                            <option value="{{ rol.id_rol }}"
+                                    {% if rol_filtro == rol.id_rol|stringformat:"s" %}selected{% endif %}>
+                                {{ rol.nombre_rol }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                    <a href="{% url 'abm_usuarios' %}" class="btn btn-outline-secondary">Limpiar</a>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <section class="abm-tabla">
+        <div class="abm-tabla-titulo">Usuarios registrados ({{ usuarios|length }})</div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                        <tr>
+                            <td class="fw-semibold">{{ usuario.nombre_usuario }}</td>
+                            <td>{{ usuario.email }}</td>
+                            <td>
+                                {% if usuario.id_rol.puede_administrar %}
+                                    <span class="badge text-bg-primary">{{ usuario.id_rol.nombre_rol }}</span>
+                                {% else %}
+                                    <span class="badge text-bg-secondary">{{ usuario.id_rol.nombre_rol }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a href="{% url 'abm_usuarios' %}?editar={{ usuario.id_usuario }}"
+                                       class="btn btn-outline-primary btn-sm">Editar</a>
+
+                                    <form method="post" action="{% url 'abm_usuarios' %}"
+                                          onsubmit="return confirm('¿Regenerar el código de {{ usuario.nombre_usuario }}? El código anterior dejará de funcionar.');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="accion" value="regenerar">
+                                        <input type="hidden" name="id_usuario" value="{{ usuario.id_usuario }}">
+                                        <button type="submit" class="btn btn-outline-warning btn-sm">
+                                            Regenerar código
+                                        </button>
+                                    </form>
+
+                                    <form method="post" action="{% url 'abm_usuarios' %}"
+                                          onsubmit="return confirm('¿Eliminar al usuario {{ usuario.nombre_usuario }}?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="accion" value="eliminar">
+                                        <input type="hidden" name="id_usuario" value="{{ usuario.id_usuario }}">
+                                        <button type="submit"
+                                                class="btn btn-outline-danger btn-sm"
+                                                {% if usuario.id_usuario == usuario_actual.id_usuario %}disabled title="No podés eliminar tu propio usuario"{% endif %}>
+                                            Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                No hay usuarios que coincidan con la búsqueda.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

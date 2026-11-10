@@ -257,6 +257,7 @@
                         <th>Egreso de la carrera</th>
                         <th>Promedio sin aplazo</th>
                         <th>Promedio con aplazo</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
 
@@ -291,17 +292,24 @@
                                 <td>
                                     {{ registro.promedio_con_aplazo|default_if_none:"—" }}
                                 </td>
+
+                                <td>
+                                    <a href="{% url 'editar_graduado' graduado.legajo_graduado registro.codigo_carrera_id %}?volver={{ request.GET.urlencode|urlencode }}"
+                                       class="btn btn-outline-primary btn-sm">
+                                        Editar
+                                    </a>
+                                </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="9" class="sin-resultados">
+                                <td colspan="10" class="sin-resultados">
                                     Este graduado no tiene carreras asociadas.
                                 </td>
                             </tr>
                         {% endfor %}
                     {% empty %}
                         <tr>
-                            <td colspan="9" class="sin-resultados">
+                            <td colspan="10" class="sin-resultados">
                                 No se encontraron graduados con esos filtros.
                             </td>
                         </tr>

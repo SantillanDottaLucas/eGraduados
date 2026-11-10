@@ -1,0 +1,72 @@
+{% extends "academico/base.html" %}
+
+{% block title %}Acceso denegado | eGraduados{% endblock %}
+
+{% block content %}
+<style>
+    .denegado-pagina {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 260px);
+        padding: 2rem 1rem 3rem;
+        text-align: center;
+    }
+
+    .denegado-tarjeta {
+        width: 100%;
+        max-width: 520px;
+        padding: 2.5rem;
+        background: #ffffff;
+        border: 1px solid #e5eaf0;
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(25, 45, 70, 0.08);
+    }
+
+    .denegado-icono {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1.2rem;
+        color: #98620c;
+        background: #fff2d8;
+        border-radius: 18px;
+        font-size: 2rem;
+    }
+
+    .denegado-tarjeta h1 {
+        margin-bottom: 0.7rem;
+        color: #173b67;
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .denegado-tarjeta p {
+        margin-bottom: 1.6rem;
+        color: #64748b;
+        line-height: 1.7;
+    }
+</style>
+
+<div class="denegado-pagina">
+    <div class="denegado-tarjeta">
+        <div class="denegado-icono" aria-hidden="true">⚠</div>
+
+        <h1>Acceso denegado</h1>
+
+        <p>
+            Tu rol ({{ usuario_actual.id_rol.nombre_rol }}) no tiene
+            permisos para acceder a la administración de usuarios
+            y roles. Si necesitás acceder, contactate con un
+            administrador del sistema.
+        </p>
+
+        <a href="{% url 'index' %}" class="btn btn-primary px-4">
+            Volver al panel principal
+        </a>
+    </div>
+</div>
+{% endblock %}

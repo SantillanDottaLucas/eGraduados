@@ -1,0 +1,128 @@
+{% extends "academico/base.html" %}
+
+{% block title %}Roles | eGraduados{% endblock %}
+
+{% block content %}
+<style>
+    .abm-pagina { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+    .abm-encabezado { padding: 2rem; margin-bottom: 1.5rem; color: #fff; background: linear-gradient(125deg, #173b67, #2d6596); border-radius: 18px; }
+    .abm-encabezado h1 { margin: 0 0 .4rem; font-size: 1.7rem; font-weight: 700; }
+    .abm-encabezado p { margin: 0; opacity: .9; }
+    .abm-enlaces { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+    .abm-panel { padding: 1.5rem; margin-bottom: 1.5rem; background: #fff; border: 1px solid #e5eaf0; border-radius: 16px; box-shadow: 0 4px 14px rgba(25,45,70,.05); }
+    .abm-panel h2 { margin-bottom: 1.1rem; color: #243b53; font-size: 1.15rem; font-weight: 700; }
+    .abm-tabla { border: 1px solid #e5eaf0; border-radius: 16px; overflow: hidden; background: #fff; }
+    .abm-tabla-titulo { padding: 1.1rem 1.5rem; border-bottom: 1px solid #e5eaf0; font-weight: 700; color: #243b53; }
+</style>
+
+<div class="abm-pagina">
+    <header class="abm-encabezado">
+        <h1>Administración de roles</h1>
+        <p>Creá y administrá los roles del sistema y sus permisos de administración.</p>
+        <div class="abm-enlaces">
+            <a href="{% url 'abm_usuarios' %}" class="btn btn-outline-light btn-sm">Ir a usuarios</a>
+            <a href="{% url 'index' %}" class="btn btn-outline-light btn-sm">Volver al panel</a>
+        </div>
+    </header>
+
+    <section class="abm-panel">
+        <h2>{% if rol_editar %}Editar rol: {{ rol_editar.nombre_rol }}{% else %}Nuevo rol{% endif %}</h2>
+
+        <form method="post" action="{% url 'abm_roles' %}">
+            {% csrf_token %}
+            {% if rol_editar %}
+                <input type="hidden" name="id_rol" value="{{ rol_editar.id_rol }}">
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2 small">{{ form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-6">
+                    <label for="id_nombre_rol" class="form-label fw-semibold">Nombre del rol</label>
+                    {{ form.nombre_rol }}
+                    {% if form.nombre_rol.errors %}
+                        <div class="text-danger small mt-1">{{ form.nombre_rol.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <div class="form-check mt-3">
+                        {{ form.puede_administrar }}
+                        <label class="form-check-label fw-semibold" for="id_puede_administrar">
+                            Puede administrar usuarios y roles
+                        </label>
+                    </div>
+                    {% if form.puede_administrar.errors %}
+                        <div class="text-danger small mt-1">{{ form.puede_administrar.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">Guardar</button>
+                    {% if rol_editar %}
+                        <a href="{% url 'abm_roles' %}" class="btn btn-outline-secondary">Cancelar</a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <section class="abm-tabla">
+        <div class="abm-tabla-titulo">Roles registrados ({{ roles|length }})</div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Permisos de administración</th>
+                        <th>Usuarios</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rol in roles %}
+                        <tr>
+                            <td class="fw-semibold">{{ rol.nombre_rol }}</td>
+                            <td>
+                                {% if rol.puede_administrar %}
+                                    <span class="badge text-bg-primary">Administrador</span>
+                                {% else %}
+                                    <span class="badge text-bg-secondary">Sin permisos</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ rol.cantidad_usuarios }}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="{% url 'abm_roles' %}?editar={{ rol.id_rol }}"
+                                       class="btn btn-outline-primary btn-sm">Editar</a>
+
+                                    <form method="post" action="{% url 'abm_roles' %}"
+                                          onsubmit="return confirm('¿Eliminar el rol {{ rol.nombre_rol }}?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="accion" value="eliminar">
+                                        <input type="hidden" name="id_rol" value="{{ rol.id_rol }}">
+                                        <button type="submit"
+                                                class="btn btn-outline-danger btn-sm"
+                                                {% if rol.cantidad_usuarios > 0 or rol.nombre_rol in roles_base %}disabled title="No se puede eliminar este rol"{% endif %}>
+                                            Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                No hay roles registrados.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

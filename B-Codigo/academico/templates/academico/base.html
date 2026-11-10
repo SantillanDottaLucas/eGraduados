@@ -135,6 +135,27 @@
                 {% block navbar %}
                 {% endblock %}
 
+                {% if usuario_actual %}
+                    <div class="d-flex align-items-center gap-3 ms-auto">
+                        <div class="text-end d-none d-sm-block">
+                            <span class="navbar-text d-block text-white fw-semibold">
+                                {{ usuario_actual.nombre_usuario }}
+                            </span>
+                            <span class="marca-subtitulo d-block">
+                                {{ usuario_actual.id_rol.nombre_rol }}
+                            </span>
+                        </div>
+
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="btn btn-outline-light btn-sm">
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
+
             </div>
         </nav>
     </header>
@@ -142,6 +163,20 @@
     <!-- Contenido de cada página -->
     <main>
         <div class="contenedor-principal">
+            {% if messages %}
+                <div class="mensajes-sistema">
+                    {% for mensaje in messages %}
+                        <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                            {{ mensaje }}
+                            <button type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="alert"
+                                    aria-label="Cerrar"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             {% block content %}
             {% endblock %}
         </div>
