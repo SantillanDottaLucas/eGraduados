@@ -91,3 +91,78 @@ def obtener_graduados_filtrados(parametros):
 
     # Devolver graduados sin duplicados, ordenados por legajo.
     return graduados.order_by("legajo_graduado")
+
+
+def _fechas(parametros):
+    fecha_desde = parametros.get("fecha_desde", "").strip()
+    fecha_hasta = parametros.get("fecha_hasta", "").strip()
+
+    try:
+        fecha_desde = date.fromisoformat(fecha_desde) if fecha_desde else None
+    except ValueError:
+        fecha_desde = None
+
+    try:
+        fecha_hasta = date.fromisoformat(fecha_hasta) if fecha_hasta else None
+    except ValueError:
+        fecha_hasta = None
+
+    # No aplicar el intervalo si las fechas están invertidas.
+    if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+        return None, None
+
+    return fecha_desde, fecha_hasta
+
+
+def obtener_filas_filtradas(parametros):
+    """
+    Filas de GRADUADO_CARRERA que cumplen TODOS los filtros del
+    listado (nombre, legajo, carrera, escuela y período de egreso).
+
+    A diferencia de ``obtener_graduados_filtrados``, no se pierde
+    el filtro de carrera/escuela al volver a consultar la tabla
+    de carreras: cada fila devuelta es la que coincide.
+    """
+
+    filas = GraduadoCarrera.objects.select_related(
+        "legajo_graduado",
+        "codigo_carrera",
+        "codigo_carrera__id_escuela",
+    )
+
+    nombre = parametros.get("nombre", "").strip()
+
+    if nombre:
+        for palabra in nombre.split():
+            filas = filas.filter(
+                Q(legajo_graduado__nombre__icontains=palabra)
+                | Q(legajo_graduado__apellido__icontains=palabra)
+            )
+
+    legajo = parametros.get("legajo", "").strip()
+
+    if legajo:
+        filas = filas.filter(
+            legajo_graduado__legajo_graduado__icontains=legajo
+        )
+
+    carrera = parametros.get("carrera", "").strip()
+
+    if carrera:
+        filas = filas.filter(codigo_carrera_id=carrera)
+
+    escuela = parametros.get("escuela", "").strip()
+
+    if escuela:
+        filas = filas.filter(codigo_carrera__id_escuela_id=escuela)
+
+    fecha_desde, fecha_hasta = _fechas(parametros)
+
+    if fecha_desde:
+        filas = filas.filter(fecha_egreso_carrera__gte=fecha_desde)
+
+    if fecha_hasta:
+        filas = filas.filter(fecha_egreso_carrera__lte=fecha_hasta)
+
+    return filas.order_by("legajo_graduado_id", "codigo_carrera_id")
+

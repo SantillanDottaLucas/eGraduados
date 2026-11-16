@@ -191,3 +191,20 @@ def dni_con_puntos(dni):
         texto = texto[:-3]
 
     return ".".join(grupos)
+
+
+def tipo_examen_legible(tipo):
+    """
+    Normaliza el tipo de examen para el documento.
+
+    El Certificado Lincoln usa «Equivalencia T»; en el analítico
+    se muestra simplemente «Equivalencia».
+    """
+
+    texto = str(tipo or "").strip()
+
+    if texto.lower().startswith("equivalencia"):
+        return "Equivalencia"
+
+    return texto
+

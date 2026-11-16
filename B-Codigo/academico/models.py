@@ -28,6 +28,12 @@ class TipoDocumentoAnalitico(models.TextChoices):
     EN_TRAMITE = "en_tramite", "Analítico (Título en trámite)"
 
 
+class OrigenPromedio(models.TextChoices):
+    IMPORTADO = "importado", "Importado"
+    CALCULADO = "calculado", "Calculado"
+    MANUAL = "manual", "Manual"
+
+
 # ==========================================================
 # GRADUADO
 # ==========================================================
@@ -132,7 +138,13 @@ class Examen(models.Model):
 
     # El acta no es única por sí sola: una resolución abarca
     # varias materias, por eso la unicidad es (acta, materia).
-    acta_respaldatoria = models.CharField(max_length=50)
+    # Se admite NULL para los exámenes sin acta: en MySQL/SQLite
+    # los NULL no colisionan en un índice único.
+    acta_respaldatoria = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+    )
 
     tipo_examen = models.CharField(max_length=100, blank=True)
     fecha_examen = models.DateField(null=True, blank=True)
@@ -154,7 +166,7 @@ class Examen(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.acta_respaldatoria} ({self.codigo_materia})"
+        return f"{self.acta_respaldatoria or 'Sin acta'} ({self.codigo_materia})"
 
 
 # ==========================================================
@@ -163,7 +175,7 @@ class Examen(models.Model):
 
 class Titulo(models.Model):
     id_titulo = models.AutoField(primary_key=True)
-    nombre_titulo = models.CharField(max_length=150, unique=True)
+    nombre_titulo = models.CharField(max_length=150)
 
     codigo_carrera = models.ForeignKey(
         Carrera,
@@ -174,6 +186,12 @@ class Titulo(models.Model):
 
     class Meta:
         db_table = "TITULO"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["codigo_carrera", "nombre_titulo"],
+                name="uniq_titulo_por_carrera",
+            ),
+        ]
 
     def __str__(self):
         return self.nombre_titulo
@@ -196,7 +214,7 @@ class Provincia(models.Model):
 
 class Ciudad(models.Model):
     id_ciudad = models.AutoField(primary_key=True)
-    nombre_ciudad = models.CharField(max_length=100, unique=True)
+    nombre_ciudad = models.CharField(max_length=100)
 
     id_provincia = models.ForeignKey(
         Provincia,
@@ -207,6 +225,12 @@ class Ciudad(models.Model):
 
     class Meta:
         db_table = "CIUDAD"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["id_provincia", "nombre_ciudad"],
+                name="uniq_ciudad_por_provincia",
+            ),
+        ]
 
     def __str__(self):
         return self.nombre_ciudad
@@ -245,6 +269,12 @@ class DatosNacimiento(models.Model):
 
     class Meta:
         db_table = "DATOS_NACIMIENTO"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["legajo_graduado"],
+                name="uniq_datos_nacimiento_por_graduado",
+            ),
+        ]
 
 
 # ==========================================================
@@ -253,7 +283,7 @@ class DatosNacimiento(models.Model):
 
 class Secundario(models.Model):
     id_secundario = models.AutoField(primary_key=True)
-    nombre_secundario = models.CharField(max_length=200, unique=True)
+    nombre_secundario = models.CharField(max_length=200)
 
     titulo_secundario = models.CharField(
         max_length=200,
@@ -291,6 +321,12 @@ class Secundario(models.Model):
 
     class Meta:
         db_table = "SECUNDARIO"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["legajo_graduado"],
+                name="uniq_secundario_por_graduado",
+            ),
+        ]
 
     def __str__(self):
         return self.nombre_secundario
@@ -330,6 +366,14 @@ class Usuario(models.Model):
         db_column="id_rol",
         related_name="usuarios"
     )
+
+    # Un usuario inactivo no puede iniciar sesión aunque su
+    # código sea correcto.
+    activo = models.BooleanField(default=True)
+
+    # Control de intentos fallidos de ingreso.
+    intentos_fallidos = models.PositiveIntegerField(default=0)
+    bloqueado_hasta = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "USUARIO"
@@ -385,6 +429,19 @@ class GraduadoCarrera(models.Model):
     fecha_egreso_carrera = models.DateField()
     promedio_con_aplazo = models.FloatField(null=True, blank=True)
     promedio_sin_aplazo = models.FloatField(null=True, blank=True)
+
+    # Procedencia de cada promedio: importado del Excel, calculado
+    # a partir de los exámenes o editado a mano por el usuario.
+    origen_promedio_con_aplazo = models.CharField(
+        max_length=20,
+        choices=OrigenPromedio.choices,
+        default=OrigenPromedio.IMPORTADO,
+    )
+    origen_promedio_sin_aplazo = models.CharField(
+        max_length=20,
+        choices=OrigenPromedio.choices,
+        default=OrigenPromedio.IMPORTADO,
+    )
 
     pk = models.CompositePrimaryKey(
         "legajo_graduado",
@@ -638,3 +695,44 @@ class Analitico(models.Model):
             f"{self.legajo_graduado_id} - {self.codigo_carrera_id}"
             f" ({self.get_tipo_documento_display()})"
         )
+
+
+# ==========================================================
+# AUDITORIA
+# Registro de acciones sensibles (validaciones, overrides de
+# promedios, altas/bajas de usuarios, etc.).
+# ==========================================================
+
+class Auditoria(models.Model):
+    id_auditoria = models.AutoField(primary_key=True)
+
+    id_usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column="id_usuario",
+        related_name="auditorias",
+    )
+
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    accion = models.CharField(max_length=100)
+    entidad = models.CharField(max_length=100, blank=True)
+    entidad_id = models.CharField(max_length=100, blank=True)
+
+    detalle = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        db_table = "AUDITORIA"
+        ordering = ["-fecha", "-id_auditoria"]
+        indexes = [
+            models.Index(fields=["accion"], name="idx_auditoria_accion"),
+            models.Index(
+                fields=["entidad", "entidad_id"],
+                name="idx_auditoria_entidad",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.fecha:%Y-%m-%d %H:%M} - {self.accion}"

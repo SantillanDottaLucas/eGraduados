@@ -7,12 +7,30 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
 
-def generar_excel_graduados(graduados):
-    libro = Workbook()
-    hoja = libro.active
-    hoja.title = "Graduados"
+# Caracteres que Excel interpreta como inicio de fórmula.
+_PREFIJOS_FORMULA = ("=", "+", "-", "@", "\t", "\r", "\n")
 
-    encabezados = [
+
+def _celda_segura(valor):
+    """
+    Evita la inyección de fórmulas en el Excel exportado.
+
+    Los datos de nombre/apellido/carrera provienen de archivos
+    externos; si empiezan con «=», «+», «-» o «@», Excel podría
+    ejecutarlos como fórmula al abrir el archivo.
+    """
+
+    if not isinstance(valor, str):
+        return valor
+
+    if valor.startswith(_PREFIJOS_FORMULA):
+        return "'" + valor
+
+    return valor
+
+
+def _encabezados():
+    return [
         "Legajo",
         "DNI",
         "Nombre",
@@ -25,32 +43,8 @@ def generar_excel_graduados(graduados):
         "Promedio con aplazo",
     ]
 
-    hoja.append(encabezados)
 
-    for graduado in graduados.iterator(chunk_size=500):
-        carreras = graduado.carreras_cursadas.select_related(
-            "codigo_carrera"
-        ).all()
-
-        for graduado_carrera in carreras:
-            hoja.append([
-                graduado.legajo_graduado,
-                graduado.dni,
-                graduado.nombre,
-                graduado.apellido,
-                graduado.fecha_ingreso_universidad,
-                graduado_carrera.codigo_carrera.nombre_carrera,
-                graduado_carrera.fecha_ingreso_carrera,
-                graduado_carrera.fecha_egreso_carrera,
-                float(graduado_carrera.promedio_sin_aplazo)
-                if graduado_carrera.promedio_sin_aplazo is not None
-                else None,
-                float(graduado_carrera.promedio_con_aplazo)
-                if graduado_carrera.promedio_con_aplazo is not None
-                else None,
-            ])
-
-    # Formato de los encabezados
+def _formatear_libro(libro, hoja):
     for celda in hoja[1]:
         celda.font = Font(bold=True, color="FFFFFF")
         celda.fill = PatternFill(
@@ -103,3 +97,77 @@ def generar_excel_graduados(graduados):
     libro.save(archivo)
 
     return archivo.getvalue()
+
+
+def generar_excel_filas(filas):
+    """
+    Exporta las filas de GRADUADO_CARRERA ya filtradas.
+
+    Cada fila corresponde a una carrera del graduado, por lo que
+    los filtros de carrera/escuela/período se respetan.
+    """
+
+    libro = Workbook()
+    hoja = libro.active
+    hoja.title = "Graduados"
+
+    hoja.append(_encabezados())
+
+    for fila in filas.iterator(chunk_size=500):
+        graduado = fila.legajo_graduado
+
+        hoja.append([
+            _celda_segura(graduado.legajo_graduado),
+            _celda_segura(graduado.dni),
+            _celda_segura(graduado.nombre),
+            _celda_segura(graduado.apellido),
+            graduado.fecha_ingreso_universidad,
+            _celda_segura(fila.codigo_carrera.nombre_carrera),
+            fila.fecha_ingreso_carrera,
+            fila.fecha_egreso_carrera,
+            float(fila.promedio_sin_aplazo)
+            if fila.promedio_sin_aplazo is not None
+            else None,
+            float(fila.promedio_con_aplazo)
+            if fila.promedio_con_aplazo is not None
+            else None,
+        ])
+
+    return _formatear_libro(libro, hoja)
+
+
+def generar_excel_graduados(graduados):
+    """Compatibilidad: exporta todas las carreras de los graduados."""
+
+    libro = Workbook()
+    hoja = libro.active
+    hoja.title = "Graduados"
+
+    hoja.append(_encabezados())
+
+    for graduado in graduados.iterator(chunk_size=500):
+        carreras = graduado.carreras_cursadas.select_related(
+            "codigo_carrera"
+        ).all()
+
+        for graduado_carrera in carreras:
+            hoja.append([
+                _celda_segura(graduado.legajo_graduado),
+                _celda_segura(graduado.dni),
+                _celda_segura(graduado.nombre),
+                _celda_segura(graduado.apellido),
+                graduado.fecha_ingreso_universidad,
+                _celda_segura(
+                    graduado_carrera.codigo_carrera.nombre_carrera
+                ),
+                graduado_carrera.fecha_ingreso_carrera,
+                graduado_carrera.fecha_egreso_carrera,
+                float(graduado_carrera.promedio_sin_aplazo)
+                if graduado_carrera.promedio_sin_aplazo is not None
+                else None,
+                float(graduado_carrera.promedio_con_aplazo)
+                if graduado_carrera.promedio_con_aplazo is not None
+                else None,
+            ])
+
+    return _formatear_libro(libro, hoja)

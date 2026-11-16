@@ -10,20 +10,33 @@ from django.urls import reverse
 
 from .autenticacion import CLAVE_SESION, generar_codigo_acceso
 from .models import (
+    Auditoria,
     Carrera,
     CarreraResolucion,
+    Ciudad,
+    DatosNacimiento,
     Escuela,
+    Examen,
     Graduado,
     GraduadoCarrera,
+    GraduadoExamen,
     GrupoOptativo,
     Materia,
+    OrigenPromedio,
     PlanEstudios,
     PlanEstudiosGrupoOptativo,
     PlanEstudiosMateria,
+    Provincia,
     Resolucion,
     Rol,
+    Secundario,
     Titulo,
     Usuario,
+)
+from .servicios.moduloAnalitico.promedios import calcular_promedios
+from .servicios.moduloAnalitico.utilidades_texto import tipo_examen_legible
+from .servicios.moduloGraduados.consulta_graduados import (
+    obtener_filas_filtradas,
 )
 from .servicios.validaciones import validar_cronologia_fechas
 from .servicios.moduloEstadistica.consulta_estadisticas import (
@@ -1459,6 +1472,389 @@ class TituloEnTramiteTest(BasePrueba):
                 codigo_carrera=self.carrera,
                 tipo_documento="en_tramite",
             ).exists()
+        )
+
+
+class PromediosServicioTest(BasePrueba):
+    """Reglas de cálculo de promedios con y sin aplazo."""
+
+    def setUp(self):
+        self.escuela = Escuela.objects.create(
+            nombre_escuela="Escuela Promedios"
+        )
+        self.carrera = Carrera.objects.create(
+            codigo_carrera="PRO1",
+            nombre_carrera="Carrera Promedios",
+            id_escuela=self.escuela,
+        )
+        plan = PlanEstudios.objects.create(
+            codigo_plan="PLANPRO1",
+            codigo_carrera=self.carrera,
+        )
+
+        self.materias = {}
+
+        for codigo, nombre, requisito in (
+            ("P001", "Materia Uno", False),
+            ("P002", "Materia Dos", False),
+            ("P003", "Materia Requisito", True),
+            ("P004", "Materia Equivalencia", False),
+        ):
+            materia = Materia.objects.create(
+                codigo_materia=codigo,
+                nombre_materia=nombre,
+            )
+            PlanEstudiosMateria.objects.create(
+                codigo_plan=plan,
+                codigo_materia=materia,
+                anio_materia=1,
+                cuatrimestre_materia="1er",
+                orden_materia=1,
+                materia_requisito=requisito,
+            )
+            self.materias[codigo] = materia
+
+    def _examen(self, codigo, nota, fecha=None, tipo="Examen"):
+        return {
+            "nota": nota,
+            "materia_codigo": codigo,
+            "resultado": (
+                "Aprobado" if nota is not None and nota >= 6
+                else "Reprobado"
+            ),
+            "tipo": tipo,
+            "fecha_examen": fecha,
+            "acta_respaldatoria": "",
+        }
+
+    def test_con_aplazo_incluye_reprobados_y_requisitos(self):
+        resultado = calcular_promedios(
+            None,
+            self.carrera,
+            examenes=[
+                self._examen("P001", 4, date(2023, 1, 1)),
+                self._examen("P001", 8, date(2024, 1, 1)),
+                self._examen("P002", 10, date(2024, 2, 1)),
+                self._examen("P003", 7, date(2024, 3, 1)),
+            ],
+        )
+
+        # (4 + 8 + 10 + 7) / 4
+        self.assertEqual(resultado.promedio_con_aplazo, 7.25)
+        # Sin aplazo: 8 (la más reciente de P001) y 10; el
+        # requisito P003 no participa.
+        self.assertEqual(resultado.promedio_sin_aplazo, 9.0)
+
+    def test_duplicado_usa_la_mas_reciente_y_avisa(self):
+        resultado = calcular_promedios(
+            None,
+            self.carrera,
+            examenes=[
+                self._examen("P001", 9, date(2022, 1, 1)),
+                self._examen("P001", 7, date(2024, 1, 1)),
+            ],
+        )
+
+        self.assertEqual(resultado.promedio_sin_aplazo, 7.0)
+        self.assertEqual(len(resultado.duplicados), 1)
+        self.assertEqual(resultado.duplicados[0]["nota_elegida"], 7)
+        self.assertTrue(
+            any("aprobaciones" in aviso for aviso in resultado.advertencias)
+        )
+
+    def test_duplicado_misma_fecha_desempata_por_nota_mayor(self):
+        resultado = calcular_promedios(
+            None,
+            self.carrera,
+            examenes=[
+                self._examen("P001", 7, date(2024, 1, 1)),
+                self._examen("P001", 9, date(2024, 1, 1)),
+            ],
+        )
+
+        self.assertEqual(resultado.promedio_sin_aplazo, 9.0)
+
+    def test_duplicado_con_fechas_texto_usa_la_mas_reciente(self):
+        resultado = calcular_promedios(
+            None,
+            self.carrera,
+            examenes=[
+                self._examen("P001", 9, "2023-01-01"),
+                self._examen("P001", 7, "2024-01-01"),
+            ],
+        )
+
+        # La fecha más reciente gana aunque la nota sea menor.
+        self.assertEqual(resultado.promedio_sin_aplazo, 7.0)
+
+    def test_equivalencia_sin_nota_se_excluye_con_advertencia(self):
+        resultado = calcular_promedios(
+            None,
+            self.carrera,
+            examenes=[
+                self._examen("P001", 8, date(2024, 1, 1)),
+                self._examen("P004", None, date(2024, 1, 1), "Equivalencia"),
+            ],
+        )
+
+        self.assertEqual(resultado.promedio_con_aplazo, 8.0)
+        self.assertEqual(resultado.promedio_sin_aplazo, 8.0)
+        self.assertEqual(resultado.equivalencias_sin_nota, ["P004"])
+        self.assertTrue(
+            any("no tiene nota" in aviso for aviso in resultado.advertencias)
+        )
+
+    def test_sin_examenes_no_divide_por_cero(self):
+        resultado = calcular_promedios(None, self.carrera, examenes=[])
+
+        self.assertIsNone(resultado.promedio_con_aplazo)
+        self.assertIsNone(resultado.promedio_sin_aplazo)
+
+    def test_solo_requisitos_deja_sin_aplazo_nulo(self):
+        resultado = calcular_promedios(
+            None,
+            self.carrera,
+            examenes=[self._examen("P003", 7, date(2024, 1, 1))],
+        )
+
+        self.assertEqual(resultado.promedio_con_aplazo, 7.0)
+        self.assertIsNone(resultado.promedio_sin_aplazo)
+        self.assertTrue(
+            any(
+                "sin aplazo" in aviso
+                for aviso in resultado.advertencias
+            )
+        )
+
+
+class TipoExamenLegibleTest(TestCase):
+    def test_equivalencia_t_se_muestra_como_equivalencia(self):
+        self.assertEqual(tipo_examen_legible("Equivalencia T"), "Equivalencia")
+        self.assertEqual(tipo_examen_legible("Examen"), "Examen")
+        self.assertEqual(tipo_examen_legible(None), "")
+
+
+class FiltrosListadoTest(BasePrueba):
+    def setUp(self):
+        self.escuela_a = Escuela.objects.create(nombre_escuela="Escuela A")
+        self.escuela_b = Escuela.objects.create(nombre_escuela="Escuela B")
+        self.carrera_a = Carrera.objects.create(
+            codigo_carrera="FA1",
+            nombre_carrera="Carrera A",
+            id_escuela=self.escuela_a,
+        )
+        self.carrera_b = Carrera.objects.create(
+            codigo_carrera="FB1",
+            nombre_carrera="Carrera B",
+            id_escuela=self.escuela_b,
+        )
+
+        for legajo, carrera, nombre in (
+            ("F001", self.carrera_a, "Ana"),
+            ("F002", self.carrera_b, "Beto"),
+        ):
+            graduado = Graduado.objects.create(
+                legajo_graduado=legajo,
+                dni=f"42{legajo[-3:]}",
+                fecha_ingreso_universidad=date(2015, 3, 1),
+                nombre=nombre,
+                apellido="Apellido",
+            )
+            GraduadoCarrera.objects.create(
+                legajo_graduado=graduado,
+                codigo_carrera=carrera,
+                fecha_ingreso_carrera=date(2016, 3, 1),
+                fecha_egreso_carrera=date(2020, 12, 1),
+            )
+
+    def test_filtro_por_carrera_no_pierde_la_condicion(self):
+        filas = obtener_filas_filtradas({"carrera": "FA1"})
+
+        self.assertEqual(filas.count(), 1)
+        self.assertEqual(
+            filas.first().legajo_graduado_id,
+            "F001",
+        )
+
+    def test_filtro_por_escuela(self):
+        filas = obtener_filas_filtradas({"escuela": str(self.escuela_b.pk)})
+
+        self.assertEqual(filas.count(), 1)
+        self.assertEqual(
+            filas.first().legajo_graduado_id,
+            "F002",
+        )
+
+    def test_exportacion_respeta_el_filtro(self):
+        self.iniciar_sesion(self.admin)
+
+        respuesta = self.client.get(
+            reverse("exportar_graduados") + "?carrera=FA1"
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn(
+            "spreadsheetml",
+            respuesta["Content-Type"],
+        )
+
+
+class BloqueoLoginTest(BasePrueba):
+    def test_bloqueo_tras_intentos_fallidos(self):
+        from django.conf import settings
+
+        for _ in range(settings.LOGIN_MAX_INTENTOS):
+            self.client.post(
+                reverse("login"),
+                {"email": "titulos@gmail.com", "codigo": "000000"},
+            )
+
+        self.titulos.refresh_from_db()
+        self.assertIsNotNone(self.titulos.bloqueado_hasta)
+
+        respuesta = self.client.post(
+            reverse("login"),
+            {"email": "titulos@gmail.com", "codigo": self.codigo_titulos},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "bloqueada")
+        self.assertIsNone(self.client.session.get(CLAVE_SESION))
+
+    def test_login_exitoso_audita(self):
+        self.client.post(
+            reverse("login"),
+            {"email": "titulos@gmail.com", "codigo": self.codigo_titulos},
+        )
+
+        self.assertTrue(
+            Auditoria.objects.filter(
+                accion="login",
+                entidad_id=str(self.titulos.id_usuario),
+            ).exists()
+        )
+
+
+class AnaliticoPromediosTest(GeneracionAnaliticosTest):
+    """Promedios calculados, override manual y recálculo."""
+
+    def _payload_filas(self, notas):
+        payload = dict(self._form_base())
+        payload["accion"] = "validar"
+        payload["fila_indice"] = ["01", "02"]
+        payload["fila_anio"] = ["1", "2"]
+        payload["fila_espacio"] = ["Materia Uno", "Materia Dos"]
+        payload["fila_nota"] = [str(notas[0]), str(notas[1])]
+        payload["fila_fecha"] = ["2024-03-13", "2024-03-13"]
+        payload["fila_tipo"] = ["Examen", "Examen"]
+        payload["fila_respaldo"] = ["RG1", "RG2"]
+        payload["fila_folio"] = ["001", "002"]
+        payload["fila_materia"] = ["9001", "9002"]
+        return payload
+
+    def test_validar_calcula_promedios_y_origen(self):
+        self.iniciar_sesion(self.admin)
+
+        payload = self._payload_filas([7, 10])
+        payload.pop("promedio_sin_aplazo")
+        payload.pop("promedio_con_aplazo")
+
+        respuesta = self.client.post(
+            reverse("generacion_analiticos"),
+            payload,
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+
+        registro = GraduadoCarrera.objects.get(
+            legajo_graduado_id="UARG-TEST1",
+            codigo_carrera=self.carrera,
+        )
+
+        self.assertEqual(registro.promedio_sin_aplazo, 8.5)
+        self.assertEqual(registro.promedio_con_aplazo, 8.5)
+        self.assertEqual(
+            registro.origen_promedio_sin_aplazo,
+            OrigenPromedio.CALCULADO,
+        )
+        self.assertEqual(
+            registro.origen_promedio_con_aplazo,
+            OrigenPromedio.CALCULADO,
+        )
+
+    def test_override_manual_se_conserva_y_audita(self):
+        self.iniciar_sesion(self.admin)
+
+        payload = self._payload_filas([7, 10])
+        payload["promedio_sin_aplazo"] = "9.25"
+        payload["promedio_con_aplazo"] = "9.10"
+
+        respuesta = self.client.post(
+            reverse("generacion_analiticos"),
+            payload,
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+
+        registro = GraduadoCarrera.objects.get(
+            legajo_graduado_id="UARG-TEST1",
+            codigo_carrera=self.carrera,
+        )
+
+        self.assertEqual(registro.promedio_sin_aplazo, 9.25)
+        self.assertEqual(registro.promedio_con_aplazo, 9.10)
+        self.assertEqual(
+            registro.origen_promedio_sin_aplazo,
+            OrigenPromedio.MANUAL,
+        )
+        self.assertTrue(
+            Auditoria.objects.filter(
+                accion="promedio_override",
+            ).exists()
+        )
+
+    def test_recalcular_vuelve_al_valor_calculado(self):
+        self.iniciar_sesion(self.admin)
+
+        payload = self._payload_filas([7, 10])
+        payload["promedio_sin_aplazo"] = "9.25"
+        payload["promedio_con_aplazo"] = "9.10"
+        self.client.post(reverse("generacion_analiticos"), payload)
+
+        payload = self._payload_filas([7, 10])
+        payload["accion"] = "recalcular"
+        payload["promedio_sin_aplazo"] = "9.25"
+        payload["promedio_con_aplazo"] = "9.10"
+
+        respuesta = self.client.post(
+            reverse("generacion_analiticos"),
+            payload,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "8,5")
+
+    def test_secundario_unico_por_graduado(self):
+        self.iniciar_sesion(self.admin)
+
+        payload = self._payload_filas([7, 10])
+        self.client.post(reverse("generacion_analiticos"), payload)
+
+        payload = self._payload_filas([7, 10])
+        payload["nombre_secundario"] = "Otro Secundario"
+        self.client.post(reverse("generacion_analiticos"), payload)
+
+        self.assertEqual(
+            Secundario.objects.filter(
+                legajo_graduado_id="UARG-TEST1"
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            Secundario.objects.get(
+                legajo_graduado_id="UARG-TEST1"
+            ).nombre_secundario,
+            "Otro Secundario",
         )
 
 

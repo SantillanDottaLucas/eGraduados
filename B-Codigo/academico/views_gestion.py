@@ -34,6 +34,7 @@ from .models import (
     GraduadoCarrera,
     GrupoOptativo,
     Materia,
+    OrigenPromedio,
     PlanEstudios,
     PlanEstudiosGrupoOptativo,
     PlanEstudiosMateria,
@@ -43,6 +44,7 @@ from .models import (
     TipoResolucion,
 )
 from .servicios.validaciones import validar_dni_unico
+from .servicios.moduloAnalitico.promedios import mismo_promedio
 
 
 # Filtros de la lista de graduados que se preservan al volver.
@@ -197,6 +199,23 @@ def editar_graduado(request, legajo, carrera):
                 )
 
             else:
+                origen_sin = registro.origen_promedio_sin_aplazo
+                origen_con = registro.origen_promedio_con_aplazo
+
+                # Editar un promedio en esta pantalla equivale a un
+                # override manual: no debe ser pisado al recalcular.
+                if not mismo_promedio(
+                    datos["promedio_sin_aplazo"],
+                    registro.promedio_sin_aplazo,
+                ):
+                    origen_sin = OrigenPromedio.MANUAL
+
+                if not mismo_promedio(
+                    datos["promedio_con_aplazo"],
+                    registro.promedio_con_aplazo,
+                ):
+                    origen_con = OrigenPromedio.MANUAL
+
                 with transaction.atomic():
                     graduado.nombre = datos["nombre"]
                     graduado.apellido = datos["apellido"]
@@ -225,6 +244,8 @@ def editar_graduado(request, legajo, carrera):
                             promedio_con_aplazo=(
                                 datos["promedio_con_aplazo"]
                             ),
+                            origen_promedio_sin_aplazo=origen_sin,
+                            origen_promedio_con_aplazo=origen_con,
                         )
                         registro.delete()
 
@@ -241,6 +262,8 @@ def editar_graduado(request, legajo, carrera):
                         registro.promedio_con_aplazo = (
                             datos["promedio_con_aplazo"]
                         )
+                        registro.origen_promedio_sin_aplazo = origen_sin
+                        registro.origen_promedio_con_aplazo = origen_con
                         registro.save()
 
                     # Datos de nacimiento (todos opcionales;
@@ -308,29 +331,30 @@ def editar_graduado(request, legajo, carrera):
                             provincia_obj_sec,
                         )
 
-                        if nombre_sec:
-                            secundario, _ = Secundario.objects.get_or_create(
-                                nombre_secundario=nombre_sec,
-                                defaults={
-                                    "legajo_graduado": graduado,
-                                    "id_provincia": provincia_obj_sec,
-                                    "id_ciudad": ciudad_obj_sec,
-                                },
-                            )
-                        else:
-                            secundario = (
-                                Secundario.objects
-                                .filter(legajo_graduado=graduado)
-                                .first()
-                            )
+                        # Hay un único secundario por graduado: se
+                        # actualiza el existente o se crea uno nuevo.
+                        existente = (
+                            Secundario.objects
+                            .filter(legajo_graduado=graduado)
+                            .first()
+                        )
 
-                        if secundario is not None:
-                            secundario.legajo_graduado = graduado
-                            secundario.id_provincia = provincia_obj_sec
-                            secundario.id_ciudad = ciudad_obj_sec
-                            secundario.titulo_secundario = titulo_sec
-                            secundario.anio_egreso_secundario = anio_sec
-                            secundario.save()
+                        Secundario.objects.update_or_create(
+                            legajo_graduado=graduado,
+                            defaults={
+                                "nombre_secundario": (
+                                    nombre_sec
+                                    or (
+                                        existente.nombre_secundario
+                                        if existente else ""
+                                    )
+                                ),
+                                "id_provincia": provincia_obj_sec,
+                                "id_ciudad": ciudad_obj_sec,
+                                "titulo_secundario": titulo_sec,
+                                "anio_egreso_secundario": anio_sec,
+                            },
+                        )
 
                 messages.success(
                     request,

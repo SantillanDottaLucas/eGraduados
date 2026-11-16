@@ -33,6 +33,7 @@ from academico.servicios.moduloAnalitico.utilidades_texto import (
     nota_a_letras,
     promedio_a_letras,
     anio_con_punto,
+    tipo_examen_legible,
 )
 
 
@@ -233,7 +234,7 @@ def examenes_ordenados_por_anio(graduado, carrera):
                 exam.fecha_examen.isoformat()
                 if exam.fecha_examen else ""
             ),
-            "tipo": exam.tipo_examen or "Examen",
+            "tipo": tipo_examen_legible(exam.tipo_examen) or "Examen",
             "respaldo": acta,
             "folio": folio,
             "materia_codigo": materia.codigo_materia,
@@ -404,11 +405,15 @@ def render_docx(contexto):
         "fecha_nacimiento_larga": contexto.get("fecha_nacimiento_larga", ""),
         "ciudad_nacimiento": (
             contexto["datos_nacimiento"].id_ciudad.nombre_ciudad
-            if contexto["datos_nacimiento"] else ""
+            if contexto["datos_nacimiento"]
+            and contexto["datos_nacimiento"].id_ciudad
+            else ""
         ),
         "provincia_nacimiento": (
             contexto["datos_nacimiento"].id_provincia.nombre_provincia
-            if contexto["datos_nacimiento"] else ""
+            if contexto["datos_nacimiento"]
+            and contexto["datos_nacimiento"].id_provincia
+            else ""
         ),
         "titulo_secundario": (
             contexto["secundario"].titulo_secundario
@@ -420,7 +425,9 @@ def render_docx(contexto):
         ),
         "ciudad_secundario": (
             contexto["secundario"].id_ciudad.nombre_ciudad
-            if contexto["secundario"] else ""
+            if contexto["secundario"]
+            and contexto["secundario"].id_ciudad
+            else ""
         ),
         "anio_egreso_secundario": (
             anio_con_punto(contexto["secundario"].anio_egreso_secundario)

@@ -15,6 +15,30 @@
         </div>
     {% endif %}
 
+    {% if advertencias %}
+        <div class="alert alert-info" role="alert">
+            <strong>Promedios:</strong>
+            <ul class="mb-0 mt-1">
+                {% for advertencia in advertencias %}
+                    <li>{{ advertencia }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="alert alert-secondary" role="alert">
+        Los promedios se calculan automáticamente a partir de los exámenes.
+        Si los editás a mano, el valor manual se conserva y queda auditado.
+        <strong>Recalcular promedios</strong> vuelve al valor calculado.
+        {% if promedios_calculados.sin_aplazo != None or promedios_calculados.con_aplazo != None %}
+            <br>
+            Calculado: sin aplazo
+            <strong>{% if promedios_calculados.sin_aplazo != None %}{{ promedios_calculados.sin_aplazo }}{% else %}—{% endif %}</strong>,
+            con aplazo
+            <strong>{% if promedios_calculados.con_aplazo != None %}{{ promedios_calculados.con_aplazo }}{% else %}—{% endif %}</strong>.
+        {% endif %}
+    </div>
+
     <section class="documento mb-4">
         <h3>
             {% if tipo_documento == 'en_tramite' %}
@@ -189,6 +213,11 @@
            class="btn btn-outline-secondary">
             ← Volver
         </a>
+        <button type="submit" name="accion" value="recalcular"
+                class="btn btn-outline-primary px-4"
+                formnovalidate>
+            Recalcular promedios
+        </button>
         <button type="submit" name="accion" value="validar" class="btn btn-primary px-4">
             Validar analítico
         </button>

@@ -42,6 +42,10 @@ SALIDA_EN_TRAMITE = DIR_SALIDA / "analitico_en_tramite.docx"
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
+# Ancho útil de la página (ancho - márgenes) para los tabuladores de
+# los párrafos de texto libre. Se recalcula al procesar cada documento.
+ANCHO_UTIL = 10631
+
 
 # ==================================================
 # Utilidades de bajo nivel (XML del documento)
@@ -86,7 +90,8 @@ def fijar_rpr(parrafo, bold=None, sz=None):
             rfonts = OxmlElement("w:rFonts")
             rpr.append(rfonts)
 
-        rfonts.set(qn("w:cs"), "Arial")
+        for atributo in ("w:ascii", "w:hAnsi", "w:cs"):
+            rfonts.set(qn(atributo), "Arial")
 
         if bold is not None:
             b = rpr.find(tag("b"))
@@ -111,7 +116,9 @@ def agregar_run(parrafo, texto, bold=False, sz=None):
     run = OxmlElement("w:r")
     rpr = OxmlElement("w:rPr")
     rfonts = OxmlElement("w:rFonts")
-    rfonts.set(qn("w:cs"), "Arial")
+
+    for atributo in ("w:ascii", "w:hAnsi", "w:cs"):
+        rfonts.set(qn(atributo), "Arial")
 
     if bold:
         rpr.append(OxmlElement("w:b"))
@@ -245,7 +252,10 @@ def agregar_tabulacion(parrafo):
     run = OxmlElement("w:r")
     rpr = OxmlElement("w:rPr")
     rfonts = OxmlElement("w:rFonts")
-    rfonts.set(qn("w:cs"), "Arial")
+
+    for atributo in ("w:ascii", "w:hAnsi", "w:cs"):
+        rfonts.set(qn(atributo), "Arial")
+
     rpr.append(rfonts)
     sz = OxmlElement("w:sz")
     sz.set(qn("w:val"), "20")
@@ -254,6 +264,66 @@ def agregar_tabulacion(parrafo):
     tab = OxmlElement("w:tab")
     run.append(tab)
     parrafo.append(run)
+
+
+def anchos_tabla(tabla):
+    """Anchos reales (en twips) declarados en el tblGrid de la tabla."""
+
+    grid = tabla.find(tag("tblGrid"))
+
+    if grid is None:
+        return []
+
+    return [
+        int(col.get(qn("w:w")) or 0)
+        for col in grid.findall(tag("gridCol"))
+    ]
+
+
+def fijar_tabs_parrafo(parrafo, paradas):
+    """
+    Reemplaza los tabuladores del párrafo.
+
+    ``paradas`` es una lista de tuplas (posición, alineación, leader).
+    """
+
+    ppr = parrafo.find(tag("pPr"))
+
+    if ppr is None:
+        ppr = OxmlElement("w:pPr")
+        parrafo.insert(0, ppr)
+
+    tabs = ppr.find(tag("tabs"))
+
+    if tabs is not None:
+        ppr.remove(tabs)
+
+    tabs = OxmlElement("w:tabs")
+
+    for posicion, alineacion, leader in paradas:
+        tab = OxmlElement("w:tab")
+        tab.set(qn("w:val"), alineacion)
+        tab.set(qn("w:pos"), str(posicion))
+
+        if leader:
+            tab.set(qn("w:leader"), leader)
+
+        tabs.append(tab)
+
+    ppr.append(tabs)
+
+
+def establecer_texto_con_leader(parrafo, texto, sz=None, ancho=None):
+    """
+    Escribe el texto y completa la línea con un tabulador de guiones
+    alineado al margen derecho.
+    """
+
+    ancho = ancho or ANCHO_UTIL
+    limpiar_runs(parrafo)
+    agregar_run(parrafo, texto, sz=sz)
+    fijar_tabs_parrafo(parrafo, [(ancho, "right", "hyphen")])
+    agregar_tabulacion(parrafo)
 
 
 def marcar_parrafo(parrafo, lider_ancho=None, sz=None):
@@ -307,6 +377,16 @@ def construir_fila_materias(tabla, anchos, template_fila):
         # Guiones de relleno + alineación vertical inferior.
         if i != 2:
             marcar_parrafo(p, anchos[i], sz=20)
+        else:
+            # La columna del espacio curricular no lleva relleno;
+            # se descartan tabuladores heredados de la plantilla.
+            ppr = p.find(tag("pPr"))
+
+            if ppr is not None:
+                tabs = ppr.find(tag("tabs"))
+
+                if tabs is not None:
+                    ppr.remove(tabs)
 
         fijar_celda_v_align_bottom(tc)
         fijar_bordes_laterales(tc)
@@ -380,8 +460,7 @@ def reescribir_certificante(parrafo, tipo):
         "Resolución del Ministerio de Cultura y Educación de la Nación N.° "
         "{{ resoluciones_ministeriales }} y {{ otros_instrumentos }}, cuyas "
         "asignaturas se detallan, haciéndose acreedora al Título de "
-        "{{ titulo_otorgado }}. - - - - - - - - - - - - - - - - - - - - - -"
-        " - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+        "{{ titulo_otorgado }}."
     )
     texto_en_tramite = (
         "EL SECRETARIO ACADEMICO DE LA UNIDAD ACADEMICA RIO GALLEGOS DE "
@@ -400,28 +479,38 @@ def reescribir_certificante(parrafo, tipo):
         "Cultura y Educación de la Nación N.° {{ resoluciones_ministeriales }} "
         "y {{ otros_instrumentos }}, cuyas asignaturas se detallan, "
         "haciéndose acreedora al Título de {{ titulo_otorgado }}, "
-        "encontrándose el mismo EN TRAMITE. - - - - - - - - - - - - - - - - -"
+        "encontrándose el mismo EN TRAMITE."
     )
 
-    if tipo == "titulo":
-        establecer_texto_parrafo(parrafo, texto_titulo)
-    else:
-        establecer_texto_parrafo(parrafo, texto_en_tramite)
+    establecer_texto_con_leader(
+        parrafo,
+        texto_titulo if tipo == "titulo" else texto_en_tramite,
+    )
 
 
 def reescribir_promedio(parrafo, tipo):
-    if tipo == "titulo":
-        texto = (
-            "Promedio General: {{ promedio }} ({{ promedio_letras }})"
-            "            Fecha de Egreso: {{ fecha_egreso_larga }}. -"
-        )
-    else:
-        texto = (
-            "Promedio General: {{ promedio }} ({{ promedio_letras }})"
-            "            Fecha de Egreso: {{ fecha_egreso_larga }}. -"
-        )
+    limpiar_runs(parrafo)
 
-    establecer_texto_parrafo(parrafo, texto, sz=20)
+    fijar_tabs_parrafo(
+        parrafo,
+        [
+            (6000, "left", None),
+            (ANCHO_UTIL, "right", "hyphen"),
+        ],
+    )
+
+    agregar_run(
+        parrafo,
+        "Promedio General: {{ promedio }} ({{ promedio_letras }})",
+        sz=20,
+    )
+    agregar_tabulacion(parrafo)
+    agregar_run(
+        parrafo,
+        "Fecha de Egreso: {{ fecha_egreso_larga }}. -",
+        sz=20,
+    )
+    agregar_tabulacion(parrafo)
 
 
 def reescribir_emision(parrafo, tipo):
@@ -441,25 +530,27 @@ def reescribir_emision(parrafo, tipo):
             "{{ fecha_emision_larga }}. -"
         )
 
-    establecer_texto_parrafo(parrafo, texto, sz=20)
+    establecer_texto_con_leader(parrafo, texto, sz=20)
 
 
 def reescribir_observaciones(parrafo):
     texto = (
-        "OBSERVACIONES: ¿Se deja constancia que, en el Promedio General, "
+        "OBSERVACIONES: - Se deja constancia que, en el Promedio General, "
         "no se han promediado los aplazos. (Art. 109 Ordenanza 188/UNPA/15)."
     )
-    establecer_texto_parrafo(parrafo, texto, sz=20)
+    establecer_texto_con_leader(parrafo, texto, sz=20)
 
 
 def reescribir_vale(parrafo):
     texto = (
         "La presente tiene validez por trescientos sesenta (360) días. -"
     )
-    establecer_texto_parrafo(parrafo, texto, sz=20)
+    establecer_texto_con_leader(parrafo, texto, sz=20)
 
 
 def procesar_documento(tipo):
+    global ANCHO_UTIL
+
     print(f"=== {tipo} ===")
 
     origen = ORIGEN
@@ -468,6 +559,13 @@ def procesar_documento(tipo):
 
     doc = Document(destino)
     body = doc.element.body
+
+    seccion = doc.sections[0]
+    ANCHO_UTIL = int(
+        seccion.page_width.twips
+        - seccion.left_margin.twips
+        - seccion.right_margin.twips
+    )
 
     hijos = list(body)
 
@@ -516,7 +614,9 @@ def procesar_documento(tipo):
         body.remove(tabla_continuacion)
 
     # Fusionar materias: construir la fila prototipo en la tabla 1.
-    anchos = [637, 567, 2977, 1134, 1276, 1276, 1842, 717]
+    # Los anchos se toman del tblGrid real de cada documento (la
+    # tabla de «en trámite» no mide lo mismo que la de «título»).
+    anchos = anchos_tabla(tabla_materias)
     template_fila = copy.deepcopy(filas_tabla(tabla_materias)[1])
     construir_fila_materias(tabla_materias, anchos, template_fila)
 

@@ -42,6 +42,7 @@ from .models import (
     GraduadoExamen,
     Examen,
     Materia,
+    OrigenPromedio,
     PlanEstudiosMateria,
     Provincia,
     Resolucion,
@@ -50,6 +51,8 @@ from .models import (
     TipoDocumentoAnalitico,
     TipoResolucion,
 )
+from .servicios.archivos import validar_archivo
+from .servicios.auditoria import registrar_auditoria
 from .servicios.moduloAnalitico.generador import (
     contexto_analitico,
     render_docx,
@@ -61,13 +64,20 @@ from .servicios.moduloAnalitico.lector_lincoln import (
     leer_lincoln,
     matcheo_materia,
 )
+from .servicios.moduloAnalitico.promedios import (
+    calcular_promedios,
+    mismo_promedio,
+    promedios_desde_filas,
+)
 from .servicios.moduloAnalitico.utilidades_texto import (
     anio_con_punto,
     dni_con_puntos,
+    tipo_examen_legible,
 )
 from .views_gestion import _redirigir_gestion
 
 CLAVE_SESION_PREVIEW = "analitico_preview"
+CLAVE_PROMEDIOS_CALCULADOS = "promedios_calculados"
 
 
 # ==================================================
@@ -140,6 +150,7 @@ def _obtener_o_crear_ciudad(nombre, id_provincia):
         return None
 
     ciudad, _ = Ciudad.objects.get_or_create(
+        id_provincia=id_provincia,
         nombre_ciudad=nombre,
         defaults={
             "nombre_ciudad": nombre,
@@ -206,9 +217,13 @@ def _datos_precargados(graduado, registro):
                 nacimiento.fecha_nacimiento.isoformat()
                 if nacimiento.fecha_nacimiento else ""
             )
-            datos["ciudad_nacimiento"] = nacimiento.id_ciudad.nombre_ciudad
+            datos["ciudad_nacimiento"] = (
+                nacimiento.id_ciudad.nombre_ciudad
+                if nacimiento.id_ciudad else ""
+            )
             datos["provincia_nacimiento"] = (
                 nacimiento.id_provincia.nombre_provincia
+                if nacimiento.id_provincia else ""
             )
 
         secundario = (
@@ -221,9 +236,13 @@ def _datos_precargados(graduado, registro):
         if secundario:
             datos["nombre_secundario"] = secundario.nombre_secundario
             datos["titulo_secundario"] = secundario.titulo_secundario
-            datos["ciudad_secundario"] = secundario.id_ciudad.nombre_ciudad
+            datos["ciudad_secundario"] = (
+                secundario.id_ciudad.nombre_ciudad
+                if secundario.id_ciudad else ""
+            )
             datos["provincia_secundario"] = (
                 secundario.id_provincia.nombre_provincia
+                if secundario.id_provincia else ""
             )
             datos["anio_egreso_secundario"] = (
                 secundario.anio_egreso_secundario or ""
@@ -335,6 +354,9 @@ def _validar_datos(datos_form):
         errores.append("El campo «fecha_egreso_carrera» no es válido.")
 
     datos["fecha_egreso"] = fecha_egreso
+    datos["fecha_egreso_carrera"] = (
+        fecha_egreso.isoformat() if fecha_egreso else ""
+    )
 
     if fecha_ingreso_uarg_txt:
         try:
@@ -349,9 +371,14 @@ def _validar_datos(datos_form):
 
     datos["fecha_ingreso_universidad"] = fecha_ingreso_uarg
 
-    # Promedios.
+    # Promedios: se validan sólo si vienen informados. En la
+    # previsualización se completan con el cálculo de exámenes.
     for campo in ("promedio_sin_aplazo", "promedio_con_aplazo"):
         texto = _limpiar(datos_form.get(campo))
+
+        if not texto:
+            datos[campo] = None
+            continue
 
         try:
             valor = float(texto.replace(",", "."))
@@ -543,30 +570,50 @@ def _sel_desde(request):
     return graduado, registro
 
 
-def _preview_con_session(request, tipo_documento):
+def _preview_con_session(request, tipo_documento, legajo, carrera):
+    """
+    Recupera la previsualización guardada en sesión.
+
+    Se exige que coincidan usuario, tipo de documento, legajo y
+    carrera: así una sesión no muestra los datos de otra persona ni
+    de otro trámite.
+    """
+
     datos_session = request.session.get(CLAVE_SESION_PREVIEW)
 
+    if not datos_session:
+        return None
+
+    usuario = getattr(request, "usuario_actual", None)
+    usuario_id = getattr(usuario, "id_usuario", None)
+
     if (
-        datos_session
-        and datos_session.get("tipo_documento") == tipo_documento.value
+        datos_session.get("tipo_documento") != tipo_documento.value
+        or datos_session.get("usuario_id") != usuario_id
+        or datos_session.get("legajo") != legajo
+        or datos_session.get("carrera") != carrera
     ):
-        filas, materias = _filas_para_mostrar(datos_session)
+        return None
 
-        return render(
+    filas, materias = _filas_para_mostrar(datos_session)
+
+    return render(
+        request,
+        "academico/generacion_analiticos.html",
+        _contexto_preview(
             request,
-            "academico/generacion_analiticos.html",
-            _contexto_preview(
-                request,
-                tipo_documento,
-                datos_session["datos"],
-                filas,
-                materias,
-                validado=False,
-                modo_db=False,
+            tipo_documento,
+            datos_session["datos"],
+            filas,
+            materias,
+            validado=False,
+            modo_db=False,
+            advertencias=datos_session.get("advertencias"),
+            promedios_calculados=datos_session.get(
+                "promedios_calculados"
             ),
-        )
-
-    return None
+        ),
+    )
 
 
 def _preview_con_bd(request, tipo_documento, graduado, registro,
@@ -661,6 +708,9 @@ def generacion_analiticos(request):
         if accion == "validar":
             return _validar(request, tipo_documento)
 
+        if accion == "recalcular":
+            return _recalcular(request, tipo_documento)
+
         if accion == "descargar":
             return _descargar(request, tipo_documento)
 
@@ -685,7 +735,12 @@ def generacion_analiticos(request):
         )
 
         if not analitico_existe:
-            preview = _preview_con_session(request, tipo_documento)
+            preview = _preview_con_session(
+                request,
+                tipo_documento,
+                legajo_sel,
+                carrera_sel,
+            )
 
             if preview is not None:
                 return preview
@@ -889,6 +944,9 @@ def titulo_en_tramite(request):
         if accion == "validar":
             return _validar(request, tipo_documento)
 
+        if accion == "recalcular":
+            return _recalcular(request, tipo_documento)
+
         if accion == "descargar":
             return _descargar(request, tipo_documento)
 
@@ -972,7 +1030,8 @@ def _armar_filas(examenes, carrera):
             "nota_txt": examen.get("nota_txt", ""),
             "nota_original": examen.get("nota"),
             "fecha_examen": examen.get("fecha_examen", ""),
-            "tipo": examen.get("tipo", "Examen"),
+            "tipo": tipo_examen_legible(examen.get("tipo", "Examen"))
+            or "Examen",
             "respaldo": examen.get("acta_respaldatoria", ""),
             "folio": _folio_de(examen.get("acta_respaldatoria", "")),
             "materia_codigo": (
@@ -1018,20 +1077,53 @@ def _contexto_formulario(request, tipo_documento, datos, advertencias=None):
     }
 
 
+def _fecha_iso(valor):
+    """Convierte una fecha a ISO para los <input type="date">."""
+
+    if hasattr(valor, "isoformat"):
+        return valor.isoformat()
+
+    return valor or ""
+
+
 def _contexto_preview(request, tipo_documento, datos, filas, materias,
-                      validado, modo_db):
+                      validado, modo_db, advertencias=None,
+                      promedios_calculados=None):
     titulos = Titulo.objects.select_related("codigo_carrera").order_by(
         "nombre_titulo"
     )
 
+    datos_formulario = dict(datos)
+    datos_formulario["fecha_nacimiento"] = _fecha_iso(
+        datos.get("fecha_nacimiento")
+    )
+    datos_formulario["fecha_ingreso_universidad"] = _fecha_iso(
+        datos.get("fecha_ingreso_universidad")
+    )
+    datos_formulario["fecha_egreso_carrera"] = _fecha_iso(
+        datos.get("fecha_egreso_carrera") or datos.get("fecha_egreso")
+    )
+
+    # Los <input type="number"> exigen punto decimal: la
+    # localización de Django usaría coma.
+    for campo in ("promedio_sin_aplazo", "promedio_con_aplazo"):
+        valor = datos.get(campo)
+
+        if valor is not None and valor != "":
+            datos_formulario[campo] = f"{float(valor):.2f}"
+        else:
+            datos_formulario[campo] = ""
+
     return {
         "tipo_documento": tipo_documento,
         "vista": "preview",
-        "datos": datos,
+        "datos": datos_formulario,
         "filas": filas,
         "materias_plan": materias,
         "validado": validado,
         "modo_db": modo_db,
+        "advertencias": advertencias or [],
+        "promedios_calculados": promedios_calculados or {},
         "titulos": titulos,
         "provincias": [
             p.nombre_provincia
@@ -1084,6 +1176,20 @@ def _continuar(request, tipo_documento):
     lincoln_file = request.FILES.get("archivo_notas")
 
     if lincoln_file:
+        error_archivo = validar_archivo(lincoln_file, ["xls", "xlsx"])
+
+        if error_archivo:
+            messages.error(request, error_archivo)
+
+            return render(
+                request,
+                "academico/generacion_analiticos.html",
+                {
+                    **_contexto_formulario(request, tipo_documento, datos),
+                    "vista": "carga",
+                },
+            )
+
         try:
             lincoln = leer_lincoln(lincoln_file)
         except ErrorLincoln as error:
@@ -1167,10 +1273,38 @@ def _continuar(request, tipo_documento):
             },
         )
 
+    # --- Promedios: se calculan desde los exámenes del trámite.
+    graduado = Graduado.objects.filter(
+        legajo_graduado=datos["legajo"]
+    ).first()
+
+    registro = (
+        GraduadoCarrera.objects
+        .filter(
+            legajo_graduado=graduado,
+            codigo_carrera_id=datos["carrera"],
+        )
+        .first()
+        if graduado else None
+    )
+
+    calculado = promedios_desde_filas(examenes, carrera)
+    datos.update(_promedio_para_preview(datos, calculado, registro))
+
+    advertencias = list(calculado.advertencias)
+
+    usuario = getattr(request, "usuario_actual", None)
+
     request.session[CLAVE_SESION_PREVIEW] = {
         "tipo_documento": tipo_documento.value,
+        "usuario_id": getattr(usuario, "id_usuario", None),
         "legajo": datos["legajo"],
         "carrera": datos["carrera"],
+        "advertencias": advertencias,
+        "promedios_calculados": {
+            "sin_aplazo": calculado.promedio_sin_aplazo,
+            "con_aplazo": calculado.promedio_con_aplazo,
+        },
         "datos": {
             **datos,
             "fecha_egreso": datos["fecha_egreso"].isoformat(),
@@ -1204,20 +1338,6 @@ def _continuar(request, tipo_documento):
 
     # Si el graduado ya está guardado en el sistema, preguntar
     # antes de tocar nada.
-    graduado = Graduado.objects.filter(
-        legajo_graduado=datos["legajo"]
-    ).first()
-
-    registro = (
-        GraduadoCarrera.objects
-        .filter(
-            legajo_graduado=graduado,
-            codigo_carrera_id=datos["carrera"],
-        )
-        .first()
-        if graduado else None
-    )
-
     if graduado is not None and registro is not None:
         return render(
             request,
@@ -1274,6 +1394,242 @@ def _filas_desde_post(request):
         })
 
     return filas
+
+
+# ==================================================
+# PROMEDIOS
+# ==================================================
+
+def _promedio_para_preview(datos, calculado, registro):
+    """
+    Resuelve qué promedios mostrar en la previsualización.
+
+    * Un promedio manual ya guardado se conserva (no se pisa).
+    * Si hay promedio calculable, se muestra el calculado.
+    * Si no hay exámenes, se conserva el importado o el valor del
+      formulario.
+    """
+
+    resultado = {}
+
+    for campo, origen_campo, valor_calc in (
+        (
+            "promedio_sin_aplazo",
+            "origen_promedio_sin_aplazo",
+            calculado.promedio_sin_aplazo,
+        ),
+        (
+            "promedio_con_aplazo",
+            "origen_promedio_con_aplazo",
+            calculado.promedio_con_aplazo,
+        ),
+    ):
+        valor_actual = (
+            getattr(registro, campo) if registro is not None else None
+        )
+        origen_actual = (
+            getattr(registro, origen_campo)
+            if registro is not None
+            else OrigenPromedio.IMPORTADO
+        )
+
+        if (
+            registro is not None
+            and origen_actual == OrigenPromedio.MANUAL
+            and valor_actual is not None
+        ):
+            resultado[campo] = valor_actual
+            continue
+
+        if valor_calc is not None:
+            resultado[campo] = valor_calc
+        elif datos.get(campo) is not None:
+            resultado[campo] = datos[campo]
+        else:
+            resultado[campo] = valor_actual
+
+    return resultado
+
+
+def _resolver_promedios_guardar(datos, calculado, registro):
+    """
+    Decide el valor y el origen de cada promedio al validar.
+
+    Devuelve un dict con valor y origen para ambos promedios, más
+    la lista de overrides manuales detectados (para auditar).
+    """
+
+    resolucion = {}
+    overrides = []
+
+    for campo, origen_campo, valor_calc, nombre in (
+        (
+            "promedio_sin_aplazo",
+            "origen_promedio_sin_aplazo",
+            calculado.promedio_sin_aplazo,
+            "sin aplazo",
+        ),
+        (
+            "promedio_con_aplazo",
+            "origen_promedio_con_aplazo",
+            calculado.promedio_con_aplazo,
+            "con aplazo",
+        ),
+    ):
+        valor_actual = (
+            getattr(registro, campo) if registro is not None else None
+        )
+        origen_actual = (
+            getattr(registro, origen_campo)
+            if registro is not None
+            else OrigenPromedio.IMPORTADO
+        )
+        valor_post = datos.get(campo)
+
+        if (
+            registro is not None
+            and origen_actual == OrigenPromedio.MANUAL
+            and valor_actual is not None
+        ):
+            # Si el valor enviado coincide con el calculado, el
+            # usuario usó «Recalcular»: vuelve a origen calculado.
+            if (
+                valor_post is not None
+                and valor_calc is not None
+                and mismo_promedio(valor_post, valor_calc)
+            ):
+                resolucion[campo] = (
+                    valor_calc,
+                    OrigenPromedio.CALCULADO,
+                )
+            # El override manual se conserva salvo que el usuario
+            # lo cambie explícitamente en la previsualización.
+            elif valor_post is not None and not mismo_promedio(
+                valor_post, valor_actual
+            ):
+                overrides.append({
+                    "promedio": nombre,
+                    "anterior": valor_actual,
+                    "nuevo": valor_post,
+                    "calculado": valor_calc,
+                })
+                resolucion[campo] = (valor_post, OrigenPromedio.MANUAL)
+            else:
+                resolucion[campo] = (valor_actual, OrigenPromedio.MANUAL)
+
+            continue
+
+        if valor_calc is not None:
+            if valor_post is None or mismo_promedio(valor_post, valor_calc):
+                resolucion[campo] = (
+                    valor_calc,
+                    OrigenPromedio.CALCULADO,
+                )
+            else:
+                overrides.append({
+                    "promedio": nombre,
+                    "anterior": valor_actual,
+                    "nuevo": valor_post,
+                    "calculado": valor_calc,
+                })
+                resolucion[campo] = (valor_post, OrigenPromedio.MANUAL)
+
+            continue
+
+        # No hay exámenes promediables: conservar lo importado.
+        if valor_post is None:
+            resolucion[campo] = (valor_actual, origen_actual)
+        elif valor_actual is not None and mismo_promedio(
+            valor_post, valor_actual
+        ):
+            resolucion[campo] = (valor_actual, origen_actual)
+        else:
+            resolucion[campo] = (valor_post, OrigenPromedio.MANUAL)
+
+    return resolucion, overrides
+
+
+def _recalcular(request, tipo_documento):
+    """
+    Recalcula los promedios desde los exámenes de la previsualización
+    y los vuelve a mostrar. Vuelve al valor calculado aunque el
+    usuario hubiera editado un promedio a mano.
+    """
+
+    datos, errores = _validar_datos(request.POST)
+    filas = _filas_desde_post(request)
+
+    carrera = Carrera.objects.filter(
+        codigo_carrera=datos["carrera"]
+    ).first()
+
+    materias_plan = (
+        _materias_plan(carrera) if carrera is not None else []
+    )
+    por_codigo = {m.codigo_materia: m for m in materias_plan}
+
+    for fila in filas:
+        materia = por_codigo.get(fila["materia_codigo"])
+
+        if materia is None:
+            nombre = _normalizar(fila["espacio"])
+            materia = next(
+                (
+                    m for m in materias_plan
+                    if _normalizar(m.nombre_materia) == nombre
+                ),
+                None,
+            )
+
+        if materia is not None:
+            fila["materia_codigo"] = materia.codigo_materia
+
+        fila["matcheada"] = materia is not None
+
+    if errores or carrera is None:
+        for error in errores:
+            messages.error(request, error)
+
+        return render(
+            request,
+            "academico/generacion_analiticos.html",
+            {
+                **_contexto_preview(
+                    request,
+                    tipo_documento,
+                    datos,
+                    filas,
+                    materias_plan,
+                    validado=False,
+                    modo_db=False,
+                ),
+                "errores_revalidar": True,
+            },
+        )
+
+    calculado = promedios_desde_filas(filas, carrera)
+
+    datos["promedio_sin_aplazo"] = calculado.promedio_sin_aplazo
+    datos["promedio_con_aplazo"] = calculado.promedio_con_aplazo
+
+    return render(
+        request,
+        "academico/generacion_analiticos.html",
+        _contexto_preview(
+            request,
+            tipo_documento,
+            datos,
+            filas,
+            materias_plan,
+            validado=False,
+            modo_db=False,
+            advertencias=calculado.advertencias,
+            promedios_calculados={
+                "sin_aplazo": calculado.promedio_sin_aplazo,
+                "con_aplazo": calculado.promedio_con_aplazo,
+            },
+        ),
+    )
 
 
 def _validar(request, tipo_documento):
@@ -1357,6 +1713,57 @@ def _validar(request, tipo_documento):
 
     carrera = Carrera.objects.get(codigo_carrera=datos["carrera"])
 
+    # El DNI no puede pertenecer a otro legajo: se avisa antes de
+    # intentar guardar (evita un IntegrityError).
+    dni_en_uso = (
+        Graduado.objects
+        .filter(dni=datos["dni"])
+        .exclude(legajo_graduado=datos["legajo"])
+        .exists()
+    )
+
+    if dni_en_uso:
+        messages.error(
+            request,
+            "El DNI ya está asociado a otro graduado.",
+        )
+
+        contexto = _contexto_preview(
+            request,
+            tipo_documento,
+            datos,
+            filas,
+            materias_plan,
+            validado=False,
+            modo_db=False,
+        )
+        contexto["errores_revalidar"] = True
+
+        return render(
+            request,
+            "academico/generacion_analiticos.html",
+            contexto,
+        )
+
+    calculado = promedios_desde_filas(filas, carrera)
+
+    registro_actual = (
+        GraduadoCarrera.objects
+        .filter(
+            legajo_graduado_id=datos["legajo"],
+            codigo_carrera=carrera,
+        )
+        .first()
+    )
+
+    promedios, overrides = _resolver_promedios_guardar(
+        datos,
+        calculado,
+        registro_actual,
+    )
+
+    usuario = getattr(request, "usuario_actual", None)
+
     with transaction.atomic():
         fecha_egreso = datos["fecha_egreso"]
 
@@ -1383,8 +1790,18 @@ def _validar(request, tipo_documento):
                     1,
                 ),
                 "fecha_egreso_carrera": fecha_egreso,
-                "promedio_sin_aplazo": datos["promedio_sin_aplazo"],
-                "promedio_con_aplazo": datos["promedio_con_aplazo"],
+                "promedio_sin_aplazo": promedios[
+                    "promedio_sin_aplazo"
+                ][0],
+                "promedio_con_aplazo": promedios[
+                    "promedio_con_aplazo"
+                ][0],
+                "origen_promedio_sin_aplazo": promedios[
+                    "promedio_sin_aplazo"
+                ][1],
+                "origen_promedio_con_aplazo": promedios[
+                    "promedio_con_aplazo"
+                ][1],
             },
         )
 
@@ -1412,10 +1829,10 @@ def _validar(request, tipo_documento):
             },
         )
 
-        secundario, _ = Secundario.objects.get_or_create(
-            nombre_secundario=datos["nombre_secundario"],
+        Secundario.objects.update_or_create(
+            legajo_graduado=graduado,
             defaults={
-                "legajo_graduado": graduado,
+                "nombre_secundario": datos["nombre_secundario"],
                 "id_provincia": provincia_sec,
                 "id_ciudad": ciudad_sec,
                 "titulo_secundario": datos["titulo_secundario"],
@@ -1425,21 +1842,12 @@ def _validar(request, tipo_documento):
             },
         )
 
-        secundario.legajo_graduado = graduado
-        secundario.id_provincia = provincia_sec
-        secundario.id_ciudad = ciudad_sec
-        secundario.titulo_secundario = datos["titulo_secundario"]
-        secundario.anio_egreso_secundario = (
-            datos["anio_egreso_secundario"]
-        )
-        secundario.save()
-
         titulo_otorgado = datos["titulo_otorgado"]
 
         if titulo_otorgado:
             Titulo.objects.get_or_create(
+                codigo_carrera=carrera,
                 nombre_titulo=titulo_otorgado,
-                defaults={"codigo_carrera": carrera},
             )
 
         _guardar_resoluciones(carrera, datos)
@@ -1461,7 +1869,7 @@ def _validar(request, tipo_documento):
 
             # Examen: una acta puede respaldar varias materias,
             # por eso la unicidad es (acta, materia).
-            acta = fila["acta_respaldatoria"]
+            acta = fila["acta_respaldatoria"] or None
             examen_defaults = {
                 "tipo_examen": fila["tipo"],
                 "fecha_examen": fecha,
@@ -1487,15 +1895,15 @@ def _validar(request, tipo_documento):
                 else "Reprobado"
             )
 
-            GraduadoExamen.objects.create(
+            GraduadoExamen.objects.update_or_create(
                 id_examen=examen,
                 legajo_graduado=graduado,
                 codigo_carrera=carrera,
-                nota=fila["nota"],
-                resultado=resultado,
+                defaults={
+                    "nota": fila["nota"],
+                    "resultado": resultado,
+                },
             )
-
-        usuario = getattr(request, "usuario_actual", None)
 
         Analitico.objects.update_or_create(
             legajo_graduado=graduado,
@@ -1503,20 +1911,59 @@ def _validar(request, tipo_documento):
             tipo_documento=tipo_documento,
             defaults={
                 "anio_ingreso_uarg": datos["anio_ingreso_uarg"],
-                "id_usuario": (
-                    usuario if usuario and getattr(
-                        usuario, "id_usuario", None,
-                    ) else None
-                ),
+                "id_usuario": usuario,
             },
         )
 
-    datos_session = request.session.get(CLAVE_SESION_PREVIEW)
+        registrar_auditoria(
+            usuario,
+            "analitico_validado",
+            entidad="Analitico",
+            entidad_id=f"{datos['legajo']}|{datos['carrera']}",
+            detalle={
+                "tipo_documento": tipo_documento.value,
+                "promedio_sin_aplazo": promedios[
+                    "promedio_sin_aplazo"
+                ][0],
+                "origen_sin_aplazo": promedios[
+                    "promedio_sin_aplazo"
+                ][1],
+                "promedio_con_aplazo": promedios[
+                    "promedio_con_aplazo"
+                ][0],
+                "origen_con_aplazo": promedios[
+                    "promedio_con_aplazo"
+                ][1],
+                "calculado_sin_aplazo": calculado.promedio_sin_aplazo,
+                "calculado_con_aplazo": calculado.promedio_con_aplazo,
+                "advertencias": calculado.advertencias,
+            },
+        )
 
-    if datos_session:
-        datos_session["validado"] = True
-        request.session[CLAVE_SESION_PREVIEW] = datos_session
-        request.session.modified = True
+        for override in overrides:
+            registrar_auditoria(
+                usuario,
+                "promedio_override",
+                entidad="GraduadoCarrera",
+                entidad_id=f"{datos['legajo']}|{datos['carrera']}",
+                detalle=override,
+            )
+
+        for duplicado in calculado.duplicados:
+            registrar_auditoria(
+                usuario,
+                "promedio_materia_duplicada",
+                entidad="GraduadoCarrera",
+                entidad_id=f"{datos['legajo']}|{datos['carrera']}",
+                detalle=duplicado,
+            )
+
+    # La previsualización de sesión ya no aplica: el documento se
+    # vuelve a leer desde la base.
+    request.session.pop(CLAVE_SESION_PREVIEW, None)
+
+    for advertencia in calculado.advertencias:
+        messages.warning(request, advertencia)
 
     messages.success(request, "Analítico validado y guardado.")
 

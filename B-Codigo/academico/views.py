@@ -1,21 +1,28 @@
 from datetime import date
 
+from django.conf import settings
 from django.contrib.auth.hashers import check_password
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from .autenticacion import (
-    CLAVE_SESION,
+    cerrar_sesion,
     codigo_valido,
+    iniciar_sesion,
+    limpiar_intentos,
     obtener_usuario_sesion,
+    registrar_intento_fallido,
     requiere_sesion,
+    segundos_restantes_bloqueo,
     url_siguiente_segura,
+    usuario_bloqueado,
 )
 from .models import Carrera, Escuela, GraduadoCarrera, Usuario
+from .servicios.archivos import validar_archivo
+from .servicios.auditoria import registrar_auditoria
 
 from academico.servicios.moduloCarga.carga_datos import CargaDatos
-
-from .servicios.moduloAnalitico import *
 
 from .servicios.moduloEstadistica.consulta_estadisticas import (
     consultar_graduados_por_anio,
@@ -32,10 +39,12 @@ from .servicios.moduloEstadistica.graficador_estadistico import (
 )
 
 from .servicios.moduloGraduados.consulta_graduados import (
+    obtener_filas_filtradas,
     obtener_graduados_filtrados,
 )
 
 from .servicios.moduloGraduados.exportar_graduados import (
+    generar_excel_filas,
     generar_excel_graduados,
 )
 
@@ -49,6 +58,9 @@ def login(request):
     Página de ingreso: el usuario carga su email de Gmail
     (que debe existir en la base de datos) y un código
     alfanumérico de 6 caracteres.
+
+    Tras varios intentos fallidos la cuenta se bloquea por un
+    período configurable (LOGIN_BLOQUEO_SEGUNDOS).
     """
 
     error = None
@@ -79,15 +91,43 @@ def login(request):
                 .first()
             )
 
-            # Mensaje genérico: no revela si el email existe.
-            if usuario is None or not check_password(
-                codigo,
-                usuario.codigo_acceso,
-            ):
+            if usuario is not None and usuario_bloqueado(usuario):
+                restantes = segundos_restantes_bloqueo(usuario)
+                minutos = max(1, (restantes + 59) // 60)
+
+                error = (
+                    "La cuenta está bloqueada por intentos fallidos. "
+                    f"Probá de nuevo en {minutos} minuto(s)."
+                )
+
+            elif usuario is None or not usuario.activo:
+                # Mensaje genérico: no revela si el email existe.
                 error = "El email o el código son incorrectos."
 
+            elif not check_password(codigo, usuario.codigo_acceso):
+                registrar_intento_fallido(usuario)
+
+                if usuario_bloqueado(usuario):
+                    error = (
+                        "Demasiados intentos fallidos. La cuenta quedó "
+                        "bloqueada temporalmente."
+                    )
+                else:
+                    error = "El email o el código son incorrectos."
+
             else:
-                request.session[CLAVE_SESION] = usuario.id_usuario
+                limpiar_intentos(usuario)
+                iniciar_sesion(request, usuario)
+                registrar_auditoria(
+                    usuario,
+                    "login",
+                    entidad="Usuario",
+                    entidad_id=usuario.id_usuario,
+                    detalle={
+                        "email": usuario.email,
+                        "fecha": timezone.now().isoformat(),
+                    },
+                )
 
                 destino = url_siguiente_segura(request, siguiente)
                 return redirect(destino or "index")
@@ -103,7 +143,17 @@ def logout(request):
     """Cierra la sesión del usuario."""
 
     if request.method == "POST":
-        request.session.flush()
+        usuario = obtener_usuario_sesion(request)
+
+        if usuario is not None:
+            registrar_auditoria(
+                usuario,
+                "logout",
+                entidad="Usuario",
+                entidad_id=usuario.id_usuario,
+            )
+
+        cerrar_sesion(request)
 
     return redirect("login")
 
@@ -290,19 +340,8 @@ def lista_graduados(request):
 
     from .models import Analitico
 
-    graduados = obtener_graduados_filtrados(request.GET)
-    legajos = graduados.values_list("legajo_graduado", flat=True)
-
-    filas = (
-        GraduadoCarrera.objects
-        .filter(legajo_graduado_id__in=legajos)
-        .select_related(
-            "legajo_graduado",
-            "codigo_carrera",
-            "codigo_carrera__id_escuela",
-        )
-        .order_by("legajo_graduado_id", "codigo_carrera_id")
-    )
+    filas = obtener_filas_filtradas(request.GET)
+    legajos = filas.values_list("legajo_graduado_id", flat=True)
 
     pagina = request.GET.get("pagina")
     paginator = Paginator(filas, 25)
@@ -339,7 +378,9 @@ def lista_graduados(request):
         "page_obj": filas_pagina,
         "paginator": paginator,
         "total_filas": paginator.count,
-        "total_graduados": graduados.count(),
+        "total_graduados": filas.values(
+            "legajo_graduado_id"
+        ).distinct().count(),
         "analiticos_titulo": analiticos_titulo,
         "analiticos_tramite": analiticos_tramite,
         "filtros_qs": filtros_qs,
@@ -358,9 +399,9 @@ def lista_graduados(request):
 
 @requiere_sesion
 def exportar_graduados(request):
-    graduados = obtener_graduados_filtrados(request.GET)
+    filas = obtener_filas_filtradas(request.GET)
 
-    contenido = generar_excel_graduados(graduados)
+    contenido = generar_excel_filas(filas)
 
     respuesta = HttpResponse(
         contenido,
@@ -392,22 +433,13 @@ def carga_datos(request):
 
     archivo = request.FILES.get("archivo_excel")
 
-    if not archivo:
+    error = validar_archivo(archivo, ["xlsx", "xls"])
+
+    if error:
         return JsonResponse(
             {
                 "exito": False,
-                "mensaje": "No se recibió ningún archivo."
-            },
-            status=400
-        )
-
-    extension = archivo.name.rsplit(".", 1)[-1].lower()
-
-    if "." not in archivo.name or extension not in ["xlsx", "xls"]:
-        return JsonResponse(
-            {
-                "exito": False,
-                "mensaje": "El archivo debe tener formato .xlsx o .xls."
+                "mensaje": error,
             },
             status=400
         )

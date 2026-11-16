@@ -194,7 +194,11 @@ def leer_lincoln(archivo):
             "fecha_examen": fecha,
             "nota": nota,
             "acta_respaldatoria": acta,
-            "tipo": _normalizar_texto(fila["tipo"]),
+            "tipo": (
+                "Equivalencia"
+                if es_equivalencia
+                else _normalizar_texto(fila["tipo"])
+            ),
             "anio_cursado": anio_cursado,
         })
 

@@ -1,0 +1,45 @@
+# Entorno virtual
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Django
+db.sqlite3
+*.log
+staticfiles/
+media/
+.env
+.env.*
+!.env.example
+
+# Bases y respaldos locales
+*.sql
+*.dump
+*.bak
+
+# Archivos de datos de prueba / personales
+*.xls
+*.xlsx
+*.XLS
+*.XLSX
+!academico/migrations/carga_datos.xlsx
+
+# Documentos fuente de trabajo (las plantillas generadas SÍ se versionan)
+Plantilla.docx
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
