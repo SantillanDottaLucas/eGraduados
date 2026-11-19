@@ -26,6 +26,13 @@
         </div>
     {% endif %}
 
+    {% if aclaracion_plan %}
+        <div class="alert alert-warning" role="alert">
+            <strong>Aclaración sobre el plan de estudios:</strong>
+            {{ aclaracion_plan }}
+        </div>
+    {% endif %}
+
     <div class="alert alert-secondary" role="alert">
         Los promedios se calculan automáticamente a partir de los exámenes.
         Si los editás a mano, el valor manual se conserva y queda auditado.

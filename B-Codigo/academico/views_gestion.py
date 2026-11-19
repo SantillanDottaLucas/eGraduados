@@ -4,6 +4,7 @@ Vistas de gestión: edición de graduados y ABM académico
 materias de cada plan).
 """
 
+from collections import defaultdict
 from urllib.parse import parse_qsl, urlencode
 
 from django.contrib import messages
@@ -34,6 +35,7 @@ from .models import (
     GraduadoCarrera,
     GrupoOptativo,
     Materia,
+    DetallePlanEstudios,
     OrigenPromedio,
     PlanEstudios,
     PlanEstudiosGrupoOptativo,
@@ -41,6 +43,7 @@ from .models import (
     Provincia,
     Resolucion,
     Secundario,
+    TipoPlanEstudios,
     TipoResolucion,
 )
 from .servicios.validaciones import validar_dni_unico
@@ -600,6 +603,64 @@ def _sincronizar_resoluciones(carrera, seleccion):
     ).delete()
 
 
+def _planes_por_carrera(planes):
+    """Agrupa el queryset de planes por código de carrera."""
+
+    agrupados = defaultdict(list)
+
+    for plan in planes:
+        agrupados[plan.codigo_carrera_id].append(plan)
+
+    return dict(agrupados)
+
+
+def _carreras_con_planes(carreras, planes):
+    """Lista de carreras con sus planes, lista para el template."""
+
+    agrupados = _planes_por_carrera(planes)
+
+    return [
+        {
+            "carrera": carrera,
+            "planes": agrupados.get(carrera.codigo_carrera, []),
+        }
+        for carrera in carreras
+    ]
+
+
+def _marcar_plan_vigente(carrera, plan):
+    """
+    Marca ``plan`` como vigente de ``carrera`` y actualiza los
+    metadatos (tipo VIGENTE/HISTORICO) de todos los planes de esa
+    carrera. Se usa en una transacción desde la vista.
+    """
+
+    planes_carrera = PlanEstudios.objects.filter(
+        codigo_carrera=carrera
+    )
+
+    # Una misma PlanEstudios no puede ser vigente de dos carreras.
+    Carrera.objects.filter(plan_vigente=plan).exclude(
+        codigo_carrera=carrera.codigo_carrera
+    ).update(plan_vigente=None)
+
+    Carrera.objects.filter(
+        codigo_carrera=carrera.codigo_carrera
+    ).update(plan_vigente=plan)
+
+    for plan_carrera in planes_carrera:
+        DetallePlanEstudios.objects.update_or_create(
+            codigo_plan=plan_carrera,
+            defaults={
+                "tipo": (
+                    TipoPlanEstudios.VIGENTE
+                    if plan_carrera.codigo_plan == plan.codigo_plan
+                    else TipoPlanEstudios.HISTORICO
+                ),
+            },
+        )
+
+
 def _cronograma_plan(plan):
     """
     Construye el cronograma intercalado del plan: materias
@@ -746,7 +807,7 @@ def gestion_academica(request):
 
     planes = (
         PlanEstudios.objects
-        .select_related("codigo_carrera")
+        .select_related("codigo_carrera", "detalle")
         .order_by("codigo_plan")
     )
 
@@ -961,6 +1022,8 @@ def gestion_academica(request):
         "escuelas": escuelas,
         "carreras": carreras,
         "planes": planes,
+        "planes_por_carrera": _planes_por_carrera(planes),
+        "carreras_con_planes": _carreras_con_planes(carreras, planes),
         "materias": materias,
         "grupos_optativos": grupos_optativos,
         "grupos_del_plan": grupos_del_plan,
@@ -1025,6 +1088,41 @@ def _procesar_post_gestion(request, entidad):
     # ==========================================
 
     elif entidad == "carrera":
+
+        if accion == "marcar_vigente":
+            carrera_obj = _buscar_carrera(request.POST.get("id"))
+            plan_obj = _buscar_plan(request.POST.get("plan_vigente"))
+
+            if carrera_obj is None or plan_obj is None:
+                messages.error(
+                    request,
+                    "No se encontró la carrera o el plan indicado.",
+                )
+
+            elif plan_obj.codigo_carrera_id != carrera_obj.codigo_carrera:
+                messages.error(
+                    request,
+                    "El plan elegido no pertenece a esa carrera.",
+                )
+
+            else:
+                with transaction.atomic():
+                    _marcar_plan_vigente(carrera_obj, plan_obj)
+
+                messages.success(
+                    request,
+                    (
+                        f"Plan {plan_obj.codigo_plan} marcado como "
+                        f"vigente de {carrera_obj.nombre_carrera}."
+                    ),
+                )
+
+            parametros_vuelta = {}
+
+            if request.POST.get("id"):
+                parametros_vuelta["editar"] = request.POST.get("id")
+
+            return _redirigir_gestion("carrera", **parametros_vuelta)
 
         if accion == "crear_resolucion":
             form_res = ResolucionForm(request.POST)
@@ -1492,7 +1590,7 @@ def _contexto_gestion(request, entidad_activa, plan_valor=None,
 
     planes = (
         PlanEstudios.objects
-        .select_related("codigo_carrera")
+        .select_related("codigo_carrera", "detalle")
         .order_by("codigo_plan")
     )
 
@@ -1563,6 +1661,8 @@ def _contexto_gestion(request, entidad_activa, plan_valor=None,
         "escuelas": escuelas,
         "carreras": carreras,
         "planes": planes,
+        "planes_por_carrera": _planes_por_carrera(planes),
+        "carreras_con_planes": _carreras_con_planes(carreras, planes),
         "materias": materias,
         "grupos_optativos": grupos_optativos,
         "grupos_del_plan": grupos_del_plan,

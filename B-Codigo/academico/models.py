@@ -34,6 +34,12 @@ class OrigenPromedio(models.TextChoices):
     MANUAL = "manual", "Manual"
 
 
+class TipoPlanEstudios(models.TextChoices):
+    VIGENTE = "VIGENTE", "Vigente"
+    HISTORICO = "HISTORICO", "Histórico"
+    MODIFICATORIA = "MODIFICATORIA", "Modificatoria"
+
+
 # ==========================================================
 # GRADUADO
 # ==========================================================
@@ -84,6 +90,18 @@ class Carrera(models.Model):
         related_name="carreras"
     )
 
+    # Plan operativo de la carrera. Garantiza que exista como máximo
+    # un plan vigente por carrera (MySQL no soporta constraints
+    # condicionales, por eso se modela como relación 1:1).
+    plan_vigente = models.OneToOneField(
+        "academico.PlanEstudios",
+        on_delete=models.SET_NULL,
+        db_column="plan_vigente",
+        related_name="es_vigente_de",
+        null=True,
+        blank=True,
+    )
+
     class Meta:
         db_table = "CARRERA"
 
@@ -112,7 +130,55 @@ class PlanEstudios(models.Model):
         db_table = "PLAN_ESTUDIOS"
 
     def __str__(self):
+        detalle = getattr(self, "detalle", None)
+
+        if detalle is not None and detalle.anio:
+            return f"{self.codigo_plan} ({detalle.anio})"
+
         return self.codigo_plan
+
+
+class DetallePlanEstudios(models.Model):
+    """
+    Metadatos del plan de estudios: año, tipo (vigente/histórico),
+    PDF de origen y observaciones de la carga.
+
+    Se guarda en un modelo aparte para no alterar las relaciones
+    existentes de PlanEstudios con materias y grupos optativos.
+    """
+
+    codigo_plan = models.OneToOneField(
+        PlanEstudios,
+        on_delete=models.CASCADE,
+        db_column="codigo_plan",
+        related_name="detalle",
+        primary_key=True,
+    )
+
+    anio = models.IntegerField(null=True, blank=True)
+
+    tipo = models.CharField(
+        max_length=20,
+        choices=TipoPlanEstudios.choices,
+        default=TipoPlanEstudios.HISTORICO,
+    )
+
+    archivo = models.FileField(
+        upload_to="planes_estudio/",
+        blank=True,
+        null=True,
+    )
+
+    nombre_original = models.CharField(max_length=255, blank=True)
+    hash_archivo = models.CharField(max_length=64, blank=True, db_index=True)
+    resolucion = models.CharField(max_length=100, blank=True)
+    observaciones = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "DETALLE_PLAN_ESTUDIOS"
+
+    def __str__(self):
+        return f"{self.codigo_plan_id} - {self.get_tipo_display()}"
 
 
 class Materia(models.Model):

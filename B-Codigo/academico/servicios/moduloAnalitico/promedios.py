@@ -22,6 +22,8 @@ que la vista decida qué persistir y qué auditar.
 
 from dataclasses import dataclass, field
 from datetime import datetime
+import re
+import unicodedata
 
 from academico.models import (
     GraduadoExamen,
@@ -70,18 +72,33 @@ def _clave_materia(codigo):
     return str(codigo or "").strip()
 
 
+def _normalizar_nombre(valor):
+    texto = unicodedata.normalize("NFKD", str(valor or ""))
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9]", "", texto.lower())
+
+
 def _plan_vigente(carrera):
     """
     Materias del plan vigente de la carrera, indexadas por código.
 
-    Hay un único plan vigente por carrera; si por datos históricos
-    hubiera más de uno se toma el primero, que es el que usa el
-    resto del sistema para ordenar los exámenes.
+    El plan vigente es el que indica ``Carrera.plan_vigente``. Si
+    todavía no se cargó (datos de prueba), se mantiene el criterio
+    histórico de tomar el primero por código para no romper la
+    instalación existente. Nunca se mezclan planes históricos.
     """
 
+    consulta = PlanEstudiosMateria.objects.filter(
+        codigo_plan__codigo_carrera=carrera
+    )
+
+    plan_id = getattr(carrera, "plan_vigente_id", None)
+
+    if plan_id:
+        consulta = consulta.filter(codigo_plan_id=plan_id)
+
     filas = (
-        PlanEstudiosMateria.objects
-        .filter(codigo_plan__codigo_carrera=carrera)
+        consulta
         .select_related("codigo_materia")
         .order_by("codigo_plan_id")
     )
@@ -90,6 +107,22 @@ def _plan_vigente(carrera):
         fila.codigo_materia_id: fila
         for fila in filas
     }
+
+
+def _fila_plan(plan, codigo, nombre, por_nombre):
+    """Busca la fila del plan por código y, si no, por nombre."""
+
+    fila = plan.get(codigo)
+
+    if fila is not None:
+        return fila
+
+    clave = _normalizar_nombre(nombre)
+
+    if clave:
+        return por_nombre.get(clave)
+
+    return None
 
 
 def _clave_fecha(examen):
@@ -132,6 +165,15 @@ def calcular_promedios(legajo, carrera, examenes=None):
     """
 
     plan = _plan_vigente(carrera)
+    por_nombre = {}
+
+    for fila in plan.values():
+        clave = _normalizar_nombre(
+            getattr(fila.codigo_materia, "nombre_materia", "")
+        )
+
+        if clave:
+            por_nombre[clave] = fila
 
     if examenes is None:
         examenes = [
@@ -142,6 +184,9 @@ def calcular_promedios(legajo, carrera, examenes=None):
                 "tipo": fila.id_examen.tipo_examen,
                 "fecha_examen": fila.id_examen.fecha_examen,
                 "acta_respaldatoria": fila.id_examen.acta_respaldatoria,
+                "nombre_materia": (
+                    fila.id_examen.codigo_materia.nombre_materia
+                ),
             }
             for fila in (
                 GraduadoExamen.objects
@@ -149,7 +194,7 @@ def calcular_promedios(legajo, carrera, examenes=None):
                     legajo_graduado=legajo,
                     codigo_carrera=carrera,
                 )
-                .select_related("id_examen")
+                .select_related("id_examen", "id_examen__codigo_materia")
             )
         ]
 
@@ -161,6 +206,7 @@ def calcular_promedios(legajo, carrera, examenes=None):
     for examen in examenes:
         nota = examen.get("nota")
         codigo = _clave_materia(examen.get("materia_codigo"))
+        nombre = examen.get("nombre_materia")
         tipo = examen.get("tipo")
         resultado_examen = examen.get("resultado")
 
@@ -184,13 +230,18 @@ def calcular_promedios(legajo, carrera, examenes=None):
         if not _es_aprobado(nota, resultado_examen):
             continue
 
-        fila_plan = plan.get(codigo)
+        fila_plan = _fila_plan(plan, codigo, nombre, por_nombre)
 
         # Las materias requisito no forman parte del promedio general.
         if fila_plan is not None and fila_plan.materia_requisito:
             continue
 
-        aprobados_por_materia.setdefault(codigo, []).append(examen)
+        clave_agrupacion = (
+            getattr(fila_plan, "codigo_materia_id", None)
+            or codigo
+            or _normalizar_nombre(nombre)
+        )
+        aprobados_por_materia.setdefault(clave_agrupacion, []).append(examen)
 
     resultado.promedio_con_aplazo = _promedio(notas_con_aplazo)
 
@@ -279,6 +330,9 @@ def promedios_desde_filas(filas, carrera):
         examenes.append({
             "nota": nota,
             "materia_codigo": fila.get("materia_codigo"),
+            "nombre_materia": (
+                fila.get("nombre_materia") or fila.get("espacio")
+            ),
             "resultado": resultado,
             "tipo": fila.get("tipo"),
             "fecha_examen": fila.get("fecha_examen"),

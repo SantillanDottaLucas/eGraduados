@@ -463,11 +463,16 @@ def _validar_datos(datos_form):
 def _materias_plan(carrera):
     """Materias del plan de la carrera (para el selector)."""
 
-    ids = (
-        PlanEstudiosMateria.objects
-        .filter(codigo_plan__codigo_carrera=carrera)
-        .values_list("codigo_materia_id", flat=True)
+    consulta = PlanEstudiosMateria.objects.filter(
+        codigo_plan__codigo_carrera=carrera
     )
+
+    plan_id = getattr(carrera, "plan_vigente_id", None)
+
+    if plan_id:
+        consulta = consulta.filter(codigo_plan_id=plan_id)
+
+    ids = consulta.values_list("codigo_materia_id", flat=True)
 
     return list(
         Materia.objects
@@ -1114,6 +1119,32 @@ def _contexto_preview(request, tipo_documento, datos, filas, materias,
         else:
             datos_formulario[campo] = ""
 
+    # Aclaración cuando el Lincoln no coincide con el plan vigente.
+    # Las filas sin materia del plan se marcan para que el usuario
+    # seleccione la equivalente; se explica el motivo en pantalla.
+    sin_match = [
+        fila for fila in filas
+        if not fila.get("matcheada")
+    ]
+    aclaracion_plan = None
+
+    if sin_match:
+        nombres = ", ".join(
+            f"«{fila.get('espacio') or 'sin nombre'}»"
+            for fila in sin_match[:5]
+        )
+        if len(sin_match) > 5:
+            nombres += f" y {len(sin_match) - 5} más"
+
+        aclaracion_plan = (
+            f"{len(sin_match)} asignatura(s) del Lincoln no coinciden "
+            "con las materias del plan vigente de la carrera: "
+            f"{nombres}. Seleccioná la materia equivalente en cada fila "
+            "para poder validar el analítico. Si el plan de estudios "
+            "cambió con el tiempo, revisá cuál es el vigente desde "
+            "«Gestión Académica → Carreras»."
+        )
+
     return {
         "tipo_documento": tipo_documento,
         "vista": "preview",
@@ -1123,6 +1154,7 @@ def _contexto_preview(request, tipo_documento, datos, filas, materias,
         "validado": validado,
         "modo_db": modo_db,
         "advertencias": advertencias or [],
+        "aclaracion_plan": aclaracion_plan,
         "promedios_calculados": promedios_calculados or {},
         "titulos": titulos,
         "provincias": [
@@ -1229,6 +1261,23 @@ def _continuar(request, tipo_documento):
                 "Registros descartados del Lincoln: "
                 + ", ".join(lincoln["descartados"])
                 + ".",
+            )
+
+        sin_match = [
+            examen["nombre_materia"]
+            for examen in examenes
+            if examen.get("materia") is None
+        ]
+
+        if sin_match:
+            messages.warning(
+                request,
+                (
+                    "Algunas asignaturas del Lincoln no coinciden con el "
+                    "plan vigente de la carrera. Revisá la aclaración en "
+                    "la previsualización y seleccioná la materia "
+                    "equivalente en cada fila."
+                ),
             )
 
     else:

@@ -144,10 +144,17 @@ def examenes_ordenados_por_anio(graduado, carrera):
 
     posicion = {}
 
-    plan_materias = (
-        PlanEstudiosMateria.objects
-        .filter(codigo_plan__codigo_carrera=carrera)
-        .select_related("codigo_materia", "id_grupo_optativo")
+    consulta_plan = PlanEstudiosMateria.objects.filter(
+        codigo_plan__codigo_carrera=carrera
+    )
+
+    plan_id = getattr(carrera, "plan_vigente_id", None)
+
+    if plan_id:
+        consulta_plan = consulta_plan.filter(codigo_plan_id=plan_id)
+
+    plan_materias = consulta_plan.select_related(
+        "codigo_materia", "id_grupo_optativo"
     )
 
     ubicaciones_grupo = {}
@@ -172,6 +179,7 @@ def examenes_ordenados_por_anio(graduado, carrera):
         )
         for u in PlanEstudiosGrupoOptativo.objects.filter(
             codigo_plan__codigo_carrera=carrera,
+            **({"codigo_plan_id": plan_id} if plan_id else {}),
         )
     }
 

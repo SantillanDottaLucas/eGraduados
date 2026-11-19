@@ -1,0 +1,4880 @@
+[
+  {
+    "model": "academico.analitico",
+    "pk": 1,
+    "fields": {
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "tipo_documento": "titulo",
+      "anio_ingreso_uarg": 2024,
+      "fecha_validacion": "2026-11-10 09:27:49.566866+00:00",
+      "id_usuario": 1
+    }
+  },
+  {
+    "model": "academico.analitico",
+    "pk": 2,
+    "fields": {
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "tipo_documento": "en_tramite",
+      "anio_ingreso_uarg": 2024,
+      "fecha_validacion": "2026-11-10 09:31:49.099717+00:00",
+      "id_usuario": 2
+    }
+  },
+  {
+    "model": "academico.auditoria",
+    "pk": 2,
+    "fields": {
+      "id_usuario": 1,
+      "fecha": "2026-11-19 16:09:06.209553+00:00",
+      "accion": "login",
+      "entidad": "Usuario",
+      "entidad_id": "1",
+      "detalle": {
+        "email": "lucassantillanrg@gmail.com",
+        "fecha": "2026-11-19T16:09:06.209253+00:00"
+      }
+    }
+  },
+  {
+    "model": "academico.auditoria",
+    "pk": 1,
+    "fields": {
+      "id_usuario": 1,
+      "fecha": "2026-11-19 16:09:00.960617+00:00",
+      "accion": "login",
+      "entidad": "Usuario",
+      "entidad_id": "1",
+      "detalle": {
+        "email": "lucassantillanrg@gmail.com",
+        "fecha": "2026-11-19T16:09:00.960226+00:00"
+      }
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 99,
+    "fields": {
+      "id_examen": 24,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 7,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 100,
+    "fields": {
+      "id_examen": 9,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 7,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 101,
+    "fields": {
+      "id_examen": 8,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 7,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 102,
+    "fields": {
+      "id_examen": 49,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 103,
+    "fields": {
+      "id_examen": 7,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 104,
+    "fields": {
+      "id_examen": 25,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 105,
+    "fields": {
+      "id_examen": 6,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 6,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 106,
+    "fields": {
+      "id_examen": 27,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 107,
+    "fields": {
+      "id_examen": 2,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 7,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 108,
+    "fields": {
+      "id_examen": 18,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 10,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 109,
+    "fields": {
+      "id_examen": 3,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 110,
+    "fields": {
+      "id_examen": 12,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 111,
+    "fields": {
+      "id_examen": 16,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 112,
+    "fields": {
+      "id_examen": 17,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 113,
+    "fields": {
+      "id_examen": 36,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 114,
+    "fields": {
+      "id_examen": 5,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 115,
+    "fields": {
+      "id_examen": 13,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 116,
+    "fields": {
+      "id_examen": 15,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 117,
+    "fields": {
+      "id_examen": 32,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 10,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 118,
+    "fields": {
+      "id_examen": 38,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 10,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 119,
+    "fields": {
+      "id_examen": 33,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 2,
+      "resultado": "Reprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 120,
+    "fields": {
+      "id_examen": 37,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 121,
+    "fields": {
+      "id_examen": 14,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 122,
+    "fields": {
+      "id_examen": 46,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 5,
+      "resultado": "Reprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 123,
+    "fields": {
+      "id_examen": 42,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 10,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 124,
+    "fields": {
+      "id_examen": 44,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 125,
+    "fields": {
+      "id_examen": 31,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 126,
+    "fields": {
+      "id_examen": 39,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 127,
+    "fields": {
+      "id_examen": 35,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 10,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 128,
+    "fields": {
+      "id_examen": 48,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 129,
+    "fields": {
+      "id_examen": 41,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 10,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 130,
+    "fields": {
+      "id_examen": 1,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 131,
+    "fields": {
+      "id_examen": 11,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 132,
+    "fields": {
+      "id_examen": 40,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 10,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 133,
+    "fields": {
+      "id_examen": 28,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": null,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 134,
+    "fields": {
+      "id_examen": 47,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 10,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 135,
+    "fields": {
+      "id_examen": 4,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 136,
+    "fields": {
+      "id_examen": 10,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 137,
+    "fields": {
+      "id_examen": 26,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 138,
+    "fields": {
+      "id_examen": 23,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 139,
+    "fields": {
+      "id_examen": 21,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 140,
+    "fields": {
+      "id_examen": 30,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 141,
+    "fields": {
+      "id_examen": 19,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 8,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 142,
+    "fields": {
+      "id_examen": 22,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": null,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 143,
+    "fields": {
+      "id_examen": 45,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 144,
+    "fields": {
+      "id_examen": 20,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 145,
+    "fields": {
+      "id_examen": 34,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 9,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 146,
+    "fields": {
+      "id_examen": 29,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 10,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.graduadoexamen",
+    "pk": 147,
+    "fields": {
+      "id_examen": 43,
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "nota": 10,
+      "resultado": "Aprobado"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 1,
+    "fields": {
+      "acta_respaldatoria": "RG07205070",
+      "tipo_examen": "Final",
+      "fecha_examen": "2022-07-14",
+      "codigo_materia": "1684"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 2,
+    "fields": {
+      "acta_respaldatoria": "RG07205072",
+      "tipo_examen": "Final Libre",
+      "fecha_examen": "2022-08-02",
+      "codigo_materia": "1528"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 3,
+    "fields": {
+      "acta_respaldatoria": "RG07205115",
+      "tipo_examen": "Final",
+      "fecha_examen": "2022-12-01",
+      "codigo_materia": "1649"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 4,
+    "fields": {
+      "acta_respaldatoria": "RG07205120",
+      "tipo_examen": "Final Libre",
+      "fecha_examen": "2022-12-02",
+      "codigo_materia": "1987"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 5,
+    "fields": {
+      "acta_respaldatoria": "RG07205125",
+      "tipo_examen": "Final Libre",
+      "fecha_examen": "2022-12-12",
+      "codigo_materia": "1650"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 6,
+    "fields": {
+      "acta_respaldatoria": "RG07205135",
+      "tipo_examen": "Final",
+      "fecha_examen": "2022-12-14",
+      "codigo_materia": "901"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 7,
+    "fields": {
+      "acta_respaldatoria": "RG07205142",
+      "tipo_examen": "Final",
+      "fecha_examen": "2022-12-16",
+      "codigo_materia": "1530"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 8,
+    "fields": {
+      "acta_respaldatoria": "RG07205158",
+      "tipo_examen": "Final",
+      "fecha_examen": "2023-03-02",
+      "codigo_materia": "1108"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 9,
+    "fields": {
+      "acta_respaldatoria": "RG07205191",
+      "tipo_examen": "Final",
+      "fecha_examen": "2023-07-10",
+      "codigo_materia": "453"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 10,
+    "fields": {
+      "acta_respaldatoria": "RG07205190",
+      "tipo_examen": "Final",
+      "fecha_examen": "2023-07-10",
+      "codigo_materia": "2137"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 11,
+    "fields": {
+      "acta_respaldatoria": "RG07205197",
+      "tipo_examen": "Final",
+      "fecha_examen": "2023-07-11",
+      "codigo_materia": "1989"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 12,
+    "fields": {
+      "acta_respaldatoria": "RG07206003",
+      "tipo_examen": "Final",
+      "fecha_examen": "2023-07-13",
+      "codigo_materia": "1652"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 13,
+    "fields": {
+      "acta_respaldatoria": "RG07206022",
+      "tipo_examen": "Final",
+      "fecha_examen": "2023-08-03",
+      "codigo_materia": "1654"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 14,
+    "fields": {
+      "acta_respaldatoria": "RG07206053",
+      "tipo_examen": "Final",
+      "fecha_examen": "2023-12-05",
+      "codigo_materia": "1665"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 15,
+    "fields": {
+      "acta_respaldatoria": "RG07206080",
+      "tipo_examen": "Final",
+      "fecha_examen": "2023-12-20",
+      "codigo_materia": "1658"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 16,
+    "fields": {
+      "acta_respaldatoria": "RG07206091",
+      "tipo_examen": "Final",
+      "fecha_examen": "2024-02-15",
+      "codigo_materia": "1656"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 17,
+    "fields": {
+      "acta_respaldatoria": "RG07206099",
+      "tipo_examen": "Final",
+      "fecha_examen": "2024-02-27",
+      "codigo_materia": "1659"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 18,
+    "fields": {
+      "acta_respaldatoria": "RG07206109",
+      "tipo_examen": "Final",
+      "fecha_examen": "2024-03-01",
+      "codigo_materia": "1531"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 19,
+    "fields": {
+      "acta_respaldatoria": "087/23-CS-UNPA",
+      "tipo_examen": "Equivalencia T",
+      "fecha_examen": "2024-03-13",
+      "codigo_materia": "2706"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 20,
+    "fields": {
+      "acta_respaldatoria": "087/23-CS-UNPA",
+      "tipo_examen": "Equivalencia T",
+      "fecha_examen": "2024-03-13",
+      "codigo_materia": "2654"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 21,
+    "fields": {
+      "acta_respaldatoria": "087/23-CS-UNPA",
+      "tipo_examen": "Equivalencia T",
+      "fecha_examen": "2024-03-13",
+      "codigo_materia": "2652"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 22,
+    "fields": {
+      "acta_respaldatoria": "087/23-CS-UNPA",
+      "tipo_examen": "Equivalencia T",
+      "fecha_examen": "2024-03-13",
+      "codigo_materia": "2708"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 23,
+    "fields": {
+      "acta_respaldatoria": "087/23-CS-UNPA",
+      "tipo_examen": "Equivalencia T",
+      "fecha_examen": "2024-03-13",
+      "codigo_materia": "2651"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 24,
+    "fields": {
+      "acta_respaldatoria": "087/23-CS-UNPA",
+      "tipo_examen": "Equivalencia T",
+      "fecha_examen": "2024-03-13",
+      "codigo_materia": "387"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 25,
+    "fields": {
+      "acta_respaldatoria": "087/23-CS-UNPA",
+      "tipo_examen": "Equivalencia T",
+      "fecha_examen": "2024-03-13",
+      "codigo_materia": "390"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 26,
+    "fields": {
+      "acta_respaldatoria": "087/23-CS-UNPA",
+      "tipo_examen": "Equivalencia T",
+      "fecha_examen": "2024-03-13",
+      "codigo_materia": "2648"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 27,
+    "fields": {
+      "acta_respaldatoria": "087/23-CS-UNPA",
+      "tipo_examen": "Equivalencia T",
+      "fecha_examen": "2024-03-13",
+      "codigo_materia": "1221"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 28,
+    "fields": {
+      "acta_respaldatoria": "0152/24-R-UNPA",
+      "tipo_examen": "Equivalencia T",
+      "fecha_examen": "2024-03-22",
+      "codigo_materia": "2649"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 29,
+    "fields": {
+      "acta_respaldatoria": "RG07206142",
+      "tipo_examen": "Final Libre",
+      "fecha_examen": "2024-07-08",
+      "codigo_materia": "2707"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 30,
+    "fields": {
+      "acta_respaldatoria": "RG07206138",
+      "tipo_examen": "Final",
+      "fecha_examen": "2024-07-08",
+      "codigo_materia": "2657"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 31,
+    "fields": {
+      "acta_respaldatoria": "RG07206141",
+      "tipo_examen": "Final",
+      "fecha_examen": "2024-07-08",
+      "codigo_materia": "1664"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 32,
+    "fields": {
+      "acta_respaldatoria": "RG07206146",
+      "tipo_examen": "Final",
+      "fecha_examen": "2024-07-11",
+      "codigo_materia": "1660"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 33,
+    "fields": {
+      "acta_respaldatoria": "RG07206172",
+      "tipo_examen": "Final",
+      "fecha_examen": "2024-08-08",
+      "codigo_materia": "1663"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 34,
+    "fields": {
+      "acta_respaldatoria": "RG07206189",
+      "tipo_examen": "Final Libre",
+      "fecha_examen": "2024-09-24",
+      "codigo_materia": "2659"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 35,
+    "fields": {
+      "acta_respaldatoria": "RG07207011",
+      "tipo_examen": "Final",
+      "fecha_examen": "2024-12-04",
+      "codigo_materia": "1674"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 36,
+    "fields": {
+      "acta_respaldatoria": "RG07207014",
+      "tipo_examen": "Final",
+      "fecha_examen": "2024-12-05",
+      "codigo_materia": "1661"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 37,
+    "fields": {
+      "acta_respaldatoria": "RG07207032",
+      "tipo_examen": "Final",
+      "fecha_examen": "2024-12-13",
+      "codigo_materia": "1663"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 38,
+    "fields": {
+      "acta_respaldatoria": "RG07207063",
+      "tipo_examen": "Final",
+      "fecha_examen": "2025-02-25",
+      "codigo_materia": "1662"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 39,
+    "fields": {
+      "acta_respaldatoria": "RG07207071",
+      "tipo_examen": "Final",
+      "fecha_examen": "2025-02-27",
+      "codigo_materia": "1670"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 40,
+    "fields": {
+      "acta_respaldatoria": "RG07207110",
+      "tipo_examen": "Final",
+      "fecha_examen": "2025-07-08",
+      "codigo_materia": "2138"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 41,
+    "fields": {
+      "acta_respaldatoria": "RG07207119",
+      "tipo_examen": "Final",
+      "fecha_examen": "2025-07-10",
+      "codigo_materia": "1679"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 42,
+    "fields": {
+      "acta_respaldatoria": "RG07207162",
+      "tipo_examen": "Final",
+      "fecha_examen": "2025-08-05",
+      "codigo_materia": "1673"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 43,
+    "fields": {
+      "acta_respaldatoria": "RG07207195",
+      "tipo_examen": "Final",
+      "fecha_examen": "2025-12-09",
+      "codigo_materia": "2710"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 44,
+    "fields": {
+      "acta_respaldatoria": "RG07207191",
+      "tipo_examen": "Final",
+      "fecha_examen": "2025-12-09",
+      "codigo_materia": "1676"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 45,
+    "fields": {
+      "acta_respaldatoria": "RG07208042",
+      "tipo_examen": "Final",
+      "fecha_examen": "2025-12-17",
+      "codigo_materia": "2741"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 46,
+    "fields": {
+      "acta_respaldatoria": "RG07208086",
+      "tipo_examen": "Final",
+      "fecha_examen": "2026-03-06",
+      "codigo_materia": "1671"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 47,
+    "fields": {
+      "acta_respaldatoria": "RG07208143",
+      "tipo_examen": "Final",
+      "fecha_examen": "2026-07-07",
+      "codigo_materia": "1681"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 48,
+    "fields": {
+      "acta_respaldatoria": "RG07208160",
+      "tipo_examen": "Final",
+      "fecha_examen": "2026-08-03",
+      "codigo_materia": "1677"
+    }
+  },
+  {
+    "model": "academico.examen",
+    "pk": 49,
+    "fields": {
+      "acta_respaldatoria": "RG07208171",
+      "tipo_examen": "Final",
+      "fecha_examen": "2026-08-04",
+      "codigo_materia": "1345"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000001/2014",
+      "PES"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000001/2014",
+      "codigo_carrera": "PES",
+      "fecha_ingreso_carrera": "2015-03-15",
+      "fecha_egreso_carrera": "2021-07-15",
+      "promedio_con_aplazo": 6.26,
+      "promedio_sin_aplazo": 6.79,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000002/2015",
+      "LCE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000002/2015",
+      "codigo_carrera": "LCE",
+      "fecha_ingreso_carrera": "2015-02-15",
+      "fecha_egreso_carrera": "2021-12-15",
+      "promedio_con_aplazo": 6.12,
+      "promedio_sin_aplazo": 6.81,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000003/2016",
+      "PEI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000003/2016",
+      "codigo_carrera": "PEI",
+      "fecha_ingreso_carrera": "2017-03-15",
+      "fecha_egreso_carrera": "2021-07-20",
+      "promedio_con_aplazo": 9.34,
+      "promedio_sin_aplazo": 10.0,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000004/2017",
+      "LAE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000004/2017",
+      "codigo_carrera": "LAE",
+      "fecha_ingreso_carrera": "2017-02-15",
+      "fecha_egreso_carrera": "2021-12-15",
+      "promedio_con_aplazo": 6.32,
+      "promedio_sin_aplazo": 6.65,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000005/2018",
+      "LTS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000005/2018",
+      "codigo_carrera": "LTS",
+      "fecha_ingreso_carrera": "2019-02-01",
+      "fecha_egreso_carrera": "2023-03-15",
+      "promedio_con_aplazo": 5.93,
+      "promedio_sin_aplazo": 6.44,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000006/2019",
+      "TMA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000006/2019",
+      "codigo_carrera": "TMA",
+      "fecha_ingreso_carrera": "2019-04-20",
+      "fecha_egreso_carrera": "2025-03-05",
+      "promedio_con_aplazo": 7.77,
+      "promedio_sin_aplazo": 8.12,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000007/2020",
+      "LSI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000007/2020",
+      "codigo_carrera": "LSI",
+      "fecha_ingreso_carrera": "2021-08-20",
+      "fecha_egreso_carrera": "2026-07-05",
+      "promedio_con_aplazo": 7.55,
+      "promedio_sin_aplazo": 8.22,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000008/2021",
+      "TIR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000008/2021",
+      "codigo_carrera": "TIR",
+      "fecha_ingreso_carrera": "2021-04-20",
+      "fecha_egreso_carrera": "2024-07-15",
+      "promedio_con_aplazo": 6.03,
+      "promedio_sin_aplazo": 6.39,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000009/2022",
+      "LGR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000009/2022",
+      "codigo_carrera": "LGR",
+      "fecha_ingreso_carrera": "2023-03-15",
+      "fecha_egreso_carrera": "2026-12-20",
+      "promedio_con_aplazo": 8.74,
+      "promedio_sin_aplazo": 9.05,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000010/2023",
+      "TGS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000010/2023",
+      "codigo_carrera": "TGS",
+      "fecha_ingreso_carrera": "2023-04-20",
+      "fecha_egreso_carrera": "2026-07-15",
+      "promedio_con_aplazo": 8.76,
+      "promedio_sin_aplazo": 9.11,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000011/2014",
+      "LGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000011/2014",
+      "codigo_carrera": "LGA",
+      "fecha_ingreso_carrera": "2015-04-10",
+      "fecha_egreso_carrera": "2021-03-20",
+      "promedio_con_aplazo": 9.59,
+      "promedio_sin_aplazo": 9.8,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000012/2015",
+      "TGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000012/2015",
+      "codigo_carrera": "TGA",
+      "fecha_ingreso_carrera": "2015-04-15",
+      "fecha_egreso_carrera": "2021-07-05",
+      "promedio_con_aplazo": 6.63,
+      "promedio_sin_aplazo": 7.03,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000013/2016",
+      "LEC"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000013/2016",
+      "codigo_carrera": "LEC",
+      "fecha_ingreso_carrera": "2017-03-20",
+      "fecha_egreso_carrera": "2023-12-20",
+      "promedio_con_aplazo": 9.08,
+      "promedio_sin_aplazo": 9.68,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000014/2017",
+      "TDS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000014/2017",
+      "codigo_carrera": "TDS",
+      "fecha_ingreso_carrera": "2017-08-15",
+      "fecha_egreso_carrera": "2021-03-20",
+      "promedio_con_aplazo": 7.08,
+      "promedio_sin_aplazo": 7.38,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000015/2018",
+      "LCP"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000015/2018",
+      "codigo_carrera": "LCP",
+      "fecha_ingreso_carrera": "2019-03-01",
+      "fecha_egreso_carrera": "2022-03-05",
+      "promedio_con_aplazo": 6.32,
+      "promedio_sin_aplazo": 6.79,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000016/2019",
+      "PES"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000016/2019",
+      "codigo_carrera": "PES",
+      "fecha_ingreso_carrera": "2019-02-15",
+      "fecha_egreso_carrera": "2022-12-15",
+      "promedio_con_aplazo": 8.21,
+      "promedio_sin_aplazo": 8.74,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000017/2020",
+      "LCE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000017/2020",
+      "codigo_carrera": "LCE",
+      "fecha_ingreso_carrera": "2021-03-10",
+      "fecha_egreso_carrera": "2026-07-15",
+      "promedio_con_aplazo": 7.81,
+      "promedio_sin_aplazo": 8.06,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000018/2021",
+      "PEI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000018/2021",
+      "codigo_carrera": "PEI",
+      "fecha_ingreso_carrera": "2021-02-01",
+      "fecha_egreso_carrera": "2026-07-05",
+      "promedio_con_aplazo": 9.31,
+      "promedio_sin_aplazo": 9.8,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000019/2022",
+      "LAE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000019/2022",
+      "codigo_carrera": "LAE",
+      "fecha_ingreso_carrera": "2023-02-15",
+      "fecha_egreso_carrera": "2026-12-15",
+      "promedio_con_aplazo": 6.55,
+      "promedio_sin_aplazo": 6.66,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000020/2023",
+      "LTS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000020/2023",
+      "codigo_carrera": "LTS",
+      "fecha_ingreso_carrera": "2023-08-01",
+      "fecha_egreso_carrera": "2026-03-05",
+      "promedio_con_aplazo": 7.95,
+      "promedio_sin_aplazo": 8.17,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000021/2014",
+      "TMA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000021/2014",
+      "codigo_carrera": "TMA",
+      "fecha_ingreso_carrera": "2015-08-01",
+      "fecha_egreso_carrera": "2019-12-15",
+      "promedio_con_aplazo": 8.12,
+      "promedio_sin_aplazo": 8.56,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000022/2015",
+      "LSI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000022/2015",
+      "codigo_carrera": "LSI",
+      "fecha_ingreso_carrera": "2015-02-01",
+      "fecha_egreso_carrera": "2018-07-15",
+      "promedio_con_aplazo": 6.15,
+      "promedio_sin_aplazo": 6.61,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000023/2016",
+      "TIR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000023/2016",
+      "codigo_carrera": "TIR",
+      "fecha_ingreso_carrera": "2017-03-10",
+      "fecha_egreso_carrera": "2020-12-20",
+      "promedio_con_aplazo": 6.69,
+      "promedio_sin_aplazo": 6.93,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000024/2017",
+      "LGR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000024/2017",
+      "codigo_carrera": "LGR",
+      "fecha_ingreso_carrera": "2017-08-10",
+      "fecha_egreso_carrera": "2021-03-05",
+      "promedio_con_aplazo": 6.02,
+      "promedio_sin_aplazo": 6.27,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000025/2018",
+      "TGS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000025/2018",
+      "codigo_carrera": "TGS",
+      "fecha_ingreso_carrera": "2019-02-15",
+      "fecha_egreso_carrera": "2025-07-05",
+      "promedio_con_aplazo": 9.57,
+      "promedio_sin_aplazo": 10.0,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000026/2019",
+      "LGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000026/2019",
+      "codigo_carrera": "LGA",
+      "fecha_ingreso_carrera": "2019-03-01",
+      "fecha_egreso_carrera": "2022-03-20",
+      "promedio_con_aplazo": 5.75,
+      "promedio_sin_aplazo": 6.25,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000027/2020",
+      "TGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000027/2020",
+      "codigo_carrera": "TGA",
+      "fecha_ingreso_carrera": "2021-08-15",
+      "fecha_egreso_carrera": "2025-03-15",
+      "promedio_con_aplazo": 6.4,
+      "promedio_sin_aplazo": 7.09,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000028/2021",
+      "LEC"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000028/2021",
+      "codigo_carrera": "LEC",
+      "fecha_ingreso_carrera": "2021-02-10",
+      "fecha_egreso_carrera": "2024-03-15",
+      "promedio_con_aplazo": 5.75,
+      "promedio_sin_aplazo": 6.09,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000029/2022",
+      "TDS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000029/2022",
+      "codigo_carrera": "TDS",
+      "fecha_ingreso_carrera": "2023-02-01",
+      "fecha_egreso_carrera": "2026-03-20",
+      "promedio_con_aplazo": 5.72,
+      "promedio_sin_aplazo": 6.0,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000030/2023",
+      "LCP"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000030/2023",
+      "codigo_carrera": "LCP",
+      "fecha_ingreso_carrera": "2023-03-01",
+      "fecha_egreso_carrera": "2026-12-20",
+      "promedio_con_aplazo": 5.93,
+      "promedio_sin_aplazo": 6.17,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000031/2014",
+      "PES"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000031/2014",
+      "codigo_carrera": "PES",
+      "fecha_ingreso_carrera": "2015-02-10",
+      "fecha_egreso_carrera": "2020-07-05",
+      "promedio_con_aplazo": 9.22,
+      "promedio_sin_aplazo": 9.77,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000032/2015",
+      "LCE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000032/2015",
+      "codigo_carrera": "LCE",
+      "fecha_ingreso_carrera": "2015-08-20",
+      "fecha_egreso_carrera": "2018-03-15",
+      "promedio_con_aplazo": 6.58,
+      "promedio_sin_aplazo": 7.26,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000033/2016",
+      "PEI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000033/2016",
+      "codigo_carrera": "PEI",
+      "fecha_ingreso_carrera": "2017-02-15",
+      "fecha_egreso_carrera": "2022-12-20",
+      "promedio_con_aplazo": 5.95,
+      "promedio_sin_aplazo": 6.27,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000034/2017",
+      "LAE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000034/2017",
+      "codigo_carrera": "LAE",
+      "fecha_ingreso_carrera": "2017-04-20",
+      "fecha_egreso_carrera": "2023-12-15",
+      "promedio_con_aplazo": 7.62,
+      "promedio_sin_aplazo": 7.81,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000035/2018",
+      "LTS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000035/2018",
+      "codigo_carrera": "LTS",
+      "fecha_ingreso_carrera": "2019-08-01",
+      "fecha_egreso_carrera": "2022-03-20",
+      "promedio_con_aplazo": 8.17,
+      "promedio_sin_aplazo": 8.68,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000036/2019",
+      "TMA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000036/2019",
+      "codigo_carrera": "TMA",
+      "fecha_ingreso_carrera": "2019-03-10",
+      "fecha_egreso_carrera": "2025-03-20",
+      "promedio_con_aplazo": 8.15,
+      "promedio_sin_aplazo": 8.43,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000037/2020",
+      "LSI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000037/2020",
+      "codigo_carrera": "LSI",
+      "fecha_ingreso_carrera": "2021-04-20",
+      "fecha_egreso_carrera": "2024-07-20",
+      "promedio_con_aplazo": 7.57,
+      "promedio_sin_aplazo": 8.17,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000038/2021",
+      "TIR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000038/2021",
+      "codigo_carrera": "TIR",
+      "fecha_ingreso_carrera": "2021-03-20",
+      "fecha_egreso_carrera": "2025-12-20",
+      "promedio_con_aplazo": 6.98,
+      "promedio_sin_aplazo": 7.17,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000039/2022",
+      "LGR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000039/2022",
+      "codigo_carrera": "LGR",
+      "fecha_ingreso_carrera": "2023-03-10",
+      "fecha_egreso_carrera": "2026-03-20",
+      "promedio_con_aplazo": 9.22,
+      "promedio_sin_aplazo": 9.93,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000040/2023",
+      "TGS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000040/2023",
+      "codigo_carrera": "TGS",
+      "fecha_ingreso_carrera": "2023-02-01",
+      "fecha_egreso_carrera": "2026-12-05",
+      "promedio_con_aplazo": 9.64,
+      "promedio_sin_aplazo": 10.0,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000041/2014",
+      "LGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000041/2014",
+      "codigo_carrera": "LGA",
+      "fecha_ingreso_carrera": "2015-03-15",
+      "fecha_egreso_carrera": "2021-12-05",
+      "promedio_con_aplazo": 7.76,
+      "promedio_sin_aplazo": 7.89,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000042/2015",
+      "TGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000042/2015",
+      "codigo_carrera": "TGA",
+      "fecha_ingreso_carrera": "2015-04-01",
+      "fecha_egreso_carrera": "2019-03-20",
+      "promedio_con_aplazo": 7.2,
+      "promedio_sin_aplazo": 7.7,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000043/2016",
+      "LEC"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000043/2016",
+      "codigo_carrera": "LEC",
+      "fecha_ingreso_carrera": "2017-08-10",
+      "fecha_egreso_carrera": "2023-03-15",
+      "promedio_con_aplazo": 7.75,
+      "promedio_sin_aplazo": 8.11,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000044/2017",
+      "TDS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000044/2017",
+      "codigo_carrera": "TDS",
+      "fecha_ingreso_carrera": "2017-08-20",
+      "fecha_egreso_carrera": "2023-07-20",
+      "promedio_con_aplazo": 6.81,
+      "promedio_sin_aplazo": 7.01,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000045/2018",
+      "LCP"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000045/2018",
+      "codigo_carrera": "LCP",
+      "fecha_ingreso_carrera": "2019-03-01",
+      "fecha_egreso_carrera": "2024-03-15",
+      "promedio_con_aplazo": 8.32,
+      "promedio_sin_aplazo": 8.99,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000046/2019",
+      "PES"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000046/2019",
+      "codigo_carrera": "PES",
+      "fecha_ingreso_carrera": "2019-03-20",
+      "fecha_egreso_carrera": "2022-03-05",
+      "promedio_con_aplazo": 6.06,
+      "promedio_sin_aplazo": 6.6,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000047/2020",
+      "LCE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000047/2020",
+      "codigo_carrera": "LCE",
+      "fecha_ingreso_carrera": "2021-08-15",
+      "fecha_egreso_carrera": "2026-03-15",
+      "promedio_con_aplazo": 9.42,
+      "promedio_sin_aplazo": 10.0,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000048/2021",
+      "PEI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000048/2021",
+      "codigo_carrera": "PEI",
+      "fecha_ingreso_carrera": "2021-03-15",
+      "fecha_egreso_carrera": "2025-03-15",
+      "promedio_con_aplazo": 6.55,
+      "promedio_sin_aplazo": 7.08,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000049/2022",
+      "LAE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000049/2022",
+      "codigo_carrera": "LAE",
+      "fecha_ingreso_carrera": "2023-08-15",
+      "fecha_egreso_carrera": "2026-12-15",
+      "promedio_con_aplazo": 6.29,
+      "promedio_sin_aplazo": 6.68,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000050/2023",
+      "LTS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000050/2023",
+      "codigo_carrera": "LTS",
+      "fecha_ingreso_carrera": "2023-02-01",
+      "fecha_egreso_carrera": "2026-03-15",
+      "promedio_con_aplazo": 8.41,
+      "promedio_sin_aplazo": 8.7,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000051/2014",
+      "TMA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000051/2014",
+      "codigo_carrera": "TMA",
+      "fecha_ingreso_carrera": "2015-03-15",
+      "fecha_egreso_carrera": "2018-03-15",
+      "promedio_con_aplazo": 7.81,
+      "promedio_sin_aplazo": 8.09,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000052/2015",
+      "LSI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000052/2015",
+      "codigo_carrera": "LSI",
+      "fecha_ingreso_carrera": "2015-08-01",
+      "fecha_egreso_carrera": "2019-07-20",
+      "promedio_con_aplazo": 9.04,
+      "promedio_sin_aplazo": 9.41,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000053/2016",
+      "TIR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000053/2016",
+      "codigo_carrera": "TIR",
+      "fecha_ingreso_carrera": "2017-03-20",
+      "fecha_egreso_carrera": "2020-07-05",
+      "promedio_con_aplazo": 7.6,
+      "promedio_sin_aplazo": 7.97,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000054/2017",
+      "LGR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000054/2017",
+      "codigo_carrera": "LGR",
+      "fecha_ingreso_carrera": "2017-02-15",
+      "fecha_egreso_carrera": "2021-03-05",
+      "promedio_con_aplazo": 8.68,
+      "promedio_sin_aplazo": 9.1,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000055/2018",
+      "TGS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000055/2018",
+      "codigo_carrera": "TGS",
+      "fecha_ingreso_carrera": "2019-08-20",
+      "fecha_egreso_carrera": "2024-12-05",
+      "promedio_con_aplazo": 6.99,
+      "promedio_sin_aplazo": 7.25,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000056/2019",
+      "LGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000056/2019",
+      "codigo_carrera": "LGA",
+      "fecha_ingreso_carrera": "2019-08-20",
+      "fecha_egreso_carrera": "2024-03-05",
+      "promedio_con_aplazo": 7.29,
+      "promedio_sin_aplazo": 7.7,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000057/2020",
+      "TGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000057/2020",
+      "codigo_carrera": "TGA",
+      "fecha_ingreso_carrera": "2021-08-10",
+      "fecha_egreso_carrera": "2026-12-20",
+      "promedio_con_aplazo": 8.72,
+      "promedio_sin_aplazo": 9.37,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000058/2021",
+      "LEC"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000058/2021",
+      "codigo_carrera": "LEC",
+      "fecha_ingreso_carrera": "2021-08-15",
+      "fecha_egreso_carrera": "2024-12-20",
+      "promedio_con_aplazo": 9.04,
+      "promedio_sin_aplazo": 9.21,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000059/2022",
+      "TDS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000059/2022",
+      "codigo_carrera": "TDS",
+      "fecha_ingreso_carrera": "2023-04-10",
+      "fecha_egreso_carrera": "2026-12-20",
+      "promedio_con_aplazo": 7.56,
+      "promedio_sin_aplazo": 7.93,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000060/2023",
+      "LCP"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000060/2023",
+      "codigo_carrera": "LCP",
+      "fecha_ingreso_carrera": "2023-04-20",
+      "fecha_egreso_carrera": "2026-07-05",
+      "promedio_con_aplazo": 6.74,
+      "promedio_sin_aplazo": 7.05,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000061/2014",
+      "PES"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000061/2014",
+      "codigo_carrera": "PES",
+      "fecha_ingreso_carrera": "2015-04-01",
+      "fecha_egreso_carrera": "2020-12-15",
+      "promedio_con_aplazo": 9.43,
+      "promedio_sin_aplazo": 9.51,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000062/2015",
+      "LCE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000062/2015",
+      "codigo_carrera": "LCE",
+      "fecha_ingreso_carrera": "2015-02-15",
+      "fecha_egreso_carrera": "2021-03-15",
+      "promedio_con_aplazo": 6.86,
+      "promedio_sin_aplazo": 7.16,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000063/2016",
+      "PEI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000063/2016",
+      "codigo_carrera": "PEI",
+      "fecha_ingreso_carrera": "2017-03-20",
+      "fecha_egreso_carrera": "2023-07-05",
+      "promedio_con_aplazo": 7.15,
+      "promedio_sin_aplazo": 7.88,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000064/2017",
+      "LAE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000064/2017",
+      "codigo_carrera": "LAE",
+      "fecha_ingreso_carrera": "2017-04-15",
+      "fecha_egreso_carrera": "2020-12-15",
+      "promedio_con_aplazo": 6.74,
+      "promedio_sin_aplazo": 6.81,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000065/2018",
+      "LTS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000065/2018",
+      "codigo_carrera": "LTS",
+      "fecha_ingreso_carrera": "2019-02-10",
+      "fecha_egreso_carrera": "2025-03-05",
+      "promedio_con_aplazo": 9.69,
+      "promedio_sin_aplazo": 10.0,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000066/2019",
+      "TMA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000066/2019",
+      "codigo_carrera": "TMA",
+      "fecha_ingreso_carrera": "2019-08-20",
+      "fecha_egreso_carrera": "2025-07-20",
+      "promedio_con_aplazo": 8.64,
+      "promedio_sin_aplazo": 9.25,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000067/2020",
+      "LSI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000067/2020",
+      "codigo_carrera": "LSI",
+      "fecha_ingreso_carrera": "2021-08-15",
+      "fecha_egreso_carrera": "2026-12-20",
+      "promedio_con_aplazo": 8.77,
+      "promedio_sin_aplazo": 9.01,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000068/2021",
+      "TIR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000068/2021",
+      "codigo_carrera": "TIR",
+      "fecha_ingreso_carrera": "2021-03-15",
+      "fecha_egreso_carrera": "2026-07-20",
+      "promedio_con_aplazo": 5.92,
+      "promedio_sin_aplazo": 5.98,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000069/2022",
+      "LGR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000069/2022",
+      "codigo_carrera": "LGR",
+      "fecha_ingreso_carrera": "2023-08-15",
+      "fecha_egreso_carrera": "2026-07-20",
+      "promedio_con_aplazo": 8.97,
+      "promedio_sin_aplazo": 9.56,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000070/2023",
+      "TGS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000070/2023",
+      "codigo_carrera": "TGS",
+      "fecha_ingreso_carrera": "2023-04-15",
+      "fecha_egreso_carrera": "2026-12-05",
+      "promedio_con_aplazo": 6.81,
+      "promedio_sin_aplazo": 7.34,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000071/2014",
+      "LGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000071/2014",
+      "codigo_carrera": "LGA",
+      "fecha_ingreso_carrera": "2015-02-20",
+      "fecha_egreso_carrera": "2020-03-05",
+      "promedio_con_aplazo": 8.02,
+      "promedio_sin_aplazo": 8.68,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000072/2015",
+      "TGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000072/2015",
+      "codigo_carrera": "TGA",
+      "fecha_ingreso_carrera": "2015-03-01",
+      "fecha_egreso_carrera": "2021-03-20",
+      "promedio_con_aplazo": 9.19,
+      "promedio_sin_aplazo": 9.56,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000073/2016",
+      "LEC"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000073/2016",
+      "codigo_carrera": "LEC",
+      "fecha_ingreso_carrera": "2017-08-15",
+      "fecha_egreso_carrera": "2023-12-20",
+      "promedio_con_aplazo": 7.59,
+      "promedio_sin_aplazo": 7.74,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000074/2017",
+      "TDS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000074/2017",
+      "codigo_carrera": "TDS",
+      "fecha_ingreso_carrera": "2017-03-01",
+      "fecha_egreso_carrera": "2023-03-05",
+      "promedio_con_aplazo": 6.42,
+      "promedio_sin_aplazo": 6.7,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000075/2018",
+      "LCP"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000075/2018",
+      "codigo_carrera": "LCP",
+      "fecha_ingreso_carrera": "2019-03-10",
+      "fecha_egreso_carrera": "2023-03-05",
+      "promedio_con_aplazo": 7.51,
+      "promedio_sin_aplazo": 7.65,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000076/2019",
+      "PES"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000076/2019",
+      "codigo_carrera": "PES",
+      "fecha_ingreso_carrera": "2019-02-10",
+      "fecha_egreso_carrera": "2023-12-20",
+      "promedio_con_aplazo": 7.21,
+      "promedio_sin_aplazo": 7.58,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000077/2020",
+      "LCE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000077/2020",
+      "codigo_carrera": "LCE",
+      "fecha_ingreso_carrera": "2021-04-15",
+      "fecha_egreso_carrera": "2026-07-05",
+      "promedio_con_aplazo": 7.63,
+      "promedio_sin_aplazo": 7.96,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000078/2021",
+      "PEI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000078/2021",
+      "codigo_carrera": "PEI",
+      "fecha_ingreso_carrera": "2021-03-01",
+      "fecha_egreso_carrera": "2026-03-05",
+      "promedio_con_aplazo": 7.04,
+      "promedio_sin_aplazo": 7.44,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000079/2022",
+      "LAE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000079/2022",
+      "codigo_carrera": "LAE",
+      "fecha_ingreso_carrera": "2023-08-01",
+      "fecha_egreso_carrera": "2026-12-05",
+      "promedio_con_aplazo": 7.42,
+      "promedio_sin_aplazo": 8.0,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000080/2023",
+      "LTS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000080/2023",
+      "codigo_carrera": "LTS",
+      "fecha_ingreso_carrera": "2023-03-20",
+      "fecha_egreso_carrera": "2026-03-05",
+      "promedio_con_aplazo": 8.26,
+      "promedio_sin_aplazo": 8.83,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000081/2015",
+      "TMA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000081/2015",
+      "codigo_carrera": "TMA",
+      "fecha_ingreso_carrera": "2016-02-20",
+      "fecha_egreso_carrera": "2019-12-15",
+      "promedio_con_aplazo": 7.21,
+      "promedio_sin_aplazo": 7.3,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000082/2016",
+      "LSI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000082/2016",
+      "codigo_carrera": "LSI",
+      "fecha_ingreso_carrera": "2016-08-15",
+      "fecha_egreso_carrera": "2020-07-20",
+      "promedio_con_aplazo": 8.07,
+      "promedio_sin_aplazo": 8.8,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000083/2017",
+      "TIR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000083/2017",
+      "codigo_carrera": "TIR",
+      "fecha_ingreso_carrera": "2018-03-20",
+      "fecha_egreso_carrera": "2021-07-20",
+      "promedio_con_aplazo": 8.09,
+      "promedio_sin_aplazo": 8.15,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000084/2018",
+      "LGR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000084/2018",
+      "codigo_carrera": "LGR",
+      "fecha_ingreso_carrera": "2018-08-15",
+      "fecha_egreso_carrera": "2024-07-20",
+      "promedio_con_aplazo": 8.49,
+      "promedio_sin_aplazo": 8.77,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000085/2019",
+      "TGS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000085/2019",
+      "codigo_carrera": "TGS",
+      "fecha_ingreso_carrera": "2020-02-15",
+      "fecha_egreso_carrera": "2024-12-05",
+      "promedio_con_aplazo": 9.39,
+      "promedio_sin_aplazo": 9.86,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000086/2020",
+      "LGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000086/2020",
+      "codigo_carrera": "LGA",
+      "fecha_ingreso_carrera": "2020-02-20",
+      "fecha_egreso_carrera": "2023-12-05",
+      "promedio_con_aplazo": 6.84,
+      "promedio_sin_aplazo": 7.49,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000087/2021",
+      "TGA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000087/2021",
+      "codigo_carrera": "TGA",
+      "fecha_ingreso_carrera": "2022-03-10",
+      "fecha_egreso_carrera": "2026-07-15",
+      "promedio_con_aplazo": 6.79,
+      "promedio_sin_aplazo": 7.18,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000088/2022",
+      "LEC"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000088/2022",
+      "codigo_carrera": "LEC",
+      "fecha_ingreso_carrera": "2022-04-01",
+      "fecha_egreso_carrera": "2026-03-15",
+      "promedio_con_aplazo": 6.19,
+      "promedio_sin_aplazo": 6.56,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000089/2023",
+      "TDS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000089/2023",
+      "codigo_carrera": "TDS",
+      "fecha_ingreso_carrera": "2024-04-10",
+      "fecha_egreso_carrera": "2026-03-05",
+      "promedio_con_aplazo": 6.28,
+      "promedio_sin_aplazo": 6.39,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000090/2024",
+      "LCP"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000090/2024",
+      "codigo_carrera": "LCP",
+      "fecha_ingreso_carrera": "2024-08-01",
+      "fecha_egreso_carrera": "2026-03-05",
+      "promedio_con_aplazo": 6.63,
+      "promedio_sin_aplazo": 7.2,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000091/2015",
+      "PES"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000091/2015",
+      "codigo_carrera": "PES",
+      "fecha_ingreso_carrera": "2016-02-01",
+      "fecha_egreso_carrera": "2019-12-05",
+      "promedio_con_aplazo": 7.36,
+      "promedio_sin_aplazo": 7.69,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000092/2016",
+      "LCE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000092/2016",
+      "codigo_carrera": "LCE",
+      "fecha_ingreso_carrera": "2016-02-01",
+      "fecha_egreso_carrera": "2022-07-05",
+      "promedio_con_aplazo": 5.73,
+      "promedio_sin_aplazo": 6.37,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000093/2017",
+      "PEI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000093/2017",
+      "codigo_carrera": "PEI",
+      "fecha_ingreso_carrera": "2018-03-15",
+      "fecha_egreso_carrera": "2022-07-20",
+      "promedio_con_aplazo": 7.94,
+      "promedio_sin_aplazo": 8.55,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000094/2018",
+      "LAE"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000094/2018",
+      "codigo_carrera": "LAE",
+      "fecha_ingreso_carrera": "2018-03-01",
+      "fecha_egreso_carrera": "2021-03-05",
+      "promedio_con_aplazo": 7.34,
+      "promedio_sin_aplazo": 8.07,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000095/2019",
+      "LTS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000095/2019",
+      "codigo_carrera": "LTS",
+      "fecha_ingreso_carrera": "2020-02-10",
+      "fecha_egreso_carrera": "2024-12-20",
+      "promedio_con_aplazo": 7.98,
+      "promedio_sin_aplazo": 8.36,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000096/2020",
+      "TMA"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000096/2020",
+      "codigo_carrera": "TMA",
+      "fecha_ingreso_carrera": "2020-03-15",
+      "fecha_egreso_carrera": "2024-03-20",
+      "promedio_con_aplazo": 5.72,
+      "promedio_sin_aplazo": 5.78,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000097/2021",
+      "LSI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000097/2021",
+      "codigo_carrera": "LSI",
+      "fecha_ingreso_carrera": "2022-02-01",
+      "fecha_egreso_carrera": "2026-03-20",
+      "promedio_con_aplazo": 5.58,
+      "promedio_sin_aplazo": 5.75,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000098/2022",
+      "TIR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000098/2022",
+      "codigo_carrera": "TIR",
+      "fecha_ingreso_carrera": "2022-03-10",
+      "fecha_egreso_carrera": "2026-03-05",
+      "promedio_con_aplazo": 7.07,
+      "promedio_sin_aplazo": 7.3,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000099/2023",
+      "LGR"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000099/2023",
+      "codigo_carrera": "LGR",
+      "fecha_ingreso_carrera": "2024-03-10",
+      "fecha_egreso_carrera": "2026-12-20",
+      "promedio_con_aplazo": 6.08,
+      "promedio_sin_aplazo": 6.4,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-45000100/2024",
+      "TGS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-45000100/2024",
+      "codigo_carrera": "TGS",
+      "fecha_ingreso_carrera": "2024-08-15",
+      "fecha_egreso_carrera": "2026-12-15",
+      "promedio_con_aplazo": 7.97,
+      "promedio_sin_aplazo": 8.67,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-46189053/24",
+      "LSI"
+    ],
+    "fields": {
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LSI",
+      "fecha_ingreso_carrera": "2024-03-01",
+      "fecha_egreso_carrera": "2026-10-11",
+      "promedio_con_aplazo": 8.1,
+      "promedio_sin_aplazo": 9.99,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.graduadocarrera",
+    "pk": [
+      "1-46189053/24",
+      "LTS"
+    ],
+    "fields": {
+      "legajo_graduado": "1-46189053/24",
+      "codigo_carrera": "LTS",
+      "fecha_ingreso_carrera": "2024-01-01",
+      "fecha_egreso_carrera": "2027-10-10",
+      "promedio_con_aplazo": 8.5,
+      "promedio_sin_aplazo": 8.8,
+      "origen_promedio_con_aplazo": "importado",
+      "origen_promedio_sin_aplazo": "importado"
+    }
+  },
+  {
+    "model": "academico.datosnacimiento",
+    "pk": 2,
+    "fields": {
+      "fecha_nacimiento": "2004-10-22",
+      "legajo_graduado": "1-46189053/24",
+      "id_provincia": 3,
+      "id_ciudad": 3
+    }
+  },
+  {
+    "model": "academico.secundario",
+    "pk": 2,
+    "fields": {
+      "nombre_secundario": "Secundario 26",
+      "titulo_secundario": "Bachiller Ciencias Naturales",
+      "anio_egreso_secundario": 2022,
+      "legajo_graduado": "1-46189053/24",
+      "id_provincia": 4,
+      "id_ciudad": 4
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000001/2014",
+    "fields": {
+      "dni": "45000001",
+      "fecha_ingreso_universidad": "2014-03-10",
+      "nombre": "Martina",
+      "apellido": "Gómez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000002/2015",
+    "fields": {
+      "dni": "45000002",
+      "fecha_ingreso_universidad": "2015-03-16",
+      "nombre": "Santiago",
+      "apellido": "Fernández"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000003/2016",
+    "fields": {
+      "dni": "45000003",
+      "fecha_ingreso_universidad": "2016-03-14",
+      "nombre": "Valentina",
+      "apellido": "Rodríguez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000004/2017",
+    "fields": {
+      "dni": "45000004",
+      "fecha_ingreso_universidad": "2017-03-13",
+      "nombre": "Tomás",
+      "apellido": "Pérez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000005/2018",
+    "fields": {
+      "dni": "45000005",
+      "fecha_ingreso_universidad": "2018-03-12",
+      "nombre": "Camila",
+      "apellido": "López"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000006/2019",
+    "fields": {
+      "dni": "45000006",
+      "fecha_ingreso_universidad": "2019-03-18",
+      "nombre": "Joaquín",
+      "apellido": "Martínez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000007/2020",
+    "fields": {
+      "dni": "45000007",
+      "fecha_ingreso_universidad": "2020-03-16",
+      "nombre": "Lucía",
+      "apellido": "Díaz"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000008/2021",
+    "fields": {
+      "dni": "45000008",
+      "fecha_ingreso_universidad": "2021-03-15",
+      "nombre": "Mateo",
+      "apellido": "Sánchez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000009/2022",
+    "fields": {
+      "dni": "45000009",
+      "fecha_ingreso_universidad": "2022-03-14",
+      "nombre": "Sofía",
+      "apellido": "Torres"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000010/2023",
+    "fields": {
+      "dni": "45000010",
+      "fecha_ingreso_universidad": "2023-03-13",
+      "nombre": "Benjamín",
+      "apellido": "Ramírez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000011/2014",
+    "fields": {
+      "dni": "45000011",
+      "fecha_ingreso_universidad": "2014-04-07",
+      "nombre": "Florencia",
+      "apellido": "Acosta"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000012/2015",
+    "fields": {
+      "dni": "45000012",
+      "fecha_ingreso_universidad": "2015-04-13",
+      "nombre": "Nicolás",
+      "apellido": "Medina"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000013/2016",
+    "fields": {
+      "dni": "45000013",
+      "fecha_ingreso_universidad": "2016-04-11",
+      "nombre": "Julieta",
+      "apellido": "Herrera"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000014/2017",
+    "fields": {
+      "dni": "45000014",
+      "fecha_ingreso_universidad": "2017-04-10",
+      "nombre": "Franco",
+      "apellido": "Suárez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000015/2018",
+    "fields": {
+      "dni": "45000015",
+      "fecha_ingreso_universidad": "2018-04-09",
+      "nombre": "Agustina",
+      "apellido": "Aguirre"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000016/2019",
+    "fields": {
+      "dni": "45000016",
+      "fecha_ingreso_universidad": "2019-04-15",
+      "nombre": "Thiago",
+      "apellido": "Giménez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000017/2020",
+    "fields": {
+      "dni": "45000017",
+      "fecha_ingreso_universidad": "2020-04-13",
+      "nombre": "Micaela",
+      "apellido": "Vázquez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000018/2021",
+    "fields": {
+      "dni": "45000018",
+      "fecha_ingreso_universidad": "2021-04-12",
+      "nombre": "Facundo",
+      "apellido": "Castro"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000019/2022",
+    "fields": {
+      "dni": "45000019",
+      "fecha_ingreso_universidad": "2022-04-11",
+      "nombre": "Carolina",
+      "apellido": "Rojas"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000020/2023",
+    "fields": {
+      "dni": "45000020",
+      "fecha_ingreso_universidad": "2023-04-10",
+      "nombre": "Lautaro",
+      "apellido": "Ortiz"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000021/2014",
+    "fields": {
+      "dni": "45000021",
+      "fecha_ingreso_universidad": "2014-05-05",
+      "nombre": "Victoria",
+      "apellido": "Silva"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000022/2015",
+    "fields": {
+      "dni": "45000022",
+      "fecha_ingreso_universidad": "2015-05-11",
+      "nombre": "Federico",
+      "apellido": "Molina"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000023/2016",
+    "fields": {
+      "dni": "45000023",
+      "fecha_ingreso_universidad": "2016-05-09",
+      "nombre": "Antonella",
+      "apellido": "Castillo"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000024/2017",
+    "fields": {
+      "dni": "45000024",
+      "fecha_ingreso_universidad": "2017-05-08",
+      "nombre": "Gabriel",
+      "apellido": "Morales"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000025/2018",
+    "fields": {
+      "dni": "45000025",
+      "fecha_ingreso_universidad": "2018-05-07",
+      "nombre": "Abril",
+      "apellido": "Romero"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000026/2019",
+    "fields": {
+      "dni": "45000026",
+      "fecha_ingreso_universidad": "2019-05-13",
+      "nombre": "Matías",
+      "apellido": "Navarro"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000027/2020",
+    "fields": {
+      "dni": "45000027",
+      "fecha_ingreso_universidad": "2020-05-11",
+      "nombre": "Paula",
+      "apellido": "Domínguez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000028/2021",
+    "fields": {
+      "dni": "45000028",
+      "fecha_ingreso_universidad": "2021-05-10",
+      "nombre": "Emiliano",
+      "apellido": "Vega"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000029/2022",
+    "fields": {
+      "dni": "45000029",
+      "fecha_ingreso_universidad": "2022-05-09",
+      "nombre": "Milagros",
+      "apellido": "Cabrera"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000030/2023",
+    "fields": {
+      "dni": "45000030",
+      "fecha_ingreso_universidad": "2023-05-08",
+      "nombre": "Agustín",
+      "apellido": "Pereyra"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000031/2014",
+    "fields": {
+      "dni": "45000031",
+      "fecha_ingreso_universidad": "2014-06-02",
+      "nombre": "Daniela",
+      "apellido": "Campos"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000032/2015",
+    "fields": {
+      "dni": "45000032",
+      "fecha_ingreso_universidad": "2015-06-08",
+      "nombre": "Ignacio",
+      "apellido": "Figueroa"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000033/2016",
+    "fields": {
+      "dni": "45000033",
+      "fecha_ingreso_universidad": "2016-06-06",
+      "nombre": "Renata",
+      "apellido": "Benítez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000034/2017",
+    "fields": {
+      "dni": "45000034",
+      "fecha_ingreso_universidad": "2017-06-05",
+      "nombre": "Bruno",
+      "apellido": "Méndez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000035/2018",
+    "fields": {
+      "dni": "45000035",
+      "fecha_ingreso_universidad": "2018-06-04",
+      "nombre": "Candela",
+      "apellido": "Arias"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000036/2019",
+    "fields": {
+      "dni": "45000036",
+      "fecha_ingreso_universidad": "2019-06-10",
+      "nombre": "Máximo",
+      "apellido": "Córdoba"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000037/2020",
+    "fields": {
+      "dni": "45000037",
+      "fecha_ingreso_universidad": "2020-06-08",
+      "nombre": "Bianca",
+      "apellido": "Ponce"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000038/2021",
+    "fields": {
+      "dni": "45000038",
+      "fecha_ingreso_universidad": "2021-06-07",
+      "nombre": "Ramiro",
+      "apellido": "Vargas"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000039/2022",
+    "fields": {
+      "dni": "45000039",
+      "fecha_ingreso_universidad": "2022-06-06",
+      "nombre": "Josefina",
+      "apellido": "Cáceres"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000040/2023",
+    "fields": {
+      "dni": "45000040",
+      "fecha_ingreso_universidad": "2023-06-05",
+      "nombre": "Leandro",
+      "apellido": "Mendoza"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000041/2014",
+    "fields": {
+      "dni": "45000041",
+      "fecha_ingreso_universidad": "2014-07-07",
+      "nombre": "Natalia",
+      "apellido": "Sosa"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000042/2015",
+    "fields": {
+      "dni": "45000042",
+      "fecha_ingreso_universidad": "2015-07-13",
+      "nombre": "Pablo",
+      "apellido": "Cruz"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000043/2016",
+    "fields": {
+      "dni": "45000043",
+      "fecha_ingreso_universidad": "2016-07-11",
+      "nombre": "Malena",
+      "apellido": "Luna"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000044/2017",
+    "fields": {
+      "dni": "45000044",
+      "fecha_ingreso_universidad": "2017-07-10",
+      "nombre": "Esteban",
+      "apellido": "Juárez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000045/2018",
+    "fields": {
+      "dni": "45000045",
+      "fecha_ingreso_universidad": "2018-07-09",
+      "nombre": "Rocío",
+      "apellido": "Ibarra"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000046/2019",
+    "fields": {
+      "dni": "45000046",
+      "fecha_ingreso_universidad": "2019-07-15",
+      "nombre": "Damián",
+      "apellido": "Ríos"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000047/2020",
+    "fields": {
+      "dni": "45000047",
+      "fecha_ingreso_universidad": "2020-07-13",
+      "nombre": "Celeste",
+      "apellido": "Godoy"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000048/2021",
+    "fields": {
+      "dni": "45000048",
+      "fecha_ingreso_universidad": "2021-07-12",
+      "nombre": "Nahuel",
+      "apellido": "Maldonado"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000049/2022",
+    "fields": {
+      "dni": "45000049",
+      "fecha_ingreso_universidad": "2022-07-11",
+      "nombre": "Ailén",
+      "apellido": "Correa"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000050/2023",
+    "fields": {
+      "dni": "45000050",
+      "fecha_ingreso_universidad": "2023-07-10",
+      "nombre": "Ezequiel",
+      "apellido": "Paz"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000051/2014",
+    "fields": {
+      "dni": "45000051",
+      "fecha_ingreso_universidad": "2014-08-04",
+      "nombre": "Lara",
+      "apellido": "Vera"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000052/2015",
+    "fields": {
+      "dni": "45000052",
+      "fecha_ingreso_universidad": "2015-08-10",
+      "nombre": "Gonzalo",
+      "apellido": "Peralta"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000053/2016",
+    "fields": {
+      "dni": "45000053",
+      "fecha_ingreso_universidad": "2016-08-08",
+      "nombre": "Emma",
+      "apellido": "Bravo"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000054/2017",
+    "fields": {
+      "dni": "45000054",
+      "fecha_ingreso_universidad": "2017-08-07",
+      "nombre": "Iván",
+      "apellido": "Ojeda"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000055/2018",
+    "fields": {
+      "dni": "45000055",
+      "fecha_ingreso_universidad": "2018-08-06",
+      "nombre": "Pilar",
+      "apellido": "Moyano"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000056/2019",
+    "fields": {
+      "dni": "45000056",
+      "fecha_ingreso_universidad": "2019-08-12",
+      "nombre": "Alejandro",
+      "apellido": "Leiva"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000057/2020",
+    "fields": {
+      "dni": "45000057",
+      "fecha_ingreso_universidad": "2020-08-10",
+      "nombre": "Florencia",
+      "apellido": "Quiroga"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000058/2021",
+    "fields": {
+      "dni": "45000058",
+      "fecha_ingreso_universidad": "2021-08-09",
+      "nombre": "Simón",
+      "apellido": "Cortez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000059/2022",
+    "fields": {
+      "dni": "45000059",
+      "fecha_ingreso_universidad": "2022-08-08",
+      "nombre": "Amparo",
+      "apellido": "Ferreyra"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000060/2023",
+    "fields": {
+      "dni": "45000060",
+      "fecha_ingreso_universidad": "2023-08-07",
+      "nombre": "Kevin",
+      "apellido": "Alonso"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000061/2014",
+    "fields": {
+      "dni": "45000061",
+      "fecha_ingreso_universidad": "2014-09-01",
+      "nombre": "Mora",
+      "apellido": "Carrizo"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000062/2015",
+    "fields": {
+      "dni": "45000062",
+      "fecha_ingreso_universidad": "2015-09-07",
+      "nombre": "Juan",
+      "apellido": "Villalba"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000063/2016",
+    "fields": {
+      "dni": "45000063",
+      "fecha_ingreso_universidad": "2016-09-05",
+      "nombre": "Olivia",
+      "apellido": "Serrano"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000064/2017",
+    "fields": {
+      "dni": "45000064",
+      "fecha_ingreso_universidad": "2017-09-04",
+      "nombre": "Lisandro",
+      "apellido": "Paredes"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000065/2018",
+    "fields": {
+      "dni": "45000065",
+      "fecha_ingreso_universidad": "2018-09-03",
+      "nombre": "Guadalupe",
+      "apellido": "Castaño"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000066/2019",
+    "fields": {
+      "dni": "45000066",
+      "fecha_ingreso_universidad": "2019-09-09",
+      "nombre": "Sebastián",
+      "apellido": "Miranda"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000067/2020",
+    "fields": {
+      "dni": "45000067",
+      "fecha_ingreso_universidad": "2020-09-07",
+      "nombre": "Delfina",
+      "apellido": "Escobar"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000068/2021",
+    "fields": {
+      "dni": "45000068",
+      "fecha_ingreso_universidad": "2021-09-06",
+      "nombre": "Pedro",
+      "apellido": "Franco"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000069/2022",
+    "fields": {
+      "dni": "45000069",
+      "fecha_ingreso_universidad": "2022-09-05",
+      "nombre": "Maia",
+      "apellido": "Bustos"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000070/2023",
+    "fields": {
+      "dni": "45000070",
+      "fecha_ingreso_universidad": "2023-09-04",
+      "nombre": "Andrés",
+      "apellido": "Montenegro"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000071/2014",
+    "fields": {
+      "dni": "45000071",
+      "fecha_ingreso_universidad": "2014-10-06",
+      "nombre": "Ana",
+      "apellido": "Villagra"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000072/2015",
+    "fields": {
+      "dni": "45000072",
+      "fecha_ingreso_universidad": "2015-10-12",
+      "nombre": "Cristian",
+      "apellido": "Ocampo"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000073/2016",
+    "fields": {
+      "dni": "45000073",
+      "fecha_ingreso_universidad": "2016-10-10",
+      "nombre": "Zoe",
+      "apellido": "Barrera"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000074/2017",
+    "fields": {
+      "dni": "45000074",
+      "fecha_ingreso_universidad": "2017-10-09",
+      "nombre": "Rodrigo",
+      "apellido": "Ponce"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000075/2018",
+    "fields": {
+      "dni": "45000075",
+      "fecha_ingreso_universidad": "2018-10-08",
+      "nombre": "Clara",
+      "apellido": "Gallardo"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000076/2019",
+    "fields": {
+      "dni": "45000076",
+      "fecha_ingreso_universidad": "2019-10-14",
+      "nombre": "Manuel",
+      "apellido": "Roldán"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000077/2020",
+    "fields": {
+      "dni": "45000077",
+      "fecha_ingreso_universidad": "2020-10-12",
+      "nombre": "Luz",
+      "apellido": "Godoy"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000078/2021",
+    "fields": {
+      "dni": "45000078",
+      "fecha_ingreso_universidad": "2021-10-11",
+      "nombre": "Alejo",
+      "apellido": "Mansilla"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000079/2022",
+    "fields": {
+      "dni": "45000079",
+      "fecha_ingreso_universidad": "2022-10-10",
+      "nombre": "Cecilia",
+      "apellido": "Soria"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000080/2023",
+    "fields": {
+      "dni": "45000080",
+      "fecha_ingreso_universidad": "2023-10-09",
+      "nombre": "Juan Cruz",
+      "apellido": "Villanueva"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000081/2015",
+    "fields": {
+      "dni": "45000081",
+      "fecha_ingreso_universidad": "2015-11-09",
+      "nombre": "Melina",
+      "apellido": "Reyes"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000082/2016",
+    "fields": {
+      "dni": "45000082",
+      "fecha_ingreso_universidad": "2016-11-07",
+      "nombre": "Franco",
+      "apellido": "Ledesma"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000083/2017",
+    "fields": {
+      "dni": "45000083",
+      "fecha_ingreso_universidad": "2017-11-06",
+      "nombre": "Ariana",
+      "apellido": "Coronel"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000084/2018",
+    "fields": {
+      "dni": "45000084",
+      "fecha_ingreso_universidad": "2018-11-05",
+      "nombre": "Diego",
+      "apellido": "Acuña"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000085/2019",
+    "fields": {
+      "dni": "45000085",
+      "fecha_ingreso_universidad": "2019-11-11",
+      "nombre": "Bárbara",
+      "apellido": "Ramos"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000086/2020",
+    "fields": {
+      "dni": "45000086",
+      "fecha_ingreso_universidad": "2020-11-09",
+      "nombre": "Enzo",
+      "apellido": "Toledo"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000087/2021",
+    "fields": {
+      "dni": "45000087",
+      "fecha_ingreso_universidad": "2021-11-08",
+      "nombre": "Carla",
+      "apellido": "Ibáñez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000088/2022",
+    "fields": {
+      "dni": "45000088",
+      "fecha_ingreso_universidad": "2022-11-07",
+      "nombre": "Axel",
+      "apellido": "Sosa"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000089/2023",
+    "fields": {
+      "dni": "45000089",
+      "fecha_ingreso_universidad": "2023-11-06",
+      "nombre": "Mía",
+      "apellido": "Navarrete"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000090/2024",
+    "fields": {
+      "dni": "45000090",
+      "fecha_ingreso_universidad": "2024-11-04",
+      "nombre": "Julián",
+      "apellido": "Álvarez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000091/2015",
+    "fields": {
+      "dni": "45000091",
+      "fecha_ingreso_universidad": "2015-03-02",
+      "nombre": "Evelyn",
+      "apellido": "Páez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000092/2016",
+    "fields": {
+      "dni": "45000092",
+      "fecha_ingreso_universidad": "2016-03-07",
+      "nombre": "Dante",
+      "apellido": "Riquelme"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000093/2017",
+    "fields": {
+      "dni": "45000093",
+      "fecha_ingreso_universidad": "2017-03-06",
+      "nombre": "Noelia",
+      "apellido": "Bianchi"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000094/2018",
+    "fields": {
+      "dni": "45000094",
+      "fecha_ingreso_universidad": "2018-03-05",
+      "nombre": "Ulises",
+      "apellido": "Márquez"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000095/2019",
+    "fields": {
+      "dni": "45000095",
+      "fecha_ingreso_universidad": "2019-03-04",
+      "nombre": "Lourdes",
+      "apellido": "Salinas"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000096/2020",
+    "fields": {
+      "dni": "45000096",
+      "fecha_ingreso_universidad": "2020-03-02",
+      "nombre": "Bautista",
+      "apellido": "Perdomo"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000097/2021",
+    "fields": {
+      "dni": "45000097",
+      "fecha_ingreso_universidad": "2021-03-01",
+      "nombre": "Kiara",
+      "apellido": "Agüero"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000098/2022",
+    "fields": {
+      "dni": "45000098",
+      "fecha_ingreso_universidad": "2022-03-07",
+      "nombre": "Elías",
+      "apellido": "Sarmiento"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000099/2023",
+    "fields": {
+      "dni": "45000099",
+      "fecha_ingreso_universidad": "2023-03-06",
+      "nombre": "Antonella",
+      "apellido": "Pizarro"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-45000100/2024",
+    "fields": {
+      "dni": "45000100",
+      "fecha_ingreso_universidad": "2024-03-04",
+      "nombre": "Felipe",
+      "apellido": "Arce"
+    }
+  },
+  {
+    "model": "academico.graduado",
+    "pk": "1-46189053/24",
+    "fields": {
+      "dni": "46189053",
+      "fecha_ingreso_universidad": "2024-03-01",
+      "nombre": "Lucas",
+      "apellido": "Santillan"
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1108"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1108",
+      "anio_materia": 1,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 5,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1221"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1221",
+      "anio_materia": 1,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 6,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1345"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1345",
+      "anio_materia": 1,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 7,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1528"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1528",
+      "anio_materia": 1,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 8,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1530"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1530",
+      "anio_materia": 1,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 9,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1531"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1531",
+      "anio_materia": 1,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 10,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1649"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1649",
+      "anio_materia": 2,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 11,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1650"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1650",
+      "anio_materia": 2,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 12,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1652"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1652",
+      "anio_materia": 2,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 13,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1654"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1654",
+      "anio_materia": 2,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 14,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1656"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1656",
+      "anio_materia": 2,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 15,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1658"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1658",
+      "anio_materia": 2,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 16,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1659"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1659",
+      "anio_materia": 2,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 17,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1660"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1660",
+      "anio_materia": 2,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 18,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1661"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1661",
+      "anio_materia": 2,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 19,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1662"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1662",
+      "anio_materia": 2,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 20,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1663"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1663",
+      "anio_materia": 3,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 21,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1664"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1664",
+      "anio_materia": 3,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 22,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1665"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1665",
+      "anio_materia": 3,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 23,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1670"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1670",
+      "anio_materia": 3,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 24,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1671"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1671",
+      "anio_materia": 3,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 25,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1672"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1672",
+      "anio_materia": 3,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 26,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1673"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1673",
+      "anio_materia": 3,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 27,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1674"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1674",
+      "anio_materia": 3,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 28,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1676"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1676",
+      "anio_materia": 3,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 29,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1677"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1677",
+      "anio_materia": 3,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 30,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1679"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1679",
+      "anio_materia": 4,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 31,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1681"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1681",
+      "anio_materia": 4,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 32,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1684"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1684",
+      "anio_materia": 4,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 33,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1987"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1987",
+      "anio_materia": 4,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 34,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "1989"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "1989",
+      "anio_materia": 4,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 35,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2137"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2137",
+      "anio_materia": 4,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 36,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2138"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2138",
+      "anio_materia": 4,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 37,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2648"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2648",
+      "anio_materia": 4,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 38,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2649"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2649",
+      "anio_materia": 4,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 39,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2651"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2651",
+      "anio_materia": 4,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 40,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2652"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2652",
+      "anio_materia": 5,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 41,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2654"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2654",
+      "anio_materia": 5,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 42,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2657"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2657",
+      "anio_materia": 5,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 43,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2659"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2659",
+      "anio_materia": 5,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 44,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2706"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2706",
+      "anio_materia": 5,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 45,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2707"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2707",
+      "anio_materia": 5,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 46,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2708"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2708",
+      "anio_materia": 5,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 47,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2710"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2710",
+      "anio_materia": 5,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 48,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "2741"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "2741",
+      "anio_materia": 5,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 49,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "387"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "387",
+      "anio_materia": 1,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 1,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "390"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "390",
+      "anio_materia": 1,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 2,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "453"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "453",
+      "anio_materia": 1,
+      "cuatrimestre_materia": "1er",
+      "orden_materia": 3,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.planestudiosmateria",
+    "pk": [
+      "LSI-2020",
+      "901"
+    ],
+    "fields": {
+      "codigo_plan": "LSI-2020",
+      "codigo_materia": "901",
+      "anio_materia": 1,
+      "cuatrimestre_materia": "2do",
+      "orden_materia": 4,
+      "materia_requisito": false,
+      "id_grupo_optativo": null
+    }
+  },
+  {
+    "model": "academico.carreraresolucion",
+    "pk": [
+      "1496/88",
+      "LSI"
+    ],
+    "fields": {
+      "resolucion": "1496/88",
+      "codigo_carrera": "LSI"
+    }
+  },
+  {
+    "model": "academico.titulo",
+    "pk": 1,
+    "fields": {
+      "nombre_titulo": "Licenciado en Sistemas",
+      "codigo_carrera": "LSI"
+    }
+  },
+  {
+    "model": "academico.planestudios",
+    "pk": "061ABC",
+    "fields": {
+      "codigo_carrera": "LAE"
+    }
+  },
+  {
+    "model": "academico.planestudios",
+    "pk": "LSI-2020",
+    "fields": {
+      "codigo_carrera": "LSI"
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "LAE",
+    "fields": {
+      "nombre_carrera": "Licenciatura en Administración",
+      "id_escuela": 2,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "LCE",
+    "fields": {
+      "nombre_carrera": "Licenciatura en Ciencias de la Educación",
+      "id_escuela": 4,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "LCP",
+    "fields": {
+      "nombre_carrera": "Licenciatura en Comunicación Social",
+      "id_escuela": 3,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "LEC",
+    "fields": {
+      "nombre_carrera": "Licenciatura en Economía",
+      "id_escuela": 2,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "LGA",
+    "fields": {
+      "nombre_carrera": "Licenciatura en Gestión Ambiental",
+      "id_escuela": 5,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "LGR",
+    "fields": {
+      "nombre_carrera": "Licenciatura en Gestión de Recursos Naturales",
+      "id_escuela": 5,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "LSI",
+    "fields": {
+      "nombre_carrera": "Licenciatura en Sistemas",
+      "id_escuela": 1,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "LTS",
+    "fields": {
+      "nombre_carrera": "Licenciatura en Trabajo Social",
+      "id_escuela": 3,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "PEI",
+    "fields": {
+      "nombre_carrera": "Profesorado en Educación Inicial",
+      "id_escuela": 4,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "PES",
+    "fields": {
+      "nombre_carrera": "Profesorado en Educación Secundaria",
+      "id_escuela": 4,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "TDS",
+    "fields": {
+      "nombre_carrera": "Tecnicatura Universitaria en Desarrollo de Software",
+      "id_escuela": 1,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "TGA",
+    "fields": {
+      "nombre_carrera": "Tecnicatura Universitaria en Gestión Administrativa",
+      "id_escuela": 2,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "TGS",
+    "fields": {
+      "nombre_carrera": "Tecnicatura Universitaria en Gestión Sociocultural",
+      "id_escuela": 3,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "TIR",
+    "fields": {
+      "nombre_carrera": "Tecnicatura Universitaria en Redes",
+      "id_escuela": 1,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.carrera",
+    "pk": "TMA",
+    "fields": {
+      "nombre_carrera": "Tecnicatura Universitaria en Manejo Ambiental",
+      "id_escuela": 5,
+      "plan_vigente": null
+    }
+  },
+  {
+    "model": "academico.resolucion",
+    "pk": "1186/14",
+    "fields": {
+      "tipo_resolucion": "otro_instrumento"
+    }
+  },
+  {
+    "model": "academico.resolucion",
+    "pk": "141/CS/98",
+    "fields": {
+      "tipo_resolucion": "institucional"
+    }
+  },
+  {
+    "model": "academico.resolucion",
+    "pk": "1496/88",
+    "fields": {
+      "tipo_resolucion": "ministerial_nacional"
+    }
+  },
+  {
+    "model": "academico.resolucion",
+    "pk": "1496/99",
+    "fields": {
+      "tipo_resolucion": "ministerial_nacional"
+    }
+  },
+  {
+    "model": "academico.resolucion",
+    "pk": "186/CS/06",
+    "fields": {
+      "tipo_resolucion": "institucional"
+    }
+  },
+  {
+    "model": "academico.resolucion",
+    "pk": "218/CS/00",
+    "fields": {
+      "tipo_resolucion": "institucional"
+    }
+  },
+  {
+    "model": "academico.escuela",
+    "pk": 2,
+    "fields": {
+      "nombre_escuela": "Escuela de Administración y Economía"
+    }
+  },
+  {
+    "model": "academico.escuela",
+    "pk": 3,
+    "fields": {
+      "nombre_escuela": "Escuela de Ciencias Sociales"
+    }
+  },
+  {
+    "model": "academico.escuela",
+    "pk": 4,
+    "fields": {
+      "nombre_escuela": "Escuela de Educación"
+    }
+  },
+  {
+    "model": "academico.escuela",
+    "pk": 5,
+    "fields": {
+      "nombre_escuela": "Escuela de Recursos Naturales"
+    }
+  },
+  {
+    "model": "academico.escuela",
+    "pk": 1,
+    "fields": {
+      "nombre_escuela": "Escuela de Sistemas e Informática"
+    }
+  }
+]

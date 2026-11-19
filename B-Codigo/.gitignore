@@ -24,6 +24,7 @@ media/
 
 # Bases y respaldos locales
 *.sql
+!scripts/datos_reales.sql
 *.dump
 *.bak
 
@@ -43,3 +44,5 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+PlanesEstudio
