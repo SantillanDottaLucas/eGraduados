@@ -18,11 +18,14 @@ Este script:
    marcadores {{ ... }}.
 4. Agrega tabuladores con leader «hyphen» al final de cada celda
    de materias (guiones de relleno automáticos, independientemente
-   del ancho del contenido y alineados verticalmente con la última
-   línea del nombre de la materia), y las filas de materias quedan
-   alineadas verticalmente al fondo.
-5. NO repite el encabezado de tabla entre páginas (comportamiento
-   original conservado).
+   del ancho del contenido). El valor del campo va arriba y los
+   guiones en la línea de abajo, dentro de la misma celda, mediante
+   un salto de línea simple (Shift+Enter). Las filas de materias
+   quedan alineadas verticalmente al fondo.
+5. Repite el encabezado en cada página y evita que una fila se corte
+   a mitad. Además separa la tabla del texto con párrafos vacíos y
+   corrige el margen superior de la sección «Título», que en la
+   plantilla original era de apenas 1 twip.
 """
 
 import copy
@@ -266,6 +269,132 @@ def agregar_tabulacion(parrafo):
     parrafo.append(run)
 
 
+def agregar_salto_de_linea(parrafo):
+    """
+    Agrega un salto de línea simple (Shift+Enter) al final del párrafo.
+
+    Se usa para que el leader de guiones quede en la línea de abajo
+    del valor del campo, dentro de la misma celda.
+    """
+    run = OxmlElement("w:r")
+    rpr = OxmlElement("w:rPr")
+    rfonts = OxmlElement("w:rFonts")
+
+    for atributo in ("w:ascii", "w:hAnsi", "w:cs"):
+        rfonts.set(qn(atributo), "Arial")
+
+    rpr.append(rfonts)
+    sz = OxmlElement("w:sz")
+    sz.set(qn("w:val"), "20")
+    rpr.append(sz)
+    run.append(rpr)
+    run.append(OxmlElement("w:br"))
+    parrafo.append(run)
+
+
+def propiedades_fila(fila):
+    """Devuelve (creándolo si hace falta) el w:trPr de la fila."""
+    trpr = fila.find(tag("trPr"))
+
+    if trpr is None:
+        trpr = OxmlElement("w:trPr")
+        fila.insert(0, trpr)
+
+    return trpr
+
+
+def marcar_encabezado_y_evitar_corte(fila, encabezado=False):
+    """
+    Repite la fila como encabezado en cada página e impide que se
+    divida a mitad entre dos páginas.
+    """
+    trpr = propiedades_fila(fila)
+
+    if encabezado and trpr.find(tag("tblHeader")) is None:
+        trpr.append(OxmlElement("w:tblHeader"))
+
+    if trpr.find(tag("cantSplit")) is None:
+        trpr.append(OxmlElement("w:cantSplit"))
+
+
+def evitar_firmas_huerfanas(body):
+    """
+    Mantiene cada nombre de firma junto a su cargo en la misma hoja.
+    """
+    for aguja in ("Melgarejo", "Margarita Bernarda Vera"):
+        parrafo = buscar_parrafo_por_texto(body, aguja)
+
+        if parrafo is None:
+            continue
+
+        ppr = parrafo.find(tag("pPr"))
+
+        if ppr is None:
+            ppr = OxmlElement("w:pPr")
+            parrafo.insert(0, ppr)
+
+        if ppr.find(tag("keepNext")) is None:
+            ppr.append(OxmlElement("w:keepNext"))
+
+
+def quitar_salto_de_seccion_final(body):
+    """
+    Elimina el salto de sección heredado que genera una hoja en blanco.
+
+    La sección «Título» conserva un sectPr dentro del párrafo final;
+    eso fuerza una página vacía después de las firmas. Se copia su
+    configuración de página a la sectPr del cuerpo y se suprime el
+    salto, dejando una única sección.
+    """
+    sectpr_body = body.find(tag("sectPr"))
+
+    if sectpr_body is None:
+        return
+
+    for parrafo in body.findall(tag("p")):
+        ppr = parrafo.find(tag("pPr"))
+
+        if ppr is None:
+            continue
+
+        sectpr = ppr.find(tag("sectPr"))
+
+        if sectpr is None:
+            continue
+
+        for nombre in ("pgSz", "pgMar", "cols"):
+            origen = sectpr.find(tag(nombre))
+            destino = sectpr_body.find(tag(nombre))
+
+            if origen is not None and destino is not None:
+                sectpr_body.replace(destino, copy.deepcopy(origen))
+
+        ppr.remove(sectpr)
+
+
+def asegurar_margen_superior(body, minimo=1000):
+    """
+    Corrige márgenes superiores casi nulos.
+
+    La sección «Título» de la plantilla original tiene ``w:top`` en 1
+    twip; como Word suprime el espacio previo al comienzo de página,
+    el contenido que continúa en otra hoja queda pegado al borde.
+    """
+    for sectpr in body.iter(tag("sectPr")):
+        pgmar = sectpr.find(tag("pgMar"))
+
+        if pgmar is None:
+            continue
+
+        try:
+            actual = int(pgmar.get(qn("w:top")) or 0)
+        except ValueError:
+            actual = 0
+
+        if actual < minimo:
+            pgmar.set(qn("w:top"), str(minimo))
+
+
 def anchos_tabla(tabla):
     """Anchos reales (en twips) declarados en el tblGrid de la tabla."""
 
@@ -340,6 +469,7 @@ def construir_fila_materias(tabla, anchos, template_fila):
     """
     filas = filas_tabla(tabla)
     encabezado = filas[0]
+    marcar_encabezado_y_evitar_corte(encabezado, encabezado=True)
 
     # Eliminar filas de datos (se conservan sólo el encabezado).
     for fila in filas[1:]:
@@ -374,8 +504,9 @@ def construir_fila_materias(tabla, anchos, template_fila):
         limpiar_runs(p)
         agregar_run(p, texto, sz=20)
 
-        # Guiones de relleno + alineación vertical inferior.
+        # El valor arriba y los guiones de relleno en la línea de abajo.
         if i != 2:
+            agregar_salto_de_linea(p)
             marcar_parrafo(p, anchos[i], sz=20)
         else:
             # La columna del espacio curricular no lleva relleno;
@@ -390,6 +521,8 @@ def construir_fila_materias(tabla, anchos, template_fila):
 
         fijar_celda_v_align_bottom(tc)
         fijar_bordes_laterales(tc)
+
+    marcar_encabezado_y_evitar_corte(nueva)
 
     # Filas de control del bucle {%tr %} de docxtpl:
     # la fila de apertura colapsa a «{% for ... %}» y la de
@@ -612,6 +745,14 @@ def procesar_documento(tipo):
         tabla_materias = tbls[0]
         tabla_continuacion = tbls[1]
         body.remove(tabla_continuacion)
+
+    # Separar la tabla del texto introductorio con una línea en blanco.
+    body.insert(list(body).index(tabla_materias), parrafo_vacio())
+
+    # Corregir el margen superior casi nulo de la sección «Título».
+    asegurar_margen_superior(body)
+    evitar_firmas_huerfanas(body)
+    quitar_salto_de_seccion_final(body)
 
     # Fusionar materias: construir la fila prototipo en la tabla 1.
     # Los anchos se toman del tblGrid real de cada documento (la
