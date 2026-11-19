@@ -26,10 +26,34 @@
         </div>
     {% endif %}
 
-    {% if aclaracion_plan %}
+    {% if campos_faltantes.generales or campos_faltantes.filas %}
         <div class="alert alert-warning" role="alert">
-            <strong>Aclaración sobre el plan de estudios:</strong>
-            {{ aclaracion_plan }}
+            <strong>Datos faltantes</strong>
+            <p class="mb-1 mt-1">
+                Completá lo que falta para que el analítico salga completo.
+                No se bloquea la validación: el documento se genera con los
+                espacios en blanco.
+            </p>
+
+            {% if campos_faltantes.generales %}
+                <p class="mb-1">
+                    <strong>Datos generales:</strong>
+                    {% for campo in campos_faltantes.generales %}
+                        {{ campo }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </p>
+            {% endif %}
+
+            {% if campos_faltantes.filas %}
+                <ul class="mb-0">
+                    {% for fila in campos_faltantes.filas %}
+                        <li>
+                            <strong>Fila {{ fila.orden }} — {{ fila.espacio }}:</strong>
+                            {{ fila.faltantes|join:", " }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
         </div>
     {% endif %}
 
@@ -59,28 +83,28 @@
         <div class="row g-2">
             <div class="col-6 col-md-3">
                 <label class="form-label small">Apellido</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="apellido" value="{{ datos.apellido }}" required>
+                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not datos.apellido %}campo-faltante{% endif %}" name="apellido" value="{{ datos.apellido }}" required>
             </div>
             <div class="col-6 col-md-3">
                 <label class="form-label small">Nombre</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="nombre" value="{{ datos.nombre }}" required>
+                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not datos.nombre %}campo-faltante{% endif %}" name="nombre" value="{{ datos.nombre }}" required>
             </div>
             <div class="col-4 col-md-2">
                 <label class="form-label small">DNI</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="dni" value="{{ datos.dni }}" required>
+                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not datos.dni %}campo-faltante{% endif %}" name="dni" value="{{ datos.dni }}" required>
             </div>
             <div class="col-4 col-md-2">
                 <label class="form-label small">Año ingr. UARG</label>
-                <input type="number" class="form-control campo-documento" name="anio_ingreso_uarg" value="{{ datos.anio_ingreso_uarg }}" required>
+                <input type="number" class="form-control campo-documento {% if not datos.anio_ingreso_uarg %}campo-faltante{% endif %}" name="anio_ingreso_uarg" value="{{ datos.anio_ingreso_uarg }}" required>
             </div>
             <div class="col-4 col-md-2">
                 <label class="form-label small">Año ingr. carrera</label>
-                <input type="number" class="form-control campo-documento" name="anio_ingreso_carrera" value="{{ datos.anio_ingreso_carrera }}" required>
+                <input type="number" class="form-control campo-documento {% if not datos.anio_ingreso_carrera %}campo-faltante{% endif %}" name="anio_ingreso_carrera" value="{{ datos.anio_ingreso_carrera }}" required>
             </div>
 
             <div class="col-12 col-md-6">
                 <label class="form-label small">Fecha de egreso de la carrera</label>
-                <input type="date" class="form-control campo-documento campo-documento-ancho" name="fecha_egreso_carrera" value="{{ datos.fecha_egreso_carrera }}" required>
+                <input type="date" class="form-control campo-documento campo-documento-ancho {% if not datos.fecha_egreso_carrera %}campo-faltante{% endif %}" name="fecha_egreso_carrera" value="{{ datos.fecha_egreso_carrera }}" required>
             </div>
             <div class="col-6 col-md-3">
                 <label class="form-label small">Pron. sin aplazos</label>
@@ -93,32 +117,32 @@
 
             <div class="col-6 col-md-4">
                 <label class="form-label small">Fecha de nacimiento</label>
-                <input type="date" class="form-control campo-documento campo-documento-ancho" name="fecha_nacimiento" value="{{ datos.fecha_nacimiento }}">
+                <input type="date" class="form-control campo-documento campo-documento-ancho {% if not datos.fecha_nacimiento %}campo-faltante{% endif %}" name="fecha_nacimiento" value="{{ datos.fecha_nacimiento }}">
             </div>
             <div class="col-6 col-md-4">
                 <label class="form-label small">Ciudad</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="ciudad_nacimiento" list="ciudades" value="{{ datos.ciudad_nacimiento }}">
+                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not datos.ciudad_nacimiento %}campo-faltante{% endif %}" name="ciudad_nacimiento" list="ciudades" value="{{ datos.ciudad_nacimiento }}">
             </div>
             <div class="col-6 col-md-4">
                 <label class="form-label small">Provincia</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="provincia_nacimiento" list="provincias" value="{{ datos.provincia_nacimiento }}">
+                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not datos.provincia_nacimiento %}campo-faltante{% endif %}" name="provincia_nacimiento" list="provincias" value="{{ datos.provincia_nacimiento }}">
             </div>
 
             <div class="col-6 col-md-4">
                 <label class="form-label small">Secundario</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="nombre_secundario" value="{{ datos.nombre_secundario }}">
+                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not datos.nombre_secundario %}campo-faltante{% endif %}" name="nombre_secundario" value="{{ datos.nombre_secundario }}">
             </div>
             <div class="col-6 col-md-4">
                 <label class="form-label small">Título secundario</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="titulo_secundario" value="{{ datos.titulo_secundario }}">
+                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not datos.titulo_secundario %}campo-faltante{% endif %}" name="titulo_secundario" value="{{ datos.titulo_secundario }}">
             </div>
             <div class="col-6 col-md-2">
                 <label class="form-label small">Ciudad sec.</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="ciudad_secundario" list="ciudades" value="{{ datos.ciudad_secundario }}">
+                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not datos.ciudad_secundario %}campo-faltante{% endif %}" name="ciudad_secundario" list="ciudades" value="{{ datos.ciudad_secundario }}">
             </div>
             <div class="col-6 col-md-2">
                 <label class="form-label small">Provincia sec.</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="provincia_secundario" list="provincias" value="{{ datos.provincia_secundario }}">
+                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not datos.provincia_secundario %}campo-faltante{% endif %}" name="provincia_secundario" list="provincias" value="{{ datos.provincia_secundario }}">
             </div>
             <div class="col-6 col-md-2">
                 <label class="form-label small">Año egr. sec.</label>
@@ -127,7 +151,7 @@
 
             <div class="col-12 col-md-6">
                 <label class="form-label small">Título a otorgar</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="titulo_otorgado" list="titulos" value="{{ datos.titulo_otorgado }}" required>
+                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not datos.titulo_otorgado %}campo-faltante{% endif %}" name="titulo_otorgado" list="titulos" value="{{ datos.titulo_otorgado }}" required>
             </div>
 
             <div class="col-12">
@@ -154,6 +178,7 @@
                 <thead>
                     <tr>
                         <th>#</th>
+                        <th style="min-width: 60px;">Orden</th>
                         <th>Año</th>
                         <th style="min-width: 220px;">Espacio curricular</th>
                         <th>Nota</th>
@@ -161,52 +186,81 @@
                         <th>Tipo</th>
                         <th>Resp.</th>
                         <th>Folio</th>
+                        <th style="min-width: 90px;">Requisito</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for fila in filas %}
                         <tr class="{% if not fila.matcheada %}fila-sin-materia{% else %}fila-matcheada{% endif %}">
                             <td>
-                                {{ fila.orden }}
-                                <input type="hidden" name="fila_indice" value="{{ fila.orden }}">
-                                <input type="hidden" name="fila_anio" value="{{ fila.anio }}">
+                                {{ forloop.counter }}
+                                <input type="hidden" name="fila_indice" value="{{ fila.indice }}">
                             </td>
-                            <td>{{ fila.anio }}</td>
                             <td>
-                                <input type="text" class="form-control campo-documento campo-documento-ancho"
+                                <input type="number" class="form-control campo-documento"
+                                       name="fila_orden" min="1" step="1"
+                                       value="{{ fila.orden_num }}">
+                            </td>
+                            <td>
+                                <input type="number" class="form-control campo-documento {% if not fila.anio %}campo-faltante{% endif %}"
+                                       name="fila_anio" min="1" max="2100" step="1"
+                                       value="{{ fila.anio }}">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not fila.espacio %}campo-faltante{% endif %}"
                                        name="fila_espacio" value="{{ fila.espacio }}" required>
-                                {% if not fila.matcheada %}
-                                    <select class="form-select form-select-sm mt-1" name="fila_materia">
-                                        <option value="">— Elegir materia del plan —</option>
-                                        {% for materia in materias_plan %}
-                                            <option value="{{ materia.codigo_materia }}">
-                                                {{ materia.nombre_materia }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                {% else %}
-                                    <input type="hidden" name="fila_materia" value="{{ fila.materia_codigo }}">
-                                {% endif %}
+                                <select class="form-select form-select-sm mt-1" name="fila_materia">
+                                    {% if not fila.matcheada %}
+                                        <option value="{{ fila.materia_codigo }}" selected>
+                                            — Usar «{{ fila.espacio|default:"sin nombre" }}»{% if fila.materia_codigo %} (código {{ fila.materia_codigo }}){% endif %} y crear si falta —
+                                        </option>
+                                    {% endif %}
+                                    {% for materia in materias %}
+                                        <option value="{{ materia.codigo_materia }}"
+                                                {% if materia.codigo_materia == fila.materia_codigo %}selected{% endif %}>
+                                            {{ materia.codigo_materia }} — {{ materia.nombre_materia }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
                             </td>
                             <td>
-                                <input type="number" class="form-control campo-documento" name="fila_nota"
-                                       min="1" max="10" value="{% if fila.nota != None %}{{ fila.nota }}{% endif %}">
+                                <input type="number" class="form-control campo-documento {% if fila.nota == None %}campo-faltante{% endif %}"
+                                       name="fila_nota" min="1" max="10"
+                                       value="{% if fila.nota != None %}{{ fila.nota }}{% endif %}">
                             </td>
                             <td>
-                                <input type="date" class="form-control campo-documento" name="fila_fecha"
-                                       value="{{ fila.fecha_examen }}">
+                                <input type="date" class="form-control campo-documento {% if not fila.fecha_examen %}campo-faltante{% endif %}"
+                                       name="fila_fecha" value="{{ fila.fecha_examen }}">
                             </td>
                             <td>
-                                <input type="text" class="form-control campo-documento campo-documento-ancho" name="fila_tipo"
-                                       value="{{ fila.tipo }}">
+                                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not fila.tipo %}campo-faltante{% endif %}"
+                                       name="fila_tipo" value="{{ fila.tipo }}">
                             </td>
                             <td>
-                                <input type="text" class="form-control campo-documento campo-documento-ancho" name="fila_respaldo"
-                                       value="{{ fila.respaldo }}">
+                                <input type="text" class="form-control campo-documento campo-documento-ancho {% if not fila.respaldo %}campo-faltante{% endif %}"
+                                       name="fila_respaldo" value="{{ fila.respaldo }}">
                             </td>
                             <td>
-                                <input type="text" class="form-control campo-documento" name="fila_folio"
-                                       value="{{ fila.folio }}">
+                                <input type="text" class="form-control campo-documento"
+                                       value="{{ fila.folio }}" readonly tabindex="-1">
+                            </td>
+                            <td class="text-center">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio"
+                                           name="fila_requisito_{{ fila.indice }}"
+                                           id="requisito_si_{{ forloop.counter }}"
+                                           value="si"
+                                           {% if fila.es_requisito %}checked{% endif %}>
+                                    <label class="form-check-label" for="requisito_si_{{ forloop.counter }}">Sí</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio"
+                                           name="fila_requisito_{{ fila.indice }}"
+                                           id="requisito_no_{{ forloop.counter }}"
+                                           value="no"
+                                           {% if not fila.es_requisito %}checked{% endif %}>
+                                    <label class="form-check-label" for="requisito_no_{{ forloop.counter }}">No</label>
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}

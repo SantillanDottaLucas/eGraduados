@@ -554,6 +554,17 @@ class GraduadoExamen(models.Model):
         choices=ResultadoExamen.choices
     )
 
+    # Marcado manual por fila: la materia es requisito y no
+    # participa de los promedios. No depende del plan de estudios.
+    es_requisito = models.BooleanField(default=False)
+
+    # Año de cursado informado por el usuario o leído del Lincoln.
+    anio_cursado = models.IntegerField(null=True, blank=True)
+
+    # Orden manual del analítico: lo define el usuario en la
+    # previsualización y el documento lo respeta tal cual.
+    orden = models.IntegerField(null=True, blank=True)
+
     class Meta:
         db_table = "GRADUADO_EXAMEN"
         constraints = [

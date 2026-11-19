@@ -4,15 +4,17 @@ Cálculo de los promedios de un graduado para una carrera.
 Reglas acordadas:
 
 * **Con aplazo**: se promedian todas las notas de exámenes rendidos
-  (aprobados y reprobados), incluidas las materias requisito y las
-  equivalencias con nota. Los exámenes sin nota no se pueden
+  (aprobados y reprobados), excepto las equivalencias y las materias
+  marcadas como requisito. Los exámenes sin nota no se pueden
   promediar y se informan como advertencia.
 * **Sin aplazo (general)**: se promedian sólo los exámenes aprobados,
-  una única vez por materia, excluyendo las materias requisito del
-  plan vigente. Si una materia tiene más de una aprobación se usa la
-  más reciente (desempate: la nota mayor) y se advierte.
-* Las equivalencias con nota cuentan en ambos promedios. Las
-  equivalencias sin nota se excluyen con una advertencia.
+  una única vez por materia, excluyendo las equivalencias y las
+  materias marcadas como requisito. Si una materia tiene más de una
+  aprobación se usa la más reciente (desempate: la nota mayor) y se
+  advierte.
+* Las equivalencias nunca se promedian, tengan nota o no.
+* El requisito es un dato del examen (``es_requisito``), no del plan
+  de estudios. El plan no participa del cálculo.
 * Si no hay notas para promediar se devuelve ``None`` (nunca se
   divide por cero).
 
@@ -27,7 +29,6 @@ import unicodedata
 
 from academico.models import (
     GraduadoExamen,
-    PlanEstudiosMateria,
     ResultadoExamen,
 )
 
@@ -46,6 +47,7 @@ class ResultadoPromedios:
     advertencias: list = field(default_factory=list)
     duplicados: list = field(default_factory=list)
     equivalencias_sin_nota: list = field(default_factory=list)
+    equivalencias_excluidas: list = field(default_factory=list)
     examenes_sin_nota: int = 0
     detalle: dict = field(default_factory=dict)
 
@@ -76,53 +78,6 @@ def _normalizar_nombre(valor):
     texto = unicodedata.normalize("NFKD", str(valor or ""))
     texto = "".join(c for c in texto if not unicodedata.combining(c))
     return re.sub(r"[^a-z0-9]", "", texto.lower())
-
-
-def _plan_vigente(carrera):
-    """
-    Materias del plan vigente de la carrera, indexadas por código.
-
-    El plan vigente es el que indica ``Carrera.plan_vigente``. Si
-    todavía no se cargó (datos de prueba), se mantiene el criterio
-    histórico de tomar el primero por código para no romper la
-    instalación existente. Nunca se mezclan planes históricos.
-    """
-
-    consulta = PlanEstudiosMateria.objects.filter(
-        codigo_plan__codigo_carrera=carrera
-    )
-
-    plan_id = getattr(carrera, "plan_vigente_id", None)
-
-    if plan_id:
-        consulta = consulta.filter(codigo_plan_id=plan_id)
-
-    filas = (
-        consulta
-        .select_related("codigo_materia")
-        .order_by("codigo_plan_id")
-    )
-
-    return {
-        fila.codigo_materia_id: fila
-        for fila in filas
-    }
-
-
-def _fila_plan(plan, codigo, nombre, por_nombre):
-    """Busca la fila del plan por código y, si no, por nombre."""
-
-    fila = plan.get(codigo)
-
-    if fila is not None:
-        return fila
-
-    clave = _normalizar_nombre(nombre)
-
-    if clave:
-        return por_nombre.get(clave)
-
-    return None
 
 
 def _clave_fecha(examen):
@@ -164,17 +119,6 @@ def calcular_promedios(legajo, carrera, examenes=None):
     Si se omite, se leen los exámenes guardados.
     """
 
-    plan = _plan_vigente(carrera)
-    por_nombre = {}
-
-    for fila in plan.values():
-        clave = _normalizar_nombre(
-            getattr(fila.codigo_materia, "nombre_materia", "")
-        )
-
-        if clave:
-            por_nombre[clave] = fila
-
     if examenes is None:
         examenes = [
             {
@@ -187,6 +131,7 @@ def calcular_promedios(legajo, carrera, examenes=None):
                 "nombre_materia": (
                     fila.id_examen.codigo_materia.nombre_materia
                 ),
+                "es_requisito": fila.es_requisito,
             }
             for fila in (
                 GraduadoExamen.objects
@@ -210,10 +155,13 @@ def calcular_promedios(legajo, carrera, examenes=None):
         tipo = examen.get("tipo")
         resultado_examen = examen.get("resultado")
 
-        if nota is None:
-            resultado.examenes_sin_nota += 1
+        # Las equivalencias nunca se promedian (con o sin nota).
+        if _es_equivalencia(tipo):
+            resultado.equivalencias_excluidas.append(
+                codigo or _normalizar_nombre(nombre) or "sin código"
+            )
 
-            if _es_equivalencia(tipo):
+            if nota is None:
                 resultado.equivalencias_sin_nota.append(
                     codigo or "sin código"
                 )
@@ -225,22 +173,21 @@ def calcular_promedios(legajo, carrera, examenes=None):
 
             continue
 
+        # Las materias marcadas como requisito no participan de
+        # ningún promedio.
+        if examen.get("es_requisito"):
+            continue
+
+        if nota is None:
+            resultado.examenes_sin_nota += 1
+            continue
+
         notas_con_aplazo.append(nota)
 
         if not _es_aprobado(nota, resultado_examen):
             continue
 
-        fila_plan = _fila_plan(plan, codigo, nombre, por_nombre)
-
-        # Las materias requisito no forman parte del promedio general.
-        if fila_plan is not None and fila_plan.materia_requisito:
-            continue
-
-        clave_agrupacion = (
-            getattr(fila_plan, "codigo_materia_id", None)
-            or codigo
-            or _normalizar_nombre(nombre)
-        )
+        clave_agrupacion = codigo or _normalizar_nombre(nombre)
         aprobados_por_materia.setdefault(clave_agrupacion, []).append(examen)
 
     resultado.promedio_con_aplazo = _promedio(notas_con_aplazo)
@@ -302,6 +249,7 @@ def calcular_promedios(legajo, carrera, examenes=None):
             "materias": sorted(aprobados_por_materia),
         },
         "examenes_sin_nota": resultado.examenes_sin_nota,
+        "equivalencias_excluidas": resultado.equivalencias_excluidas,
     }
 
     return resultado
@@ -338,6 +286,7 @@ def promedios_desde_filas(filas, carrera):
             "fecha_examen": fila.get("fecha_examen"),
             "anio_cursado": fila.get("anio") or fila.get("anio_cursado"),
             "acta_respaldatoria": fila.get("acta_respaldatoria"),
+            "es_requisito": bool(fila.get("es_requisito")),
         })
 
     return calcular_promedios(None, carrera, examenes=examenes)

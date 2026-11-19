@@ -43,7 +43,6 @@ from .models import (
     Examen,
     Materia,
     OrigenPromedio,
-    PlanEstudiosMateria,
     Provincia,
     Resolucion,
     Secundario,
@@ -57,7 +56,7 @@ from .servicios.moduloAnalitico.generador import (
     contexto_analitico,
     render_docx,
     texto_resoluciones,
-    examenes_ordenados_por_anio,
+    examenes_ordenados,
 )
 from .servicios.moduloAnalitico.lector_lincoln import (
     ErrorLincoln,
@@ -460,25 +459,65 @@ def _validar_datos(datos_form):
     return datos, errores
 
 
-def _materias_plan(carrera):
-    """Materias del plan de la carrera (para el selector)."""
+def _materias_disponibles():
+    """
+    Catálogo completo de materias para el selector.
 
-    consulta = PlanEstudiosMateria.objects.filter(
-        codigo_plan__codigo_carrera=carrera
+    El plan de estudios no participa: cualquier materia cargada por
+    el usuario puede asignarse a una fila del analítico.
+    """
+
+    return list(Materia.objects.order_by("nombre_materia"))
+
+
+def _codigo_materia_generado(nombre):
+    """Código estable para una materia nueva leída del Lincoln."""
+
+    base = _slug(nombre) if nombre else "materia"
+    codigo = f"L-{base}"[:50]
+    sufijo = 2
+
+    while Materia.objects.filter(codigo_materia=codigo).exists():
+        codigo = f"L-{base}-{sufijo}"[:50]
+        sufijo += 1
+
+    return codigo
+
+
+def _resolver_materia(codigo, nombre):
+    """
+    Devuelve la materia del catálogo para una fila del Lincoln.
+
+    Busca por código y, si no, por nombre normalizado. Si no existe,
+    la crea con el código/nombre leídos del Lincoln. No se consulta
+    el plan de estudios y la validación no se bloquea por materias
+    nuevas.
+    """
+
+    codigo = _limpiar(codigo)
+    nombre = _limpiar(nombre)
+
+    if codigo:
+        materia = Materia.objects.filter(codigo_materia=codigo).first()
+
+        if materia is not None:
+            return materia
+
+    if nombre:
+        objetivo = _normalizar(nombre)
+
+        for materia in Materia.objects.all():
+            if _normalizar(materia.nombre_materia) == objetivo:
+                return materia
+
+    codigo_final = codigo or _codigo_materia_generado(nombre)
+
+    materia, _ = Materia.objects.get_or_create(
+        codigo_materia=codigo_final,
+        defaults={"nombre_materia": nombre or codigo_final},
     )
 
-    plan_id = getattr(carrera, "plan_vigente_id", None)
-
-    if plan_id:
-        consulta = consulta.filter(codigo_plan_id=plan_id)
-
-    ids = consulta.values_list("codigo_materia_id", flat=True)
-
-    return list(
-        Materia.objects
-        .filter(codigo_materia__in=ids)
-        .order_by("nombre_materia")
-    )
+    return materia
 
 
 def _guardar_resoluciones(carrera, datos):
@@ -630,11 +669,11 @@ def _preview_con_bd(request, tipo_documento, graduado, registro,
     )
 
     filas = [
-        {**fila, "matcheada": True}
-        for fila in contexto["filas"]
+        {**fila, "indice": indice, "matcheada": True}
+        for indice, fila in enumerate(contexto["filas"], start=1)
     ]
 
-    materias = _materias_plan(registro.codigo_carrera)
+    materias = _materias_disponibles()
     datos = _datos_precargados(graduado, registro)
 
     return render(
@@ -1002,10 +1041,10 @@ def titulo_en_tramite(request):
     )
 
 
-def _armar_filas(examenes, carrera):
-    """Arma las filas (y la lista de materias del plan)."""
+def _armar_filas(examenes, carrera=None):
+    """Arma las filas y el catálogo de materias para el selector."""
 
-    materias_plan = _materias_plan(carrera)
+    materias = _materias_disponibles()
 
     filas = []
 
@@ -1015,15 +1054,18 @@ def _armar_filas(examenes, carrera):
         if materia is None and examen.get("materia_codigo"):
             materia = next(
                 (
-                    m for m in materias_plan
+                    m for m in materias
                     if m.codigo_materia == examen["materia_codigo"]
                 ),
                 None,
             )
 
+        orden_num = examen.get("orden") or indice
+
         filas.append({
             "indice": indice,
-            "orden": f"{indice:02d}",
+            "orden": f"{orden_num:02d}",
+            "orden_num": orden_num,
             "anio": (
                 examen.get("anio") or examen.get("anio_cursado") or ""
             ),
@@ -1040,12 +1082,14 @@ def _armar_filas(examenes, carrera):
             "respaldo": examen.get("acta_respaldatoria", ""),
             "folio": _folio_de(examen.get("acta_respaldatoria", "")),
             "materia_codigo": (
-                materia.codigo_materia if materia else ""
+                materia.codigo_materia
+                if materia else examen.get("materia_codigo", "")
             ),
             "matcheada": bool(materia),
+            "es_requisito": bool(examen.get("es_requisito")),
         })
 
-    return filas, materias_plan
+    return filas, materias
 
 
 def _filas_para_mostrar(datos_session):
@@ -1091,6 +1135,85 @@ def _fecha_iso(valor):
     return valor or ""
 
 
+CAMPOS_REQUERIDOS_ETIQUETAS = (
+    ("nombre", "Nombre"),
+    ("apellido", "Apellido"),
+    ("dni", "DNI"),
+    ("legajo", "Legajo"),
+    ("anio_ingreso_uarg", "Año de ingreso a UARG"),
+    ("anio_ingreso_carrera", "Año de ingreso a la carrera"),
+    ("fecha_egreso_carrera", "Fecha de egreso de la carrera"),
+    ("fecha_nacimiento", "Fecha de nacimiento"),
+    ("anio_egreso_secundario", "Año de egreso del secundario"),
+    ("ciudad_nacimiento", "Ciudad de nacimiento"),
+    ("provincia_nacimiento", "Provincia de nacimiento"),
+    ("nombre_secundario", "Secundario"),
+    ("ciudad_secundario", "Ciudad del secundario"),
+    ("provincia_secundario", "Provincia del secundario"),
+    ("titulo_secundario", "Título secundario"),
+    ("titulo_otorgado", "Título a otorgar"),
+)
+
+CAMPOS_FILA_ETIQUETAS = (
+    ("anio", "Año"),
+    ("espacio", "Espacio curricular"),
+    ("nota", "Nota"),
+    ("fecha_examen", "Fecha"),
+    ("tipo", "Tipo"),
+    ("respaldo", "Acta respaldatoria"),
+)
+
+
+def _vacio(valor):
+    return valor is None or (
+        isinstance(valor, str) and not valor.strip()
+    )
+
+
+def _campos_faltantes(datos, filas):
+    """
+    Lista los campos vacíos que el usuario debe completar.
+
+    No usa mensajes flash: la previsualización muestra este resumen
+    y resalta las celdas correspondientes.
+    """
+
+    generales = [
+        etiqueta
+        for campo, etiqueta in CAMPOS_REQUERIDOS_ETIQUETAS
+        if _vacio(datos.get(campo))
+    ]
+
+    por_fila = []
+
+    for fila in filas:
+        faltantes = [
+            etiqueta
+            for campo, etiqueta in CAMPOS_FILA_ETIQUETAS
+            if _vacio(fila.get(campo))
+        ]
+
+        # Si hay acta pero no se pueden tomar los últimos 3 dígitos,
+        # el folio tampoco se puede generar.
+        if (
+            not _vacio(fila.get("respaldo"))
+            and fila.get("folio") in ("", "—")
+        ):
+            faltantes.append("Folio (revisar acta)")
+
+        if faltantes:
+            por_fila.append({
+                "orden": fila.get("orden_num") or fila.get("orden"),
+                "espacio": fila.get("espacio") or "Sin nombre",
+                "faltantes": faltantes,
+            })
+
+    return {
+        "generales": generales,
+        "filas": por_fila,
+    }
+
+
 def _contexto_preview(request, tipo_documento, datos, filas, materias,
                       validado, modo_db, advertencias=None,
                       promedios_calculados=None):
@@ -1119,42 +1242,19 @@ def _contexto_preview(request, tipo_documento, datos, filas, materias,
         else:
             datos_formulario[campo] = ""
 
-    # Aclaración cuando el Lincoln no coincide con el plan vigente.
-    # Las filas sin materia del plan se marcan para que el usuario
-    # seleccione la equivalente; se explica el motivo en pantalla.
-    sin_match = [
-        fila for fila in filas
-        if not fila.get("matcheada")
-    ]
-    aclaracion_plan = None
-
-    if sin_match:
-        nombres = ", ".join(
-            f"«{fila.get('espacio') or 'sin nombre'}»"
-            for fila in sin_match[:5]
-        )
-        if len(sin_match) > 5:
-            nombres += f" y {len(sin_match) - 5} más"
-
-        aclaracion_plan = (
-            f"{len(sin_match)} asignatura(s) del Lincoln no coinciden "
-            "con las materias del plan vigente de la carrera: "
-            f"{nombres}. Seleccioná la materia equivalente en cada fila "
-            "para poder validar el analítico. Si el plan de estudios "
-            "cambió con el tiempo, revisá cuál es el vigente desde "
-            "«Gestión Académica → Carreras»."
-        )
-
     return {
         "tipo_documento": tipo_documento,
         "vista": "preview",
         "datos": datos_formulario,
         "filas": filas,
-        "materias_plan": materias,
+        "materias": materias,
         "validado": validado,
         "modo_db": modo_db,
         "advertencias": advertencias or [],
-        "aclaracion_plan": aclaracion_plan,
+        "campos_faltantes": _campos_faltantes(
+            datos_formulario,
+            filas,
+        ),
         "promedios_calculados": promedios_calculados or {},
         "titulos": titulos,
         "provincias": [
@@ -1200,7 +1300,7 @@ def _continuar(request, tipo_documento):
             },
         )
 
-    materias = _materias_plan(carrera)
+    materias = _materias_disponibles()
 
     # --- Exámenes: del Lincoln subido o de la base.
     examenes = []
@@ -1236,7 +1336,10 @@ def _continuar(request, tipo_documento):
                 },
             )
 
-        for examen in lincoln["examenes"]:
+        for indice, examen in enumerate(
+            lincoln["examenes"],
+            start=1,
+        ):
             materia = matcheo_materia(examen, materias)
 
             examenes.append({
@@ -1251,34 +1354,12 @@ def _continuar(request, tipo_documento):
                 "anio_cursado": examen["anio_cursado"],
                 "materia": materia,
                 "materia_codigo": (
-                    materia.codigo_materia if materia else ""
+                    materia.codigo_materia
+                    if materia else examen["codigo_materia"]
                 ),
+                "es_requisito": False,
+                "orden": indice,
             })
-
-        if lincoln["descartados"]:
-            messages.warning(
-                request,
-                "Registros descartados del Lincoln: "
-                + ", ".join(lincoln["descartados"])
-                + ".",
-            )
-
-        sin_match = [
-            examen["nombre_materia"]
-            for examen in examenes
-            if examen.get("materia") is None
-        ]
-
-        if sin_match:
-            messages.warning(
-                request,
-                (
-                    "Algunas asignaturas del Lincoln no coinciden con el "
-                    "plan vigente de la carrera. Revisá la aclaración en "
-                    "la previsualización y seleccioná la materia "
-                    "equivalente en cada fila."
-                ),
-            )
 
     else:
         graduado_db = Graduado.objects.filter(
@@ -1290,7 +1371,7 @@ def _continuar(request, tipo_documento):
                 m.codigo_materia: m for m in materias
             }
 
-            for fila in examenes_ordenados_por_anio(graduado_db, carrera):
+            for fila in examenes_ordenados(graduado_db, carrera):
                 materia = materias_por_codigo.get(fila["materia_codigo"])
 
                 examenes.append({
@@ -1299,11 +1380,14 @@ def _continuar(request, tipo_documento):
                     "nota": fila["nota"],
                     "tipo": fila["tipo"],
                     "acta_respaldatoria": fila["respaldo"],
-                    "anio_cursado": None,
+                    "anio_cursado": fila["anio"] or None,
                     "materia": materia,
                     "materia_codigo": (
-                        materia.codigo_materia if materia else ""
+                        materia.codigo_materia
+                        if materia else fila["materia_codigo"]
                     ),
+                    "es_requisito": fila.get("es_requisito", False),
+                    "orden": fila.get("orden_num"),
                 })
 
     if not examenes:
@@ -1375,6 +1459,8 @@ def _continuar(request, tipo_documento):
                 "acta_respaldatoria": examen["acta_respaldatoria"],
                 "anio_cursado": examen.get("anio_cursado"),
                 "materia_codigo": examen.get("materia_codigo") or "",
+                "es_requisito": examen.get("es_requisito", False),
+                "orden": examen.get("orden"),
             }
             for examen in examenes
         ],
@@ -1410,6 +1496,47 @@ def _continuar(request, tipo_documento):
     return redirect(destino)
 
 
+def _entero_o_none(valor):
+    texto = _limpiar(valor)
+
+    if not texto:
+        return None
+
+    try:
+        return int(float(texto))
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalizar_orden(filas):
+    """
+    Ordena las filas según el orden manual ingresado por el usuario.
+
+    No se usa el plan, el año ni la fecha: sólo el número que el
+    usuario escribió en la columna «Orden». Las filas sin orden van
+    al final y después se renumera 1..N para que el documento quede
+    prolijo.
+    """
+
+    ordenadas = sorted(
+        enumerate(filas),
+        key=lambda par: (
+            par[1].get("orden_num") is None,
+            par[1].get("orden_num") or 0,
+            par[0],
+        ),
+    )
+
+    resultado = []
+
+    for posicion, (_, fila) in enumerate(ordenadas, start=1):
+        fila["orden_num"] = posicion
+        fila["orden"] = f"{posicion:02d}"
+        resultado.append(fila)
+
+    return resultado
+
+
 def _filas_desde_post(request):
     indices = request.POST.getlist("fila_indice")
     espacios = request.POST.getlist("fila_espacio")
@@ -1419,6 +1546,7 @@ def _filas_desde_post(request):
     actas = request.POST.getlist("fila_respaldo")
     anios = request.POST.getlist("fila_anio")
     codigos = request.POST.getlist("fila_materia")
+    ordenes = request.POST.getlist("fila_orden")
 
     filas = []
 
@@ -1430,8 +1558,19 @@ def _filas_desde_post(request):
         except ValueError:
             nota = None
 
+        clave = indices[i].strip() or str(i + 1)
+
+        orden_txt = ordenes[i].strip() if i < len(ordenes) else ""
+        orden_num = _entero_o_none(orden_txt)
+
+        requisito = request.POST.get(
+            f"fila_requisito_{clave}"
+        ) in ("si", "on", "1", "true")
+
         filas.append({
-            "orden": indices[i],
+            "indice": clave,
+            "orden": f"{orden_num:02d}" if orden_num else "",
+            "orden_num": orden_num,
             "espacio": espacios[i].strip(),
             "nota": nota,
             "nota_txt": nota_txt,
@@ -1439,10 +1578,12 @@ def _filas_desde_post(request):
             "tipo": tipos[i].strip() or "Examen",
             "acta_respaldatoria": actas[i].strip(),
             "anio": anios[i].strip(),
+            "anio_cursado": _entero_o_none(anios[i]),
             "materia_codigo": codigos[i].strip(),
+            "es_requisito": requisito,
         })
 
-    return filas
+    return _normalizar_orden(filas)
 
 
 # ==================================================
@@ -1603,6 +1744,8 @@ def _recalcular(request, tipo_documento):
     Recalcula los promedios desde los exámenes de la previsualización
     y los vuelve a mostrar. Vuelve al valor calculado aunque el
     usuario hubiera editado un promedio a mano.
+
+    No crea materias: la creación automática ocurre al validar.
     """
 
     datos, errores = _validar_datos(request.POST)
@@ -1612,10 +1755,8 @@ def _recalcular(request, tipo_documento):
         codigo_carrera=datos["carrera"]
     ).first()
 
-    materias_plan = (
-        _materias_plan(carrera) if carrera is not None else []
-    )
-    por_codigo = {m.codigo_materia: m for m in materias_plan}
+    materias = _materias_disponibles()
+    por_codigo = {m.codigo_materia: m for m in materias}
 
     for fila in filas:
         materia = por_codigo.get(fila["materia_codigo"])
@@ -1624,7 +1765,7 @@ def _recalcular(request, tipo_documento):
             nombre = _normalizar(fila["espacio"])
             materia = next(
                 (
-                    m for m in materias_plan
+                    m for m in materias
                     if _normalizar(m.nombre_materia) == nombre
                 ),
                 None,
@@ -1632,6 +1773,7 @@ def _recalcular(request, tipo_documento):
 
         if materia is not None:
             fila["materia_codigo"] = materia.codigo_materia
+            fila["espacio"] = materia.nombre_materia
 
         fila["matcheada"] = materia is not None
 
@@ -1648,7 +1790,7 @@ def _recalcular(request, tipo_documento):
                     tipo_documento,
                     datos,
                     filas,
-                    materias_plan,
+                    materias,
                     validado=False,
                     modo_db=False,
                 ),
@@ -1669,7 +1811,7 @@ def _recalcular(request, tipo_documento):
             tipo_documento,
             datos,
             filas,
-            materias_plan,
+            materias,
             validado=False,
             modo_db=False,
             advertencias=calculado.advertencias,
@@ -1690,65 +1832,53 @@ def _validar(request, tipo_documento):
 
     errores = list(errores)
 
-    # El analítico se genera con los espacios en blanco
-    # que falten: no se exige acta ni nota por fila.
+    # El analítico se genera con los espacios en blanco que falten:
+    # no se exige acta ni nota por fila ni que la materia exista en
+    # el catálogo. Si no existe, se crea automáticamente al validar.
     carrera_obj = Carrera.objects.filter(
         codigo_carrera=datos["carrera"]
     ).first()
 
-    materias_plan = (
-        _materias_plan(carrera_obj)
-        if carrera_obj is not None
-        else []
-    )
+    if carrera_obj is None:
+        errores.append("La carrera elegida no existe.")
 
-    por_codigo = {m.codigo_materia: m for m in materias_plan}
+    materias = _materias_disponibles()
+    por_codigo = {m.codigo_materia: m for m in materias}
 
-    sin_match = []
+    # Resolver contra el catálogo por código y, si no, por nombre.
+    # No se crea nada todavía: si hay errores, no se ensucia la base
+    # con materias nuevas.
+    for fila in filas:
+        materia = por_codigo.get(fila["materia_codigo"])
 
-    for i, fila in enumerate(filas):
-        if fila["materia_codigo"] not in por_codigo:
-            # Intentar re-matcheo por nombre contra el plan.
+        if materia is None:
             nombre = _normalizar(fila["espacio"])
-            match = next(
+            materia = next(
                 (
-                    m for m in materias_plan
+                    m for m in materias
                     if _normalizar(m.nombre_materia) == nombre
                 ),
                 None,
             )
 
-            if match is not None:
-                fila["materia_codigo"] = match.codigo_materia
-            else:
-                sin_match.append(f"«{fila['espacio']}»")
+        if materia is not None:
+            fila["materia_codigo"] = materia.codigo_materia
+            fila["espacio"] = materia.nombre_materia
+            fila["matcheada"] = True
+        else:
+            # Se creará al validar con el código/nombre del Lincoln.
+            fila["matcheada"] = False
 
-    if errores or sin_match:
+    if errores:
         for error in errores:
             messages.error(request, error)
-
-        if sin_match:
-            messages.error(
-                request,
-                "Asigná una materia del plan a: "
-                + ", ".join(sin_match)
-                + ".",
-            )
-
-        carrera_obj = Carrera.objects.filter(
-            codigo_carrera=datos["carrera"]
-        ).first()
-
-        for fila in filas:
-            materia = por_codigo.get(fila["materia_codigo"])
-            fila["matcheada"] = bool(materia)
 
         contexto = _contexto_preview(
             request,
             tipo_documento,
             datos,
             filas,
-            materias_plan,
+            materias,
             validado=False,
             modo_db=False,
         )
@@ -1760,7 +1890,7 @@ def _validar(request, tipo_documento):
             contexto,
         )
 
-    carrera = Carrera.objects.get(codigo_carrera=datos["carrera"])
+    carrera = carrera_obj
 
     # El DNI no puede pertenecer a otro legajo: se avisa antes de
     # intentar guardar (evita un IntegrityError).
@@ -1782,7 +1912,7 @@ def _validar(request, tipo_documento):
             tipo_documento,
             datos,
             filas,
-            materias_plan,
+            materias,
             validado=False,
             modo_db=False,
         )
@@ -1901,6 +2031,22 @@ def _validar(request, tipo_documento):
 
         _guardar_resoluciones(carrera, datos)
 
+        # --- Materias del Lincoln que no estaban en el catálogo:
+        # se crean con el código/nombre leídos. El plan de estudios
+        # no interviene.
+        for fila in filas:
+            materia = por_codigo.get(fila["materia_codigo"])
+
+            if materia is None:
+                materia = _resolver_materia(
+                    fila["materia_codigo"],
+                    fila["espacio"],
+                )
+                por_codigo[materia.codigo_materia] = materia
+                fila["materia_codigo"] = materia.codigo_materia
+
+            fila["materia_obj"] = materia
+
         # --- Exámenes: reemplazar los del graduado para
         # esta carrera (no tocar las otras carreras).
         GraduadoExamen.objects.filter(
@@ -1909,7 +2055,7 @@ def _validar(request, tipo_documento):
         ).delete()
 
         for fila in filas:
-            materia = por_codigo[fila["materia_codigo"]]
+            materia = fila["materia_obj"]
 
             fecha = (
                 date.fromisoformat(fila["fecha_examen"])
@@ -1951,6 +2097,9 @@ def _validar(request, tipo_documento):
                 defaults={
                     "nota": fila["nota"],
                     "resultado": resultado,
+                    "es_requisito": fila["es_requisito"],
+                    "anio_cursado": fila["anio_cursado"],
+                    "orden": fila["orden_num"],
                 },
             )
 

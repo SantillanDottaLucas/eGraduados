@@ -1261,7 +1261,9 @@ class GeneracionAnaliticosTest(BasePrueba):
         )
         self.assertGreater(len(respuesta.content), 1000)
 
-    def test_validar_rechaza_materias_sin_match(self):
+    def test_validar_crea_materia_faltante(self):
+        from academico.models import GraduadoExamen, Materia
+
         self.iniciar_sesion(self.admin)
 
         url = reverse("generacion_analiticos")
@@ -1269,19 +1271,95 @@ class GeneracionAnaliticosTest(BasePrueba):
         payload = dict(self._form_base())
         payload["accion"] = "validar"
         payload["fila_indice"] = ["01"]
+        payload["fila_orden"] = ["1"]
         payload["fila_anio"] = ["1"]
         payload["fila_espacio"] = ["Materia Inexistente"]
         payload["fila_nota"] = ["7"]
         payload["fila_fecha"] = ["2023-03-01"]
         payload["fila_tipo"] = ["Final"]
         payload["fila_respaldo"] = ["RG00000001"]
-        payload["fila_folio"] = ["001"]
         payload["fila_materia"] = ["9999"]
 
         respuesta = self.client.post(url, payload)
 
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "Asigná una materia del plan")
+        # El plan no bloquea: la materia se crea desde el Lincoln.
+        self.assertEqual(respuesta.status_code, 302)
+
+        materia = Materia.objects.get(codigo_materia="9999")
+        self.assertEqual(materia.nombre_materia, "Materia Inexistente")
+
+        self.assertTrue(
+            GraduadoExamen.objects.filter(
+                id_examen__codigo_materia=materia,
+            ).exists()
+        )
+
+    def test_validar_guarda_orden_y_requisito(self):
+        from academico.models import GraduadoExamen
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+
+        payload = dict(self._form_base())
+        payload["accion"] = "validar"
+        payload["fila_indice"] = ["1", "2"]
+        payload["fila_orden"] = ["2", "1"]
+        payload["fila_anio"] = ["2020", "2021"]
+        payload["fila_espacio"] = ["Materia Uno", "Materia Dos"]
+        payload["fila_nota"] = ["7", "10"]
+        payload["fila_fecha"] = ["2023-03-01", "2021-12-16"]
+        payload["fila_tipo"] = ["Final", "Final"]
+        payload["fila_respaldo"] = ["RG00000001", "RG00000002"]
+        payload["fila_materia"] = ["9001", "9002"]
+        payload["fila_requisito_1"] = ["si"]
+        payload["fila_requisito_2"] = ["no"]
+
+        respuesta = self.client.post(url, payload)
+
+        self.assertEqual(respuesta.status_code, 302)
+
+        filas = list(
+            GraduadoExamen.objects.order_by("orden")
+        )
+
+        # El orden manual se respeta: «Materia Dos» quedó primera.
+        self.assertEqual(
+            [fila.id_examen.codigo_materia.codigo_materia for fila in filas],
+            ["9002", "9001"],
+        )
+        self.assertEqual([fila.orden for fila in filas], [1, 2])
+
+        requisito = GraduadoExamen.objects.get(
+            id_examen__codigo_materia=self.materia1
+        )
+        self.assertTrue(requisito.es_requisito)
+        self.assertEqual(requisito.anio_cursado, 2020)
+
+    def test_lincoln_no_genera_mensajes_al_continuar(self):
+        from django.contrib.messages import get_messages
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+
+        archivo = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+        payload = dict(self._form_base())
+        payload["accion"] = "continuar"
+        payload["archivo_notas"] = archivo
+
+        respuesta = self.client.post(url, payload)
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(list(get_messages(respuesta.wsgi_request)), [])
 
     def test_ya_existe_el_graduado_ofrece_opciones(self):
         graduado = Graduado.objects.create(
@@ -1514,7 +1592,8 @@ class PromediosServicioTest(BasePrueba):
             )
             self.materias[codigo] = materia
 
-    def _examen(self, codigo, nota, fecha=None, tipo="Examen"):
+    def _examen(self, codigo, nota, fecha=None, tipo="Examen",
+                es_requisito=False):
         return {
             "nota": nota,
             "materia_codigo": codigo,
@@ -1525,9 +1604,10 @@ class PromediosServicioTest(BasePrueba):
             "tipo": tipo,
             "fecha_examen": fecha,
             "acta_respaldatoria": "",
+            "es_requisito": es_requisito,
         }
 
-    def test_con_aplazo_incluye_reprobados_y_requisitos(self):
+    def test_requisito_se_excluye_de_ambos_promedios(self):
         resultado = calcular_promedios(
             None,
             self.carrera,
@@ -1535,15 +1615,32 @@ class PromediosServicioTest(BasePrueba):
                 self._examen("P001", 4, date(2023, 1, 1)),
                 self._examen("P001", 8, date(2024, 1, 1)),
                 self._examen("P002", 10, date(2024, 2, 1)),
-                self._examen("P003", 7, date(2024, 3, 1)),
+                self._examen(
+                    "P003", 7, date(2024, 3, 1), es_requisito=True
+                ),
             ],
         )
 
-        # (4 + 8 + 10 + 7) / 4
-        self.assertEqual(resultado.promedio_con_aplazo, 7.25)
-        # Sin aplazo: 8 (la más reciente de P001) y 10; el
-        # requisito P003 no participa.
+        # (4 + 8 + 10) / 3 = 7.33: el requisito P003 no participa.
+        self.assertEqual(resultado.promedio_con_aplazo, 7.33)
+        # Sin aplazo: 8 (la más reciente de P001) y 10.
         self.assertEqual(resultado.promedio_sin_aplazo, 9.0)
+
+    def test_equivalencia_con_nota_no_se_promedia(self):
+        resultado = calcular_promedios(
+            None,
+            self.carrera,
+            examenes=[
+                self._examen("P001", 8, date(2024, 1, 1)),
+                self._examen(
+                    "P004", 10, date(2024, 1, 1), "Equivalencia"
+                ),
+            ],
+        )
+
+        self.assertEqual(resultado.promedio_con_aplazo, 8.0)
+        self.assertEqual(resultado.promedio_sin_aplazo, 8.0)
+        self.assertEqual(resultado.equivalencias_excluidas, ["P004"])
 
     def test_duplicado_usa_la_mas_reciente_y_avisa(self):
         resultado = calcular_promedios(
@@ -1610,21 +1707,19 @@ class PromediosServicioTest(BasePrueba):
         self.assertIsNone(resultado.promedio_con_aplazo)
         self.assertIsNone(resultado.promedio_sin_aplazo)
 
-    def test_solo_requisitos_deja_sin_aplazo_nulo(self):
+    def test_solo_requisitos_deja_ambos_promedios_nulos(self):
         resultado = calcular_promedios(
             None,
             self.carrera,
-            examenes=[self._examen("P003", 7, date(2024, 1, 1))],
+            examenes=[
+                self._examen(
+                    "P003", 7, date(2024, 1, 1), es_requisito=True
+                )
+            ],
         )
 
-        self.assertEqual(resultado.promedio_con_aplazo, 7.0)
+        self.assertIsNone(resultado.promedio_con_aplazo)
         self.assertIsNone(resultado.promedio_sin_aplazo)
-        self.assertTrue(
-            any(
-                "sin aplazo" in aviso
-                for aviso in resultado.advertencias
-            )
-        )
 
 
 class TipoExamenLegibleTest(TestCase):

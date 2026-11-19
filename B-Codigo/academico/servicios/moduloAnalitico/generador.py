@@ -18,8 +18,6 @@ from academico.models import (
     Graduado,
     GraduadoCarrera,
     GraduadoExamen,
-    Materia,
-    PlanEstudiosMateria,
     Resolucion,
     Secundario,
     Titulo,
@@ -122,12 +120,13 @@ def texto_resoluciones(agrupadas):
     )
 
 
-def examenes_ordenados_por_anio(graduado, carrera):
+def examenes_ordenados(graduado, carrera):
     """
-    Exámenes con año y orden derivados del plan de la carrera:
-    cada materia se ubica según su posición en el cronograma
-    (año, cuatrimestre, orden); las materias ajenas al plan van
-    al final.
+    Exámenes en el orden manual definido por el usuario.
+
+    El orden se guarda en ``GraduadoExamen.orden``. Si una fila no
+    tiene orden (datos viejos), va al final. El plan de estudios no
+    participa: no se reordena por año, cuatrimestre ni fecha.
     """
 
     examenes = (
@@ -142,63 +141,14 @@ def examenes_ordenados_por_anio(graduado, carrera):
         )
     )
 
-    posicion = {}
-
-    consulta_plan = PlanEstudiosMateria.objects.filter(
-        codigo_plan__codigo_carrera=carrera
+    ordenados = sorted(
+        examenes,
+        key=lambda fila: (
+            fila.orden is None,
+            fila.orden if fila.orden is not None else 0,
+            fila.id_graduado_examen,
+        ),
     )
-
-    plan_id = getattr(carrera, "plan_vigente_id", None)
-
-    if plan_id:
-        consulta_plan = consulta_plan.filter(codigo_plan_id=plan_id)
-
-    plan_materias = consulta_plan.select_related(
-        "codigo_materia", "id_grupo_optativo"
-    )
-
-    ubicaciones_grupo = {}
-
-    for fila in plan_materias:
-        if fila.id_grupo_optativo_id:
-            continue
-
-        posicion[fila.codigo_materia_id] = (
-            fila.anio_materia or 99,
-            fila.cuatrimestre_materia or "zz",
-            fila.orden_materia or 99,
-        )
-
-    from academico.models import PlanEstudiosGrupoOptativo
-
-    ubicaciones_grupo = {
-        (u.codigo_plan_id, u.id_grupo_optativo_id): (
-            u.anio_materia,
-            u.cuatrimestre_materia,
-            u.orden_materia,
-        )
-        for u in PlanEstudiosGrupoOptativo.objects.filter(
-            codigo_plan__codigo_carrera=carrera,
-            **({"codigo_plan_id": plan_id} if plan_id else {}),
-        )
-    }
-
-    for fila in plan_materias:
-        if fila.id_grupo_optativo_id:
-            plan = fila.codigo_plan_id
-            grupo = fila.id_grupo_optativo_id
-            posicion[fila.codigo_materia_id] = (
-                ubicaciones_grupo.get(
-                    (plan, grupo),
-                    (99, "zz", 99),
-                )
-            )
-
-    def _clave(fila_examen):
-        materia = fila_examen.id_examen.codigo_materia
-        return posicion.get(materia.codigo_materia, (99, "zz", 99))
-
-    ordenados = sorted(examenes, key=_clave)
 
     filas = []
 
@@ -220,14 +170,15 @@ def examenes_ordenados_por_anio(graduado, carrera):
         else:
             nota_txt = nota_a_letras(examen.nota)
 
+        anio = examen.anio_cursado
+
+        if anio is None and exam.fecha_examen is not None:
+            anio = exam.fecha_examen.year
+
         filas.append({
             "orden": f"{indice:02d}",
-            "anio": (
-                f"{posicion[materia.codigo_materia][0]}º"
-                if materia.codigo_materia in posicion
-                and posicion[materia.codigo_materia][0] != 99
-                else ""
-            ),
+            "orden_num": indice,
+            "anio": anio if anio is not None else "",
             "espacio": materia.nombre_materia,
             "nota": examen.nota,
             "nota_txt": (
@@ -247,6 +198,7 @@ def examenes_ordenados_por_anio(graduado, carrera):
             "folio": folio,
             "materia_codigo": materia.codigo_materia,
             "nota_valor": examen.nota,
+            "es_requisito": examen.es_requisito,
         })
 
     return filas
@@ -299,7 +251,7 @@ def contexto_analitico(graduado, carrera, tipo_documento):
         registro.promedio_sin_aplazo if registro else None
     )
 
-    filas = examenes_ordenados_por_anio(graduado, carrera)
+    filas = examenes_ordenados(graduado, carrera)
 
     fecha_ingreso_universidad = graduado.fecha_ingreso_universidad
 
