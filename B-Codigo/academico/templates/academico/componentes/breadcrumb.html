@@ -1,0 +1,17 @@
+{% if ruta_migas %}
+    <nav class="app-breadcrumb" aria-label="Ruta de navegación">
+        <ol class="breadcrumb">
+            {% for migas in ruta_migas %}
+                {% if forloop.last %}
+                    <li class="breadcrumb-item active" aria-current="page">
+                        {{ migas.etiqueta }}
+                    </li>
+                {% else %}
+                    <li class="breadcrumb-item">
+                        <a href="{{ migas.url }}">{{ migas.etiqueta }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+{% endif %}

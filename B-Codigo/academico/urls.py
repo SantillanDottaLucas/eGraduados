@@ -27,6 +27,11 @@ urlpatterns = [
         views.exportar_graduados,
         name="exportar_graduados",
     ),    
+    path(
+        "graduados/<path:legajo>/eliminar/",
+        views.eliminar_graduado,
+        name="eliminar_graduado",
+    ),
     re_path(
         r'^graduados/(?P<legajo>.+)/(?P<carrera>[^/]+)/editar/$',
         views_gestion.editar_graduado,

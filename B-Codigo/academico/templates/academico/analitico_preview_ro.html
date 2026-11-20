@@ -4,132 +4,6 @@
 {% block title %}Título en trámite | eGraduados{% endblock %}
 
 {% block styles %}
-<style>
-    .tramite-ro-page {
-        --uarg-blue: #14532d;
-        --uarg-blue-light: #eef7ee;
-        --uarg-border: #dce4ed;
-        max-width: 980px;
-        margin: 2rem auto 4rem;
-        padding: 0 1rem;
-    }
-
-    .tramite-ro-header {
-        padding: 1.5rem 2rem;
-        margin-bottom: 1.5rem;
-        color: #fff;
-        background: linear-gradient(125deg, #14532d, #1f6b43);
-        border-radius: 18px;
-    }
-
-    .tramite-ro-header .tramite-ro-eyebrow {
-        margin-bottom: .45rem;
-        color: #cdeed4;
-        font-size: .78rem;
-        font-weight: 700;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-    }
-
-    .tramite-ro-header h1 {
-        margin: 0 0 .3rem;
-        font-size: clamp(1.5rem, 3vw, 2rem);
-        font-weight: 750;
-    }
-
-    .tramite-ro-header p { margin: 0; color: #e6f5ec; line-height: 1.6; max-width: 700px; }
-
-    .documento-ro {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: .82rem;
-        padding: 1.5rem;
-        background: #fff;
-        border: 1px solid var(--uarg-border);
-        border-radius: 16px;
-    }
-
-    .documento-ro h3 {
-        font-size: .95rem;
-        color: var(--uarg-blue);
-        border-bottom: 1px solid #e9eef4;
-        padding-bottom: .4rem;
-        margin-bottom: .9rem;
-    }
-
-    .documento-ro .ro-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: .5rem 1.25rem;
-        margin-bottom: 1rem;
-    }
-
-    .documento-ro .ro-label {
-        color: #66758a;
-        font-size: .72rem;
-        text-transform: uppercase;
-        letter-spacing: .03em;
-    }
-
-    .documento-ro .ro-valor {
-        font-size: .82rem;
-        color: #243b53;
-        font-weight: 600;
-    }
-
-    .documento-ro .ro-full { grid-column: span 4; }
-    .ro-two { grid-column: span 2; }
-    .ro-table-wrap {
-        overflow-x: auto;
-        margin-bottom: 1rem;
-    }
-
-    .documento-ro table { width: 100%; border-collapse: collapse; font-size: .76rem; }
-
-    .documento-ro th {
-        background: var(--uarg-blue-light);
-        color: #14532d;
-        padding: .38rem .6rem;
-        text-align: left;
-        font-size: .68rem;
-        text-transform: uppercase;
-        letter-spacing: .03em;
-    }
-
-    .documento-ro td {
-        padding: .32rem .6rem;
-        border-top: 1px solid #eef1f5;
-    }
-
-    .ro-empty {
-        padding: 2rem 1rem;
-        text-align: center;
-        color: #66758a;
-        font-style: italic;
-    }
-
-    .ro-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: .75rem;
-        margin-top: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .ro-actions .btn-primary {
-        background: #14532d;
-        border-color: #14532d;
-        min-height: 46px;
-        padding: 0 1.4rem;
-        font-weight: 700;
-    }
-
-    .ro-actions .btn-primary:hover { background: #0f3d22; border-color: #0f3d22; }
-
-    @media (max-width: 767.98px) {
-        .documento-ro .ro-grid { grid-template-columns: repeat(2, 1fr); }
-        .ro-full { grid-column: span 2; }
-    }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -285,7 +159,8 @@
 
     <div class="ro-actions">
         <a href="{% url 'titulo_en_tramite' %}" class="btn btn-outline-secondary">
-            ← Buscar otro
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+            Buscar otro
         </a>
 
         <form method="post" action="{% url 'titulo_en_tramite' %}" style="display:inline;">
@@ -295,11 +170,13 @@
             {% if validado %}
                 <button type="submit" name="accion" value="descargar"
                         class="btn btn-success btn-lg px-4">
+                    <i class="bi bi-download" aria-hidden="true"></i>
                     Descargar Título en trámite (.docx)
                 </button>
             {% else %}
                 <button type="submit" name="accion" value="generar"
                         class="btn btn-primary btn-lg px-4">
+                    <i class="bi bi-file-earmark-check" aria-hidden="true"></i>
                     Generar Título en trámite
                 </button>
             {% endif %}

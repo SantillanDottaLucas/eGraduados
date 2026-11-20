@@ -95,8 +95,8 @@ document.addEventListener("DOMContentLoaded", function () {
       tipo: "bar",
       maximo: 10,
       decimales: 2,
-      color: "rgba(36, 92, 166, 0.75)",
-      borde: "rgba(36, 92, 166, 1)",
+      color: "rgba(18, 62, 99, 0.78)",
+      borde: "rgba(18, 62, 99, 1)",
     },
     "datos-totales": {
       titulo: "Cantidad de graduados",
@@ -104,8 +104,8 @@ document.addEventListener("DOMContentLoaded", function () {
       ejeY: "Cantidad de graduados",
       tipo: "bar",
       decimales: 0,
-      color: "rgba(25, 115, 75, 0.75)",
-      borde: "rgba(25, 115, 75, 1)",
+      color: "rgba(31, 138, 112, 0.78)",
+      borde: "rgba(31, 138, 112, 1)",
     },
     "datos-tiempos": {
       titulo: "Tiempo de graduación",
@@ -114,8 +114,8 @@ document.addEventListener("DOMContentLoaded", function () {
       tipo: "bar",
       decimales: 2,
       sufijo: " años",
-      color: "rgba(113, 66, 166, 0.75)",
-      borde: "rgba(113, 66, 166, 1)",
+      color: "rgba(183, 121, 31, 0.78)",
+      borde: "rgba(183, 121, 31, 1)",
     },
     "datos-anios": {
       titulo: "Graduados por año",

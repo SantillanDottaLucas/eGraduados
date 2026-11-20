@@ -1,0 +1,50 @@
+<div class="mb-3 resoluciones-repetibles"
+     data-nombre="{{ campo }}"
+     data-requeridas="{% if requerido %}1{% else %}0{% endif %}">
+    <label class="form-label">
+        {{ etiqueta }}
+        {% if requerido %}<span class="text-danger">*</span>{% endif %}
+    </label>
+
+    <div class="resoluciones-items">
+        {% for valor in valores %}
+            <div class="input-group input-group-sm mb-2 resolucion-item">
+                <input type="text"
+                       class="form-control resolucion-input {{ input_clase|default:'' }}"
+                       name="{{ campo }}"
+                       value="{{ valor }}"
+                       placeholder="{{ placeholder|default:'' }}"
+                       {% if forloop.first and requerido %}required{% endif %}>
+                <button type="button"
+                        class="btn btn-outline-danger resolucion-quitar"
+                        title="Quitar esta resolución"
+                        aria-label="Quitar esta resolución">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+        {% empty %}
+            <div class="input-group input-group-sm mb-2 resolucion-item">
+                <input type="text"
+                       class="form-control resolucion-input {{ input_clase|default:'' }}"
+                       name="{{ campo }}"
+                       placeholder="{{ placeholder|default:'' }}"
+                       {% if requerido %}required{% endif %}>
+                <button type="button"
+                        class="btn btn-outline-danger resolucion-quitar"
+                        title="Quitar esta resolución"
+                        aria-label="Quitar esta resolución">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+        {% endfor %}
+    </div>
+
+    <button type="button" class="btn btn-sm btn-outline-primary resolucion-agregar">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        Agregar otra
+    </button>
+
+    {% if ayuda %}
+        <div class="form-text">{{ ayuda }}</div>
+    {% endif %}
+</div>

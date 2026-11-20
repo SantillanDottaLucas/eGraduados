@@ -3,27 +3,16 @@
 {% block title %}Roles | eGraduados{% endblock %}
 
 {% block content %}
-<style>
-    .abm-pagina { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem 3rem; }
-    .abm-encabezado { padding: 2rem; margin-bottom: 1.5rem; color: #fff; background: linear-gradient(125deg, #173b67, #2d6596); border-radius: 18px; }
-    .abm-encabezado h1 { margin: 0 0 .4rem; font-size: 1.7rem; font-weight: 700; }
-    .abm-encabezado p { margin: 0; opacity: .9; }
-    .abm-enlaces { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
-    .abm-panel { padding: 1.5rem; margin-bottom: 1.5rem; background: #fff; border: 1px solid #e5eaf0; border-radius: 16px; box-shadow: 0 4px 14px rgba(25,45,70,.05); }
-    .abm-panel h2 { margin-bottom: 1.1rem; color: #243b53; font-size: 1.15rem; font-weight: 700; }
-    .abm-tabla { border: 1px solid #e5eaf0; border-radius: 16px; overflow: hidden; background: #fff; }
-    .abm-tabla-titulo { padding: 1.1rem 1.5rem; border-bottom: 1px solid #e5eaf0; font-weight: 700; color: #243b53; }
-</style>
 
 <div class="abm-pagina">
-    <header class="abm-encabezado">
-        <h1>Administración de roles</h1>
-        <p>Creá y administrá los roles del sistema y sus permisos de administración.</p>
-        <div class="abm-enlaces">
-            <a href="{% url 'abm_usuarios' %}" class="btn btn-outline-light btn-sm">Ir a usuarios</a>
-            <a href="{% url 'index' %}" class="btn btn-outline-light btn-sm">Volver al panel</a>
-        </div>
-    </header>
+    {% include "academico/componentes/page_header.html" with titulo="Administración de roles" descripcion="Creá y administrá los roles del sistema y sus permisos de administración." volver=1 %}
+
+    <div class="abm-enlaces mb-3">
+        <a href="{% url 'abm_usuarios' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-person-gear" aria-hidden="true"></i>
+            Administrar usuarios
+        </a>
+    </div>
 
     <section class="abm-panel">
         <h2>{% if rol_editar %}Editar rol: {{ rol_editar.nombre_rol }}{% else %}Nuevo rol{% endif %}</h2>

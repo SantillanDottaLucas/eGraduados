@@ -4,162 +4,6 @@
 {% block title %}{% if tipo_documento == 'en_tramite' %}Generador de título en trámite{% else %}Generador de analíticos{% endif %} | eGraduados{% endblock %}
 
 {% block styles %}
-<style>
-    .analitico-page {
-        --uarg-blue: #173b67;
-        --uarg-blue-light: #eaf1f8;
-        --uarg-border: #dce4ed;
-        --uarg-muted: #66758a;
-        max-width: 1120px;
-        margin: 2rem auto 4rem;
-        padding: 0 1rem;
-    }
-
-    .analitico-header {
-        padding: 1.8rem 2rem;
-        margin-bottom: 1.5rem;
-        color: #fff;
-        background: linear-gradient(125deg, #173b67, #285a88);
-        border-radius: 18px;
-        box-shadow: 0 10px 28px rgba(23, 59, 103, .13);
-    }
-
-    .analitico-eyebrow {
-        margin-bottom: .45rem;
-        color: #d6e6f7;
-        font-size: .78rem;
-        font-weight: 700;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-    }
-
-    .analitico-header h1 {
-        margin: 0 0 .5rem;
-        font-size: clamp(1.55rem, 3vw, 2.15rem);
-        font-weight: 750;
-    }
-
-    .analitico-header p { margin: 0; color: #e6eef7; line-height: 1.6; max-width: 760px; }
-
-    .analitico-section {
-        margin-bottom: 1.25rem;
-        padding: 1.5rem;
-        background: #fff;
-        border: 1px solid var(--uarg-border);
-        border-radius: 16px;
-        box-shadow: 0 5px 18px rgba(24, 48, 75, .045);
-    }
-
-    .analitico-section-heading {
-        display: flex;
-        align-items: flex-start;
-        gap: .85rem;
-        margin-bottom: 1.35rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #e9eef4;
-    }
-
-    .analitico-section-number {
-        display: grid;
-        flex: 0 0 42px;
-        width: 42px;
-        height: 42px;
-        place-items: center;
-        color: var(--uarg-blue);
-        background: var(--uarg-blue-light);
-        border-radius: 12px;
-        font-weight: 800;
-    }
-
-    .analitico-section-heading h2 {
-        margin: .1rem 0 .25rem;
-        color: var(--uarg-blue);
-        font-size: 1.12rem;
-        font-weight: 750;
-    }
-
-    .analitico-section-heading p { margin: 0; color: var(--uarg-muted); font-size: .9rem; }
-
-    .analitico-page .form-label { margin-bottom: .45rem; color: #29384a; font-size: .91rem; font-weight: 650; }
-
-    .analitico-page .form-control,
-    .analitico-page .form-select {
-        min-height: 44px;
-        border-color: #d5dee8;
-        border-radius: 9px;
-        box-shadow: none;
-    }
-
-    .campo-documento {
-        min-height: 0 !important;
-        padding: .15rem .25rem !important;
-        font-size: .8rem !important;
-        text-align: center;
-        border-color: transparent !important;
-        background: transparent !important;
-    }
-
-    .campo-documento:focus { background: #fff !important; border-color: #5485b7 !important; }
-
-    .campo-documento-ancho { text-align: left !important; }
-
-    .documento {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: .82rem;
-        padding: 1.5rem;
-        background: #fff;
-        border: 1px solid var(--uarg-border);
-        border-radius: 16px;
-    }
-
-    .documento h3 {
-        font-size: .95rem;
-        color: var(--uarg-blue);
-        border-bottom: 1px solid #e9eef4;
-        padding-bottom: .4rem;
-        margin-bottom: .8rem;
-    }
-
-    .documento-tabla { font-size: .72rem; }
-    .documento-tabla th { background: var(--uarg-blue-light); }
-    .documento-tabla input, .documento-tabla select { font-size: .72rem; }
-
-    .analitico-actions { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1rem; flex-wrap: wrap; }
-
-    .analitico-upload { padding: 1.25rem; background: #f7fafe; border: 1px dashed #9db4ce; border-radius: 12px; }
-
-    .fila-matcheada input[name="fila_espacio"] { font-weight: 600; }
-    .fila-sin-materia { background: #fff8e1 !important; }
-    .fila-sin-materia td { vertical-align: middle; }
-
-    .campo-faltante {
-        background: #fff3cd !important;
-        border-color: #e0a800 !important;
-    }
-
-    .preview-tramite .btn-primary {
-        background: #14532d;
-        border-color: #14532d;
-    }
-
-    .preview-tramite .btn-primary:hover {
-        background: #0f3d22;
-        border-color: #0f3d22;
-    }
-
-    .preview-tramite .documento h3 {
-        color: #14532d;
-        border-color: #d3ecd9;
-    }
-
-    .preview-tramite .analitico-eyebrow {
-        color: #cdeed4;
-    }
-
-    @media (max-width: 767.98px) {
-        .analitico-header { padding: 1.2rem; }
-    }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -175,6 +19,34 @@
             <p>Completá los datos; al continuar vas a ver la previsualización del analítico editable en tiempo real.</p>
         {% endif %}
     </header>
+
+    <ol class="app-stepper" aria-label="Progreso de la generación">
+        <li class="app-stepper-item {% if vista == 'carga' %}actual{% endif %}"
+            {% if vista == 'carga' %}aria-current="step"{% endif %}>
+            <span class="app-stepper-numero">
+                {% if vista != 'carga' %}<i class="bi bi-check"></i>{% else %}1{% endif %}
+            </span>
+            <span>Datos del graduado</span>
+        </li>
+        <li class="app-stepper-item
+                   {% if vista == 'elegir' %}actual{% endif %}
+                   {% if vista == 'preview' %}completado{% endif %}">
+            <span class="app-stepper-numero">
+                {% if vista == 'preview' %}<i class="bi bi-check"></i>{% else %}2{% endif %}
+            </span>
+            <span>Previsualizar</span>
+        </li>
+        <li class="app-stepper-item {% if vista == 'preview' and not validado %}actual{% endif %}"
+            {% if vista == 'preview' and not validado %}aria-current="step"{% endif %}>
+            <span class="app-stepper-numero">3</span>
+            <span>Validar</span>
+        </li>
+        <li class="app-stepper-item {% if vista == 'preview' and validado %}actual{% endif %}"
+            {% if vista == 'preview' and validado %}aria-current="step"{% endif %}>
+            <span class="app-stepper-numero">4</span>
+            <span>Descargar</span>
+        </li>
+    </ol>
 
     {% if vista == 'elegir' %}
         <section class="analitico-section">
@@ -197,7 +69,6 @@
 
             <p>¿Qué querés hacer?</p>
             <div class="d-flex gap-2 flex-wrap">
-                <a href="{% url 'generacion_analiticos' %}" class="btn btn-outline-secondary d-none">.</a>
                 <a href="?modo=preview&legajo={{ legajo }}&carrera={{ carrera }}" class="btn btn-primary">
                     Generar analítico
                 </a>
@@ -218,4 +89,26 @@
         {% include "academico/analitico_formulario.html" %}
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("form").forEach(function (formulario) {
+        formulario.addEventListener("submit", function (evento) {
+            const boton = evento.submitter
+                || formulario.querySelector('[type="submit"]');
+
+            if (!boton || boton.disabled) {
+                return;
+            }
+
+            boton.disabled = true;
+            boton.dataset.contenidoOriginal = boton.innerHTML;
+            boton.innerHTML =
+                '<span class="app-spinner" aria-hidden="true"></span> Procesando…';
+        });
+    });
+});
+</script>
 {% endblock %}

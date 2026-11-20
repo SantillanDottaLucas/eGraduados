@@ -1,0 +1,23 @@
+{% if messages %}
+    <div class="mensajes-sistema mb-3" aria-live="polite">
+        {% for mensaje in messages %}
+            {% if mensaje.tags == "error" %}
+                {% with tipo="danger" icono="bi-exclamation-triangle" %}
+                    {% include "academico/componentes/mensaje_item.html" %}
+                {% endwith %}
+            {% elif mensaje.tags == "success" %}
+                {% with tipo="success" icono="bi-check-circle" %}
+                    {% include "academico/componentes/mensaje_item.html" %}
+                {% endwith %}
+            {% elif mensaje.tags == "warning" %}
+                {% with tipo="warning" icono="bi-exclamation-circle" %}
+                    {% include "academico/componentes/mensaje_item.html" %}
+                {% endwith %}
+            {% else %}
+                {% with tipo="info" icono="bi-info-circle" %}
+                    {% include "academico/componentes/mensaje_item.html" %}
+                {% endwith %}
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endif %}

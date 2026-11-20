@@ -10,15 +10,7 @@
 {% block content %}
 <div class="tablero-estadistico">
 
-    <header class="tablero-encabezado">
-        <p class="tablero-etiqueta">Secretaría Académica · UNPA UARG</p>
-        <h1>Tablero estadístico</h1>
-        <p class="tablero-descripcion">
-            Analizá promedios, cantidad de graduados, tiempos de graduación
-            y la evolución de egresos por año. Todos los indicadores responden
-            al mismo panel de filtros.
-        </p>
-    </header>
+    {% include "academico/componentes/page_header.html" with titulo="Tablero estadístico" descripcion="Analizá promedios, cantidad de graduados, tiempos de graduación y la evolución de egresos por año. Todos los indicadores responden al mismo panel de filtros." %}
 
     {% if aviso_fechas %}
         <div class="alert alert-warning" role="alert">

@@ -1,0 +1,17 @@
+<ol class="app-stepper" aria-label="Progreso del trámite">
+    {% for paso in pasos %}
+        <li class="app-stepper-item
+                   {% if paso.estado == 'actual' %}actual{% endif %}
+                   {% if paso.estado == 'completado' %}completado{% endif %}"
+            {% if paso.estado == 'actual' %}aria-current="step"{% endif %}>
+            <span class="app-stepper-numero" aria-hidden="true">
+                {% if paso.estado == 'completado' %}
+                    <i class="bi bi-check"></i>
+                {% else %}
+                    {{ forloop.counter }}
+                {% endif %}
+            </span>
+            <span>{{ paso.etiqueta }}</span>
+        </li>
+    {% endfor %}
+</ol>

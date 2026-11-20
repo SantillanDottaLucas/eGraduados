@@ -1,0 +1,25 @@
+<header class="app-header">
+    <div class="app-header-contenido">
+        <p class="app-eyebrow">
+            {% if etiqueta %}
+                {{ etiqueta }}
+            {% else %}
+                Secretaría Académica · UNPA UARG
+            {% endif %}
+        </p>
+        <h1>{{ titulo }}</h1>
+        {% if descripcion %}
+            <p>{{ descripcion }}</p>
+        {% endif %}
+    </div>
+
+    {% if volver %}
+        <div class="app-header-acciones">
+            <a class="btn btn-outline-light btn-sm"
+               href="{% if volver_url %}{{ volver_url }}{% else %}{% url 'index' %}{% endif %}">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                Volver
+            </a>
+        </div>
+    {% endif %}
+</header>

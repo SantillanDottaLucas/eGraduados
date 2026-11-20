@@ -6,9 +6,7 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 
 from academico.models import Graduado, Carrera, GraduadoCarrera
-from academico.servicios.validaciones import (
-    validar_cronologia_fechas,
-)
+from academico.servicios.validaciones import validar_datos_graduado
 
 
 class CargaDatos:
@@ -139,12 +137,29 @@ class CargaDatos:
                     "fecha_egreso_carrera"
                 )
 
-                # Comprobar coherencia cronológica.
-                validar_cronologia_fechas(
-                    fecha_ingreso_universidad,
-                    fecha_ingreso_carrera,
-                    fecha_egreso_carrera,
-                )
+                # Reglas de negocio compartidas: DNI, legajo, años
+                # y cronología de las fechas.
+                normalizados, errores_fila = validar_datos_graduado({
+                    "legajo": legajo,
+                    "dni": dni,
+                    "anio_ingreso_universidad": (
+                        fecha_ingreso_universidad.year
+                        if fecha_ingreso_universidad else None
+                    ),
+                    "anio_ingreso_carrera": (
+                        fecha_ingreso_carrera.year
+                        if fecha_ingreso_carrera else None
+                    ),
+                    "fecha_ingreso_universidad": fecha_ingreso_universidad,
+                    "fecha_ingreso_carrera": fecha_ingreso_carrera,
+                    "fecha_egreso_carrera": fecha_egreso_carrera,
+                })
+
+                if errores_fila:
+                    raise ValueError(" ".join(errores_fila))
+
+                legajo = normalizados["legajo"]
+                dni = normalizados["dni"]
 
                 # No admitir dos registros para la misma carrera
                 # del mismo graduado dentro del archivo.
@@ -337,6 +352,11 @@ class CargaDatos:
             raise ValueError(
                 f"El campo '{campo}' es obligatorio."
             )
+
+        # Los DNI cargados como número en Excel llegan como float
+        # (45000001.0): se convierten a texto sin decimales.
+        if isinstance(valor, (float, Decimal)) and valor == int(valor):
+            valor = int(valor)
 
         texto = str(valor).strip()
 

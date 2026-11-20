@@ -46,6 +46,7 @@ from .models import (
     TipoPlanEstudios,
     TipoResolucion,
 )
+from .servicios.provincias import provincias_sugeridas
 from .servicios.validaciones import validar_dni_unico
 from .servicios.moduloAnalitico.promedios import mismo_promedio
 
@@ -175,7 +176,7 @@ def editar_graduado(request, legajo, carrera):
     if request.method == "POST":
         volver = request.POST.get("volver", "")
 
-        form = EdicionGraduadoForm(request.POST)
+        form = EdicionGraduadoForm(request.POST, legajo=legajo)
 
         if form.is_valid():
             datos = form.cleaned_data
@@ -384,6 +385,7 @@ def editar_graduado(request, legajo, carrera):
         )
 
         form = EdicionGraduadoForm(
+            legajo=legajo,
             initial={
                 "codigo_carrera": registro.codigo_carrera_id,
                 "nombre": graduado.nombre,
@@ -437,10 +439,7 @@ def editar_graduado(request, legajo, carrera):
         "graduado": graduado,
         "registro": registro,
         "volver": volver,
-        "provincias": list(
-            Provincia.objects.order_by("nombre_provincia")
-            .values_list("nombre_provincia", flat=True)
-        ),
+        "provincias": provincias_sugeridas(),
         "ciudades": list(
             Ciudad.objects.order_by("nombre_ciudad")
             .values_list("nombre_ciudad", flat=True)

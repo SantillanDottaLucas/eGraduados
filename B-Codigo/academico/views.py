@@ -1,10 +1,13 @@
 from datetime import date
 
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.hashers import check_password
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .autenticacion import (
     cerrar_sesion,
@@ -13,12 +16,20 @@ from .autenticacion import (
     limpiar_intentos,
     obtener_usuario_sesion,
     registrar_intento_fallido,
+    requiere_administrador,
     requiere_sesion,
     segundos_restantes_bloqueo,
     url_siguiente_segura,
     usuario_bloqueado,
 )
-from .models import Carrera, Escuela, GraduadoCarrera, Usuario
+from .models import (
+    Analitico,
+    Carrera,
+    Escuela,
+    Graduado,
+    GraduadoCarrera,
+    Usuario,
+)
 from .servicios.archivos import validar_archivo
 from .servicios.auditoria import registrar_auditoria
 
@@ -41,6 +52,13 @@ from .servicios.moduloEstadistica.graficador_estadistico import (
 from .servicios.moduloGraduados.consulta_graduados import (
     obtener_filas_filtradas,
     obtener_graduados_filtrados,
+)
+
+from .servicios.moduloGraduados.eliminacion import (
+    CONFIRMACION_BORRADO,
+    eliminar_carrera,
+    eliminar_graduado as eliminar_graduado_servicio,
+    resumen_impacto,
 )
 
 from .servicios.moduloGraduados.exportar_graduados import (
@@ -164,7 +182,21 @@ def logout(request):
 
 @requiere_sesion
 def index(request):
-    return render(request, "academico/index.html")
+    """Panel principal con indicadores rápidos del sistema."""
+
+    anio_actual = date.today().year
+
+    contexto = {
+        "anio_actual": anio_actual,
+        "total_graduados": Graduado.objects.count(),
+        "total_analiticos": Analitico.objects.count(),
+        "total_carreras": Carrera.objects.count(),
+        "egresos_anio": GraduadoCarrera.objects.filter(
+            fecha_egreso_carrera__year=anio_actual
+        ).count(),
+    }
+
+    return render(request, "academico/index.html", contexto)
 
 
 # ==========================================
@@ -361,6 +393,12 @@ def lista_graduados(request):
         ).values_list("legajo_graduado_id", "codigo_carrera_id")
     )
 
+    legajos_con_analiticos = set(
+        Analitico.objects.filter(
+            legajo_graduado_id__in=legajos,
+        ).values_list("legajo_graduado_id", flat=True)
+    )
+
     # Querystring sin «pagina» para los enlaces de paginado.
     querystring = request.GET.copy()
     querystring.pop("pagina", None)
@@ -383,6 +421,7 @@ def lista_graduados(request):
         ).distinct().count(),
         "analiticos_titulo": analiticos_titulo,
         "analiticos_tramite": analiticos_tramite,
+        "legajos_con_analiticos": legajos_con_analiticos,
         "filtros_qs": filtros_qs,
     })
 
@@ -391,6 +430,112 @@ def lista_graduados(request):
         "academico/lista_graduados.html",
         contexto,
     )
+
+
+# ==========================================
+# 4.b BORRADO DE GRADUADOS (SOLO ADMIN)
+# ==========================================
+
+@require_POST
+@requiere_administrador
+def eliminar_graduado(request, legajo):
+    """
+    Elimina una fila de carrera o un graduado completo.
+
+    Conserva los filtros del buscador en el redirect y exige doble
+    confirmación cuando hay analíticos validados de por medio.
+    """
+
+    accion = request.POST.get("accion", "")
+    carrera = (request.POST.get("carrera") or "").strip()
+    confirmacion = (request.POST.get("confirmacion") or "").strip()
+    filtros_qs = (request.POST.get("filtros_qs") or "").strip()
+
+    destino = reverse("lista_graduados")
+    if filtros_qs:
+        destino = f"{destino}?{filtros_qs}"
+
+    try:
+        if accion == "carrera":
+            if not carrera:
+                raise ValueError("No se indicó la carrera a quitar.")
+
+            impacto = resumen_impacto(legajo, carrera)
+
+            if (
+                impacto["analiticos"]
+                and confirmacion != CONFIRMACION_BORRADO
+            ):
+                raise ValueError(
+                    "Esa carrera tiene analíticos validados. "
+                    "Confirmá escribiendo ELIMINAR para borrarlos también."
+                )
+
+            resultado = eliminar_carrera(
+                legajo,
+                carrera,
+                usuario=request.usuario_actual,
+                confirmacion=confirmacion,
+            )
+
+            messages.success(
+                request,
+                (
+                    f"Se quitó la carrera {carrera} del legajo {legajo}. "
+                    f"Se borraron {resultado['examenes']} examen(es) y "
+                    f"{resultado['analiticos']} analítico(s)."
+                ),
+            )
+
+            if resultado["quedan_carreras"] == 0:
+                messages.warning(
+                    request,
+                    (
+                        f"El legajo {legajo} ya no tiene carreras "
+                        "asociadas. Podés eliminarlo por completo "
+                        "desde el buscador."
+                    ),
+                )
+
+        elif accion == "graduado":
+            impacto = resumen_impacto(legajo)
+
+            if (
+                impacto["analiticos"]
+                and confirmacion != CONFIRMACION_BORRADO
+            ):
+                raise ValueError(
+                    "El graduado tiene analíticos validados. "
+                    "Confirmá escribiendo ELIMINAR para borrarlos también."
+                )
+
+            eliminar_graduado_servicio(
+                legajo,
+                usuario=request.usuario_actual,
+                confirmacion=confirmacion,
+            )
+
+            messages.success(
+                request,
+                (
+                    f"Se eliminó el graduado {legajo} y toda su "
+                    "información asociada."
+                ),
+            )
+
+        else:
+            raise ValueError("Acción de borrado desconocida.")
+
+    except (Graduado.DoesNotExist, GraduadoCarrera.DoesNotExist):
+        messages.error(
+            request,
+            "El graduado o la carrera indicados ya no existen.",
+        )
+
+    except ValueError as error:
+        messages.error(request, str(error))
+
+    return redirect(destino)
 
 
 # ==========================================

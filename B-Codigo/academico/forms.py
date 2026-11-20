@@ -138,7 +138,14 @@ class EdicionGraduadoForm(forms.Form):
     Formulario de edición de los datos personales de un graduado
     y de su relación con una carrera (incluye la posibilidad de
     cambiar la carrera asociada).
+
+    ``legajo`` es el valor original: se usa para validar su
+    coherencia con el DNI y el año de ingreso informados.
     """
+
+    def __init__(self, *args, legajo=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.legajo = legajo
 
     codigo_carrera = CarreraModelChoiceField(
         queryset=Carrera.objects.select_related("id_escuela").order_by(
@@ -279,20 +286,31 @@ class EdicionGraduadoForm(forms.Form):
     def clean(self):
         datos = super().clean()
 
-        # Coherencia cronológica de las tres fechas.
-        try:
-            from .servicios.validaciones import (
-                validar_cronologia_fechas,
-            )
+        from .servicios.validaciones import validar_datos_graduado
 
-            validar_cronologia_fechas(
-                datos.get("fecha_ingreso_universidad"),
-                datos.get("fecha_ingreso_carrera"),
-                datos.get("fecha_egreso_carrera"),
-            )
+        fecha_uarg = datos.get("fecha_ingreso_universidad")
+        fecha_carrera = datos.get("fecha_ingreso_carrera")
 
-        except ValueError as error:
-            raise forms.ValidationError(str(error))
+        normalizados, errores = validar_datos_graduado({
+            "legajo": self.legajo,
+            "dni": datos.get("dni"),
+            "anio_ingreso_universidad": (
+                fecha_uarg.year if fecha_uarg else None
+            ),
+            "anio_ingreso_carrera": (
+                fecha_carrera.year if fecha_carrera else None
+            ),
+            "fecha_nacimiento": datos.get("fecha_nacimiento"),
+            "fecha_ingreso_universidad": fecha_uarg,
+            "fecha_ingreso_carrera": fecha_carrera,
+            "fecha_egreso_carrera": datos.get("fecha_egreso_carrera"),
+        })
+
+        for error in errores:
+            self.add_error(None, error)
+
+        if normalizados["dni"]:
+            datos["dni"] = normalizados["dni"]
 
         return datos
 

@@ -155,17 +155,13 @@
             </div>
 
             <div class="col-12">
-                <label class="form-label small">Resoluciones institucionales</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="resoluciones_institucionales"
-                       value="{% if datos.resoluciones_institucionales %}{% for r in datos.resoluciones_institucionales %}{{ r }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}">
+                {% include "academico/componentes/resoluciones_repetibles.html" with campo="resoluciones_institucionales" etiqueta="Resoluciones institucionales" valores=datos.resoluciones_institucionales requerido=False input_clase="campo-documento campo-documento-ancho" placeholder="Ej.: 141/CS/98" %}
             </div>
-            <div class="col-6 col-md-6">
-                <label class="form-label small">Ministeriales / nacionales</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="resoluciones_ministeriales" value="{{ datos.resoluciones_ministeriales }}">
+            <div class="col-12 col-md-6">
+                {% include "academico/componentes/resoluciones_repetibles.html" with campo="resoluciones_ministeriales" etiqueta="Ministeriales / nacionales" valores=datos.resoluciones_ministeriales requerido=False input_clase="campo-documento campo-documento-ancho" placeholder="Ej.: 1496/99" %}
             </div>
-            <div class="col-6 col-md-6">
-                <label class="form-label small">Otros instrumentos</label>
-                <input type="text" class="form-control campo-documento campo-documento-ancho" name="otros_instrumentos" value="{{ datos.otros_instrumentos }}">
+            <div class="col-12 col-md-6">
+                {% include "academico/componentes/resoluciones_repetibles.html" with campo="otros_instrumentos" etiqueta="Otros instrumentos" valores=datos.otros_instrumentos requerido=False input_clase="campo-documento campo-documento-ancho" placeholder="Ej.: Nota DNGU N.° 1186/14" %}
             </div>
         </div>
     </section>
@@ -272,14 +268,17 @@
     <div class="analitico-actions">
         <a href="?modo=carga&legajo={{ datos.legajo }}&carrera={{ datos.carrera }}"
            class="btn btn-outline-secondary">
-            ← Volver
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+            Volver
         </a>
         <button type="submit" name="accion" value="recalcular"
                 class="btn btn-outline-primary px-4"
                 formnovalidate>
+            <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
             Recalcular promedios
         </button>
         <button type="submit" name="accion" value="validar" class="btn btn-primary px-4">
+            <i class="bi bi-check-circle" aria-hidden="true"></i>
             Validar analítico
         </button>
         <button type="submit" name="accion" value="descargar"
@@ -287,6 +286,7 @@
                 {% if not validado %}disabled aria-disabled="true"
                     title="Validá el analítico primero"
                 {% endif %}>
+            <i class="bi bi-download" aria-hidden="true"></i>
             Descargar analítico (.docx)
         </button>
     </div>

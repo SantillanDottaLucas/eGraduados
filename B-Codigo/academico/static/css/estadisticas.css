@@ -9,7 +9,7 @@
     padding: 2rem 2.2rem;
     margin-bottom: 1.5rem;
     color: #ffffff;
-    background: linear-gradient(125deg, #173b67, #2d6596);
+    background: linear-gradient(120deg, #123e63, #1d6393);
     border-radius: 18px;
     box-shadow: 0 10px 30px rgba(23, 59, 103, 0.14);
 }
@@ -53,7 +53,7 @@
 }
 
 .tablero-estadistico .card-header {
-    border-left: 4px solid #245b91;
+    border-left: 4px solid var(--app-accent, #1f8a70);
 }
 
 .filtro-grupo {
@@ -81,7 +81,7 @@
 
 .indicador-valor {
     margin: 0;
-    color: #173b67;
+    color: var(--app-primary, #123e63);
     font-size: 1.8rem;
     font-weight: 700;
     line-height: 1.2;

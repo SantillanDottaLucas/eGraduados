@@ -4,199 +4,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#123e63">
 
     <title>{% block title %}eGraduados | Secretaría Académica{% endblock %}</title>
 
     {% load static %}
 
-    <!-- Bootstrap CSS -->
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
+    <!-- Fuentes e iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+          rel="stylesheet">
 
-    <!-- Estilos generales -->
-    <style>
-        :root {
-            --color-institucional: #17365d;
-            --color-institucional-hover: #244a78;
-            --color-fondo: #f4f6f9;
-            --color-texto: #263238;
-            --color-borde: #dee2e6;
-        }
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet">
 
-        * {
-            box-sizing: border-box;
-        }
+    <!-- Estilos de la aplicación -->
+    <link href="{% static 'css/app.css' %}" rel="stylesheet">
 
-        body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            margin: 0;
-            background-color: var(--color-fondo);
-            color: var(--color-texto);
-            font-family: Arial, Helvetica, sans-serif;
-        }
-
-        /* Encabezado */
-        .navbar-institucional {
-            background-color: var(--color-institucional);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-        }
-
-        .navbar-institucional .navbar-brand {
-            color: #ffffff;
-            font-size: 1.4rem;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-        }
-
-        .navbar-institucional .navbar-brand:hover {
-            color: #e2eaf4;
-        }
-
-        .marca-subtitulo {
-            color: #d8e2ef;
-            font-size: 0.85rem;
-            font-weight: 400;
-        }
-
-        /* Contenido principal */
-        main {
-            flex: 1;
-            width: 100%;
-            padding-top: 2rem;
-            padding-bottom: 2.5rem;
-        }
-
-        .contenedor-principal {
-            width: 100%;
-            max-width: 1440px;
-            margin: 0 auto;
-            padding-right: 1.25rem;
-            padding-left: 1.25rem;
-        }
-
-        /* Pie de página */
-        .footer-institucional {
-            padding: 1.25rem 1rem;
-            background-color: #ffffff;
-            border-top: 1px solid var(--color-borde);
-            color: #5f6b76;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        .footer-institucional p {
-            margin: 0;
-        }
-
-        .footer-institucional strong {
-            color: var(--color-institucional);
-        }
-
-        /* Ajustes para pantallas pequeñas */
-        @media (max-width: 576px) {
-            main {
-                padding-top: 1.25rem;
-                padding-bottom: 1.5rem;
-            }
-
-            .contenedor-principal {
-                padding-right: 0.75rem;
-                padding-left: 0.75rem;
-            }
-
-            .navbar-institucional .navbar-brand {
-                font-size: 1.2rem;
-            }
-        }
-    </style>
-
-    {% block styles %}
-    {% endblock %}
+    {% block styles %}{% endblock %}
 </head>
 
 <body>
+    <a class="app-skip-link" href="#contenido-principal">
+        Saltar al contenido principal
+    </a>
 
-    <!-- Encabezado institucional -->
     <header>
-        <nav class="navbar navbar-expand-lg navbar-institucional">
-            <div class="container-fluid px-3 px-md-4">
-
-                <a class="navbar-brand d-flex flex-column" href="/">
-                    <span>eGraduados</span>
-                    <span class="marca-subtitulo">
-                        Sistema de información de graduados
-                    </span>
-                </a>
-
-                {% block navbar %}
-                {% endblock %}
-
-                {% if usuario_actual %}
-                    <div class="d-flex align-items-center gap-3 ms-auto">
-                        <div class="text-end d-none d-sm-block">
-                            <span class="navbar-text d-block text-white fw-semibold">
-                                {{ usuario_actual.nombre_usuario }}
-                            </span>
-                            <span class="marca-subtitulo d-block">
-                                {{ usuario_actual.id_rol.nombre_rol }}
-                            </span>
-                        </div>
-
-                        <form method="post" action="{% url 'logout' %}">
-                            {% csrf_token %}
-                            <button type="submit"
-                                    class="btn btn-outline-light btn-sm">
-                                Cerrar sesión
-                            </button>
-                        </form>
-                    </div>
-                {% endif %}
-
-            </div>
-        </nav>
+        {% include "academico/componentes/navbar.html" %}
     </header>
 
-    <!-- Contenido de cada página -->
-    <main>
-        <div class="contenedor-principal">
-            {% if messages %}
-                <div class="mensajes-sistema">
-                    {% for mensaje in messages %}
-                        <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                            {{ mensaje }}
-                            <button type="button"
-                                    class="btn-close"
-                                    data-bs-dismiss="alert"
-                                    aria-label="Cerrar"></button>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            {% block content %}
+    <main class="app-main" id="contenido-principal">
+        <div class="app-contenedor">
+            {% block migas %}
+                {% include "academico/componentes/breadcrumb.html" %}
             {% endblock %}
+
+            {% block mensajes %}
+                {% include "academico/componentes/mensajes.html" %}
+            {% endblock %}
+
+            {% block content %}{% endblock %}
         </div>
     </main>
 
-    <!-- Pie de página institucional -->
-    <footer class="footer-institucional">
-        <p>
+    <footer class="app-footer">
+        <p class="mb-0">
             <strong>eGraduados</strong>
             &middot; Secretaría Académica UNPA UARG
         </p>
     </footer>
 
-    <!-- Bootstrap JavaScript -->
-    <script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/resoluciones.js' %}"></script>
 
-    {% block scripts %}
-    {% endblock %}
-
+    {% block scripts %}{% endblock %}
 </body>
 </html>

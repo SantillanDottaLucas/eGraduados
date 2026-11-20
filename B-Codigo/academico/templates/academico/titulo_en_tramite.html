@@ -4,74 +4,6 @@
 {% block title %}Título en trámite | eGraduados{% endblock %}
 
 {% block styles %}
-<style>
-    .tramite-page {
-        --uarg-blue: #14532d;
-        --uarg-blue-light: #eef7ee;
-        --uarg-border: #dce4ed;
-        --uarg-muted: #66758a;
-        max-width: 720px;
-        margin: 2rem auto 4rem;
-        padding: 0 1rem;
-    }
-
-    .tramite-header {
-        padding: 1.8rem 2rem;
-        margin-bottom: 1.5rem;
-        color: #fff;
-        background: linear-gradient(125deg, #14532d, #1f6b43);
-        border-radius: 18px;
-        box-shadow: 0 10px 28px rgba(20, 83, 45, .18);
-    }
-
-    .tramite-eyebrow {
-        margin-bottom: .45rem;
-        color: #cdeed4;
-        font-size: .78rem;
-        font-weight: 700;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-    }
-
-    .tramite-header h1 {
-        margin: 0 0 .5rem;
-        font-size: clamp(1.55rem, 3vw, 2.15rem);
-        font-weight: 750;
-    }
-
-    .tramite-header p { margin: 0; color: #e6f5ec; line-height: 1.6; max-width: 640px; }
-
-    .tramite-card {
-        padding: 2rem;
-        background: #fff;
-        border: 1px solid var(--uarg-border);
-        border-radius: 16px;
-        box-shadow: 0 5px 18px rgba(24, 48, 75, .045);
-    }
-
-    .tramite-card .form-label { margin-bottom: .45rem; color: #29384a; font-size: .91rem; font-weight: 650; }
-
-    .tramite-card .form-control,
-    .tramite-card .form-select {
-        min-height: 48px;
-        border-color: #d5dee8;
-        border-radius: 9px;
-        box-shadow: none;
-    }
-
-    .tramite-card .btn-primary {
-        min-height: 48px;
-        background: #14532d;
-        border-color: #14532d;
-        font-weight: 700;
-    }
-
-    .tramite-card .btn-primary:hover { background: #0f3d22; border-color: #0f3d22; }
-
-    .tramite-nota { margin-top: 1.25rem; padding: .9rem 1rem; background: #f2faf4; border: 1px solid #d3ecd9; border-radius: 10px; font-size: .88rem; color: #2f5c40; }
-
-    .tramite-nota a { color: #14532d; font-weight: 700; }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -85,12 +17,6 @@
             eso se hace desde «Generar analítico».
         </p>
     </header>
-
-    {% if messages %}
-        {% for mensaje in messages %}
-            <div class="alert alert-danger py-2 small" role="alert">{{ mensaje }}</div>
-        {% endfor %}
-    {% endif %}
 
     <section class="tramite-card">
         <form method="post" action="{% url 'titulo_en_tramite' %}">
@@ -116,7 +42,8 @@
             </div>
 
             <button type="submit" class="btn btn-primary w-100">
-                Buscar y generar título en trámite →
+                <i class="bi bi-search" aria-hidden="true"></i>
+                Buscar y generar título en trámite
             </button>
         </form>
 

@@ -3,27 +3,9 @@
 {% block title %}Gestión académica | eGraduados{% endblock %}
 
 {% block content %}
-<style>
-    .gestion-pagina { max-width: 1400px; margin: 0 auto; padding: 2rem 1rem 3rem; }
-    .gestion-encabezado { padding: 2rem; margin-bottom: 1.5rem; color: #fff; background: linear-gradient(125deg, #173b67, #2d6596); border-radius: 18px; }
-    .gestion-encabezado h1 { margin: 0 0 .4rem; font-size: 1.7rem; font-weight: 700; }
-    .gestion-encabezado p { margin: 0; opacity: .9; }
-    .gestion-nav { margin-bottom: 1.25rem; gap: .35rem; flex-wrap: wrap; }
-    .gestion-nav .nav-link { color: #245b91; border-radius: 9px; font-weight: 600; }
-    .gestion-nav .nav-link.active { background: #245b91; color: #fff; }
-    .gestion-panel { padding: 1.5rem; margin-bottom: 1.5rem; background: #fff; border: 1px solid #e5eaf0; border-radius: 16px; box-shadow: 0 4px 14px rgba(25,45,70,.05); }
-    .gestion-panel h2 { margin-bottom: 1.1rem; color: #243b53; font-size: 1.15rem; font-weight: 700; }
-    .gestion-tabla { border: 1px solid #e5eaf0; border-radius: 16px; overflow: hidden; background: #fff; }
-    .gestion-tabla-titulo { padding: 1.1rem 1.5rem; border-bottom: 1px solid #e5eaf0; font-weight: 700; color: #243b53; }
-    .gestion-acciones { display: flex; gap: .5rem; flex-wrap: wrap; }
-    .form-help { font-size: .82rem; color: #64748b; margin-top: .25rem; }
-</style>
 
 <div class="gestion-pagina">
-    <header class="gestion-encabezado">
-        <h1>Gestión académica</h1>
-        <p>Administrá escuelas, carreras, planes de estudio y materias, y asociá materias a cada plan.</p>
-    </header>
+    {% include "academico/componentes/page_header.html" with titulo="Gestión académica" descripcion="Administrá escuelas, carreras, planes de estudio y materias, y asociá materias a cada plan." volver=1 %}
 
     <ul class="nav nav-pills gestion-nav">
         <li class="nav-item">

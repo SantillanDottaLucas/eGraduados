@@ -52,6 +52,8 @@ from .models import (
 )
 from .servicios.archivos import validar_archivo
 from .servicios.auditoria import registrar_auditoria
+from .servicios.provincias import provincias_sugeridas
+from .servicios.validaciones import validar_datos_graduado
 from .servicios.moduloAnalitico.generador import (
     contexto_analitico,
     render_docx,
@@ -100,6 +102,33 @@ def _folio_de(respaldo):
 
 def _limpiar(valor):
     return (valor or "").strip()
+
+
+def _lista_resoluciones(datos_form, campo):
+    """
+    Devuelve una lista limpia de resoluciones de un campo.
+
+    Acepta campos repetibles (``getlist``), listas y el formato
+    histórico de un solo input con valores separados por coma o
+    punto y coma.
+    """
+
+    if hasattr(datos_form, "getlist"):
+        valores = list(datos_form.getlist(campo))
+    else:
+        valor = datos_form.get(campo)
+        valores = list(valor) if isinstance(valor, (list, tuple)) else [valor]
+
+    resultado = []
+
+    for valor in valores:
+        for parte in re.split(r"[;,]", _limpiar(valor)):
+            texto = parte.strip()
+
+            if texto and texto not in resultado:
+                resultado.append(texto)
+
+    return resultado
 
 
 def _normalizar(texto):
@@ -199,8 +228,9 @@ def _datos_precargados(graduado, registro):
         "provincia_secundario": "",
         "anio_egreso_secundario": "",
         "titulo_otorgado": "",
-        "resoluciones_ministeriales": "",
-        "otros_instrumentos": "",
+        "resoluciones_ministeriales": [],
+        "otros_instrumentos": [],
+        "resoluciones_institucionales": [],
     }
 
     if graduado:
@@ -290,8 +320,8 @@ def _datos_precargados(graduado, registro):
             .values_list("resolucion", flat=True)
         )
 
-        datos["resoluciones_ministeriales"] = "; ".join(ministeriales)
-        datos["otros_instrumentos"] = "; ".join(otros)
+        datos["resoluciones_ministeriales"] = ministeriales
+        datos["otros_instrumentos"] = otros
         datos["resoluciones_institucionales"] = institucionales
 
     return datos
@@ -310,8 +340,7 @@ def _validar_datos(datos_form):
     datos["legajo"] = _limpiar(datos_form.get("legajo"))
     datos["nombre"] = _limpiar(datos_form.get("nombre"))
     datos["apellido"] = _limpiar(datos_form.get("apellido"))
-    dni_digitos = re.sub(r"\D", "", _limpiar(datos_form.get("dni")))
-    datos["dni"] = dni_digitos
+    datos["dni"] = _limpiar(datos_form.get("dni"))
     datos["anio_ingreso_uarg"] = _anio_de(
         datos_form.get("anio_ingreso_uarg")
     )
@@ -328,7 +357,6 @@ def _validar_datos(datos_form):
     for campo in (
         "nombre",
         "apellido",
-        "dni",
         "carrera",
     ):
         if not datos[campo]:
@@ -430,19 +458,14 @@ def _validar_datos(datos_form):
         datos_form.get("titulo_otorgado")
     )
 
-    datos["resoluciones_institucionales"] = [
-        r.strip()
-        for r in re.split(
-            r"[;,]",
-            _limpiar(datos_form.get("resoluciones_institucionales")),
-        )
-        if r.strip()
-    ]
-    datos["resoluciones_ministeriales"] = _limpiar(
-        datos_form.get("resoluciones_ministeriales")
+    datos["resoluciones_institucionales"] = _lista_resoluciones(
+        datos_form, "resoluciones_institucionales"
     )
-    datos["otros_instrumentos"] = _limpiar(
-        datos_form.get("otros_instrumentos")
+    datos["resoluciones_ministeriales"] = _lista_resoluciones(
+        datos_form, "resoluciones_ministeriales"
+    )
+    datos["otros_instrumentos"] = _lista_resoluciones(
+        datos_form, "otros_instrumentos"
     )
 
     for campo in (
@@ -455,6 +478,27 @@ def _validar_datos(datos_form):
     ):
         if not datos[campo]:
             errores.append(f"El campo «{campo}» es obligatorio.")
+
+    # Reglas de negocio compartidas con la edición y la carga Excel.
+    normalizados, errores_negocio = validar_datos_graduado({
+        "dni": datos["dni"],
+        "legajo": datos["legajo"],
+        "anio_ingreso_universidad": datos["anio_ingreso_uarg"],
+        "anio_ingreso_carrera": datos["anio_ingreso_carrera"],
+        "fecha_nacimiento": datos.get("fecha_nacimiento"),
+        "fecha_ingreso_universidad": datos.get(
+            "fecha_ingreso_universidad"
+        ),
+        "fecha_ingreso_carrera": (
+            date(datos["anio_ingreso_carrera"], 3, 1)
+            if datos["anio_ingreso_carrera"] else None
+        ),
+        "fecha_egreso_carrera": fecha_egreso,
+    })
+
+    datos["dni"] = normalizados["dni"]
+    datos["legajo"] = normalizados["legajo"]
+    errores.extend(errores_negocio)
 
     return datos, errores
 
@@ -523,10 +567,13 @@ def _resolver_materia(codigo, nombre):
 def _guardar_resoluciones(carrera, datos):
     """Sincroniza CARRERA_RESOLUCION con la selección del form."""
 
-    seleccionadas = set(datos["resoluciones_institucionales"])
+    institucionales = _lista_resoluciones(
+        datos, "resoluciones_institucionales"
+    )
+    seleccionadas = set(institucionales)
 
     # Alta de las resoluciones tipeadas que no existen aún.
-    for codigo in seleccionadas:
+    for codigo in institucionales:
         Resolucion.objects.get_or_create(
             resolucion=codigo,
             defaults={
@@ -534,19 +581,10 @@ def _guardar_resoluciones(carrera, datos):
             },
         )
 
-    texto_ministeriales = datos["resoluciones_ministeriales"]
-    ministeriales = [
-        r.strip()
-        for r in re.split(r"[;,]", texto_ministeriales)
-        if r.strip()
-    ]
-
-    texto_otros = datos["otros_instrumentos"]
-    otros = [
-        r.strip()
-        for r in re.split(r"[;,]", texto_otros)
-        if r.strip()
-    ]
+    ministeriales = _lista_resoluciones(
+        datos, "resoluciones_ministeriales"
+    )
+    otros = _lista_resoluciones(datos, "otros_instrumentos")
 
     for codigo in ministeriales:
         Resolucion.objects.get_or_create(
@@ -1112,7 +1150,15 @@ def _contexto_formulario(request, tipo_documento, datos, advertencias=None):
         "nombre_titulo"
     )
 
-    provincias = Provincia.objects.order_by("nombre_provincia")
+    datos = dict(datos)
+
+    for campo in (
+        "resoluciones_institucionales",
+        "resoluciones_ministeriales",
+        "otros_instrumentos",
+    ):
+        datos[campo] = _lista_resoluciones(datos, campo)
+
     ciudades = Ciudad.objects.order_by("nombre_ciudad")
 
     return {
@@ -1121,7 +1167,7 @@ def _contexto_formulario(request, tipo_documento, datos, advertencias=None):
         "advertencias": advertencias or [],
         "carreras": carreras,
         "titulos": titulos,
-        "provincias": [p.nombre_provincia for p in provincias],
+        "provincias": provincias_sugeridas(),
         "ciudades": [c.nombre_ciudad for c in ciudades],
     }
 
@@ -1222,6 +1268,14 @@ def _contexto_preview(request, tipo_documento, datos, filas, materias,
     )
 
     datos_formulario = dict(datos)
+
+    for campo in (
+        "resoluciones_institucionales",
+        "resoluciones_ministeriales",
+        "otros_instrumentos",
+    ):
+        datos_formulario[campo] = _lista_resoluciones(datos, campo)
+
     datos_formulario["fecha_nacimiento"] = _fecha_iso(
         datos.get("fecha_nacimiento")
     )
@@ -1257,10 +1311,7 @@ def _contexto_preview(request, tipo_documento, datos, filas, materias,
         ),
         "promedios_calculados": promedios_calculados or {},
         "titulos": titulos,
-        "provincias": [
-            p.nombre_provincia
-            for p in Provincia.objects.order_by("nombre_provincia")
-        ],
+        "provincias": provincias_sugeridas(),
         "ciudades": [
             c.nombre_ciudad
             for c in Ciudad.objects.order_by("nombre_ciudad")
