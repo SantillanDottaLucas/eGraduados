@@ -1,66 +1,39 @@
 # Planes de estudio y materias
 
-Este documento describe cómo se cargan los planes de estudio reales
-de UNPA (PDFs en `PlanesEstudio/`) y sus materias, reemplazando los
-datos demo de la base.
+Los planes de estudio y las materias ya están cargados en MySQL. La carga
+se aplicó el **2026-11-22** desde el Excel de construcción, que reemplazó a
+los datos de ejemplo y al antiguo flujo de extracción desde PDF.
 
-## Artefactos editables
+## Estado actual de la base
 
-Antes de tocar la base se generan archivos CSV/SQL que **se pueden
-y deben revisar a mano**:
+| Tabla | Registros |
+|---|---:|
+| `CARRERA` | 30 |
+| `PLAN_ESTUDIOS` | 28 |
+| `DETALLE_PLAN_ESTUDIOS` | 28 |
+| `MATERIA` | 499 |
+| `PLAN_ESTUDIOS_MATERIA` | 850 |
+| `EXAMEN` | 18 (sin cambios) |
 
-| Archivo | Contenido |
-|---|---|
-| `scripts/datos_reales_escuelas.csv` | 13 escuelas reales |
-| `scripts/datos_reales_carreras.csv` | 27 carreras reales |
-| `scripts/datos_reales.sql` | Versión SQL de lo anterior |
-| `scripts/planes_estudio_catalogo.csv` | 40 documentos (36 planes, 3 modificatorias, 1 no-plan) |
-| `scripts/plan_duplicados.csv` | 3 PDFs duplicados exactos (por hash) |
-| `scripts/materias_por_plan.csv` | Materias extraídas, con año/cuatrimestre/orden |
-| `scripts/extraccion_reporte.csv` | Resumen por PDF (método, cantidad, años, cuatris) |
+`MATERIA` incluye 498 códigos del Excel más `453`
+(`Idioma Moderno (Inglés)`), que no figura en el Excel pero sigue referida
+por un examen y por eso se conserva. Hay 30 nombres con más de un código
+real (por ejemplo `Análisis y Diseño de Software` → `1658`, `2706`), y
+ningún código con más de un nombre.
 
-Se regeneran con:
+Las carreras sin plan vigente son `046`, `047`, `085` y `915`.
 
-```powershell
-& '.\venv\Scripts\python.exe' scripts\preparar_carga.py --forzar
-& '.\venv\Scripts\python.exe' scripts\extraer_materias.py --forzar --max-paginas 14
-```
+## Archivos fuente y respaldo
 
-`--forzar` es necesario para sobrescribir archivos ya existentes
-(protección para no perder revisiones manuales).
+- Excel de origen: `..\A-Documentacion\C-Construccion\eGraduados_Construccion_PlanesEstudio.xlsx`
+  (29 hojas, 856 filas de materias).
+- Respaldo de la base anterior a la carga:
+  `C:\Users\Usuario\Documents\eGraduados\backups\respaldo_antes_planes_excel_2026-11-22.sql`.
 
-## Criterios del catálogo
-
-- **Vigente** = año más alto del plan dentro de cada carrera.
-- Desempate en `913` (ambos de 2001): se prefiere la versión **sin**
-  homologación.
-- Las modificatorias de `072` (Res. 159/23, 160/23 y 163/23) se
-  registran como metadatos, no como planes separados.
-- `401` (Programa de Movilidad Estudiantil) se marca `NO_PLAN`.
-- Los 3 duplicados por hash se excluyen.
-- Los PDFs se copian a `media/planes_estudio/` y se guarda la ruta y
-  el hash SHA-256 en `DetallePlanEstudios`.
-
-## Extracción de materias
-
-`scripts/extraer_materias.py` usa PyMuPDF para PDFs con texto y
-RapidOCR para los escaneados. El parser es **posicional**: procesa
-los items `(x, y, texto)` en orden de coordenada Y, actualizando el
-contexto de año/cuatrimestre cuando encuentra un encabezado, y arma
-cada fila juntando el número de orden con el nombre a su derecha.
-
-Puntos a revisar en `materias_por_plan.csv`:
-
-- **Nombres con errores de OCR**: se corrigen a mano en el CSV.
-- **`materia_requisito`**: hoy sale `NO` para todas; completar `SI`
-  en las que corresponda (el promedio "sin aplazo" las excluye).
-- **`anio_materia` / `cuatrimestre_materia`**: `A` = anual,
-  `1er` / `2do` = cuatrimestre.
-- **Páginas sin planilla cronológica**: algunos PDFs traen primero
-  tablas por áreas temáticas (sin números de orden); el parser las
-  ignora y toma la planilla con "PRIMER AÑO / SEGUNDO AÑO…".
-
-Los códigos de materias son genéricos por ahora: `GEN-00001`, etc.
+**No hay script de recarga en el repositorio.** Los scripts, CSV y SQL
+intermedios usados para la carga se eliminaron después de aplicarla; si
+hace falta una nueva carga, se genera desde el Excel y se valida antes de
+ejecutarla. El respaldo indicado arriba permite volver al estado previo.
 
 ## Modelo de datos
 
@@ -71,23 +44,6 @@ Los códigos de materias son genéricos por ahora: `GEN-00001`, etc.
   por carrera en MySQL.
 - La UI en **Gestión Académica → Carreras** permite cambiar el plan
   vigente; al hacerlo se actualiza también `DetallePlanEstudios.tipo`.
-
-## Carga en la base
-
-La base destino es MySQL (configurada en `.env`). Los comandos son
-**dry-run por defecto**:
-
-```powershell
-& '.\venv\Scripts\python.exe' manage.py migrate
-& '.\venv\Scripts\python.exe' manage.py cargar_datos_reales
-& '.\venv\Scripts\python.exe' manage.py cargar_datos_reales --apply
-& '.\venv\Scripts\python.exe' manage.py importar_planes_estudio
-& '.\venv\Scripts\python.exe' manage.py importar_planes_estudio --apply
-```
-
-`cargar_datos_reales` guarda un respaldo JSON en
-`scripts/respaldo_antes_carga.json` antes de borrar. No toca
-`Usuario`, `Rol`, `Provincia` ni `Ciudad`.
 
 ## Analíticos y promedios
 

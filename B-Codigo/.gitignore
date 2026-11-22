@@ -24,7 +24,6 @@ media/
 
 # Bases y respaldos locales
 *.sql
-!scripts/datos_reales.sql
 *.dump
 *.bak
 
