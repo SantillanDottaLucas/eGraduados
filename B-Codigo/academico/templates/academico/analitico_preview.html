@@ -26,6 +26,30 @@
         </div>
     {% endif %}
 
+    {% if discrepancias_plan %}
+        <div class="alert alert-warning" role="alert">
+            <strong>Discrepancias con el plan de estudios</strong>
+            <p class="mb-1 mt-1">
+                El código y el nombre de cada fila se contrastan con el plan
+                vigente de la carrera.
+                <strong>no impiden validar ni descargar</strong> el analítico:
+                revisá las filas marcadas y corregí lo que corresponda.
+            </p>
+            <ul class="mb-0">
+                {% for aviso in discrepancias_plan %}
+                    <li>
+                        <span class="badge bg-warning text-dark">{{ aviso.etiqueta }}</span>
+                        <strong>Fila {{ aviso.fila }}</strong> —
+                        Lincoln: {{ aviso.codigo_lincoln|default:"sin código" }}
+                        {{ aviso.nombre_lincoln|default:"" }}{% if aviso.codigo_esperado %}
+                        · Plan: {{ aviso.codigo_esperado }} {{ aviso.nombre_esperado }}{% endif %}.
+                        {{ aviso.mensaje }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
     {% if campos_faltantes.generales or campos_faltantes.filas %}
         <div class="alert alert-warning" role="alert">
             <strong>Datos faltantes</strong>
@@ -169,6 +193,13 @@
     <section class="documento mb-4">
         <h3>Exámenes ({{ filas|length }})</h3>
 
+        <p class="small text-muted mb-2">
+            El <strong>Orden</strong> y el <strong>Año</strong> se toman del
+            plan de estudios de la carrera. El número de Orden que aparece
+            abajo es editable y se usa sólo para desempatar materias con el
+            mismo orden del plan (o las que no están en él).
+        </p>
+
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0 documento-tabla">
                 <thead>
@@ -187,10 +218,12 @@
                 </thead>
                 <tbody>
                     {% for fila in filas %}
-                        <tr class="{% if not fila.matcheada %}fila-sin-materia{% else %}fila-matcheada{% endif %}">
+                        <tr class="{% if fila.verificacion.estado and fila.verificacion.estado != 'ok' %}table-warning{% elif not fila.matcheada %}fila-sin-materia{% else %}fila-matcheada{% endif %}">
                             <td>
                                 {{ forloop.counter }}
                                 <input type="hidden" name="fila_indice" value="{{ fila.indice }}">
+                                <input type="hidden" name="fila_codigo_lincoln" value="{{ fila.codigo_lincoln }}">
+                                <input type="hidden" name="fila_nombre_lincoln" value="{{ fila.nombre_lincoln }}">
                             </td>
                             <td>
                                 <input type="number" class="form-control campo-documento"
@@ -199,8 +232,9 @@
                             </td>
                             <td>
                                 <input type="number" class="form-control campo-documento {% if not fila.anio %}campo-faltante{% endif %}"
-                                       name="fila_anio" min="1" max="2100" step="1"
-                                       value="{{ fila.anio }}">
+                                       name="fila_anio" min="1" max="5" step="1"
+                                       value="{{ fila.anio }}" readonly tabindex="-1"
+                                       title="Año del plan de estudios">
                             </td>
                             <td>
                                 <input type="text" class="form-control campo-documento campo-documento-ancho {% if not fila.espacio %}campo-faltante{% endif %}"

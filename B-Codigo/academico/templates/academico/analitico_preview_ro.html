@@ -33,6 +33,24 @@
         </div>
     {% endif %}
 
+    {% if discrepancias_plan %}
+        <div class="alert alert-warning py-2 small" role="alert">
+            <strong>Discrepancias con el plan de estudios</strong> (informativas;
+            no impiden generar ni descargar el documento):
+            <ul class="mb-0 mt-1">
+                {% for aviso in discrepancias_plan %}
+                    <li>
+                        <strong>Fila {{ aviso.fila }}</strong> —
+                        {{ aviso.etiqueta }}:
+                        {{ aviso.codigo_lincoln|default:"sin código" }}
+                        {{ aviso.nombre_lincoln|default:"" }}.
+                        {{ aviso.mensaje }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
     <section class="documento-ro">
         <h3>Datos del graduado</h3>
         <div class="ro-grid">
@@ -141,7 +159,7 @@
                     {% for fila in filas %}
                         <tr>
                             <td>{{ fila.orden }}</td>
-                            <td>{{ fila.anio|default:"-" }}</td>
+                            <td>{{ fila.anio_txt|default:"-" }}</td>
                             <td>{{ fila.espacio }}</td>
                             <td>{{ fila.nota }}</td>
                             <td>{{ fila.fecha }}</td>

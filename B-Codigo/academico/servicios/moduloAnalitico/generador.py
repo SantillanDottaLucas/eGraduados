@@ -23,6 +23,9 @@ from academico.models import (
     Titulo,
     TipoResolucion,
 )
+from academico.servicios.moduloAnalitico.plan_estudios import (
+    aplicar_plan_a_filas,
+)
 from academico.servicios.moduloAnalitico.utilidades_texto import (
     dni_con_puntos,
     fecha_larga,
@@ -122,11 +125,13 @@ def texto_resoluciones(agrupadas):
 
 def examenes_ordenados(graduado, carrera):
     """
-    Exámenes en el orden manual definido por el usuario.
+    Exámenes en el orden del plan de estudios de la carrera.
 
-    El orden se guarda en ``GraduadoExamen.orden``. Si una fila no
-    tiene orden (datos viejos), va al final. El plan de estudios no
-    participa: no se reordena por año, cuatrimestre ni fecha.
+    El orden guardado en ``GraduadoExamen.orden`` se calculó con el plan
+    al validar; el valor manual del usuario sólo sirvió para desempatar.
+    Se vuelve a aplicar ``aplicar_plan_a_filas`` para recuperar el año
+    del plan (``anio_materia``) y las discrepancias, sin caer nunca en
+    el año de calendario del certificado.
     """
 
     examenes = (
@@ -170,15 +175,9 @@ def examenes_ordenados(graduado, carrera):
         else:
             nota_txt = nota_a_letras(examen.nota)
 
-        anio = examen.anio_cursado
-
-        if anio is None and exam.fecha_examen is not None:
-            anio = exam.fecha_examen.year
-
         filas.append({
             "orden": f"{indice:02d}",
             "orden_num": indice,
-            "anio": anio if anio is not None else "",
             "espacio": materia.nombre_materia,
             "nota": examen.nota,
             "nota_txt": (
@@ -201,7 +200,7 @@ def examenes_ordenados(graduado, carrera):
             "es_requisito": examen.es_requisito,
         })
 
-    return filas
+    return aplicar_plan_a_filas(carrera, filas)
 
 
 def contexto_analitico(graduado, carrera, tipo_documento):
@@ -419,6 +418,10 @@ def render_docx(contexto):
             {
                 **fila,
                 "nota": fila.get("nota_txt", ""),
+                # El año del plan ya viene como «1°», «2°»... en
+                # ``anio_txt``. Las plantillas siguen leyendo
+                # ``fila.anio`` sin necesidad de editar los .docx.
+                "anio": fila.get("anio_txt", ""),
             }
             for fila in contexto["filas"]
         ],

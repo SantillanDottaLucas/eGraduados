@@ -917,6 +917,43 @@ def _lincoln_xlsx_fixture():
     return buffer.getvalue()
 
 
+def _lincoln_xlsx_fixture_discrepancias():
+    """Dos filas: nombre distinto para un código y código fuera del plan."""
+
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    headers = [
+        "unidad_academica", "carrera", "legajo", "nombre_alumno",
+        "desc_abreviada", "nro_documento", "nro_inscripcion",
+        "nombre_materia", "fecha_regularidad", "fecha_examen",
+        "escala_notas", "acta_promocion", "nombre", "materia",
+        "localidad", "pais", "nota_cursada", "descr_cursada",
+        "acta_cursada", "res_cursada", "nota_final", "descr_final",
+        "acta_final", "res_final", "prom_gral", "observaciones",
+        "tipo", "interesado", "resultado", "credito", "hs_semanalese",
+        "ano_curs", "periodo_curs", "valor_numerico",
+    ]
+    ws.append(headers)
+
+    for codigo, nombre, acta in [
+        ("9001", "Materia Uno (nombre viejo)", "RG00000011"),
+        ("9999", "Materia Fuera", "RG00000012"),
+    ]:
+        ws.append([
+            "UARG", "72", "1-00000000/00", "PEREZ, JUAN", "DNI",
+            "1-00000000/00", "1-41734713/17", nombre, "", "01/03/2023",
+            "", "", "Carrera Test", codigo, "RIO GALLEGOS", "Argentina",
+            "", "", "", "", 7, "Siete", acta, "", "", "",
+            "Final", "QUIEN CORRESPONDA", "", "", "", "2021", "Anual", "",
+        ])
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue()
+
+
 class GeneracionAnaliticosTest(BasePrueba):
     def setUp(self):
         self.escuela = Escuela.objects.create(
@@ -943,6 +980,8 @@ class GeneracionAnaliticosTest(BasePrueba):
             codigo_plan="PRP1",
             codigo_carrera=self.carrera,
         )
+        self.carrera.plan_vigente = plan
+        self.carrera.save(update_fields=["plan_vigente"])
         PlanEstudiosMateria.objects.create(
             codigo_plan=plan,
             codigo_materia=self.materia1,
@@ -1335,7 +1374,8 @@ class GeneracionAnaliticosTest(BasePrueba):
             GraduadoExamen.objects.order_by("orden")
         )
 
-        # El orden manual se respeta: «Materia Dos» quedó primera.
+        # Ambas tienen orden 1 en el plan: el orden manual desempata
+        # y «Materia Dos» queda primera.
         self.assertEqual(
             [fila.id_examen.codigo_materia.codigo_materia for fila in filas],
             ["9002", "9001"],
@@ -1346,7 +1386,8 @@ class GeneracionAnaliticosTest(BasePrueba):
             id_examen__codigo_materia=self.materia1
         )
         self.assertTrue(requisito.es_requisito)
-        self.assertEqual(requisito.anio_cursado, 2020)
+        # El año del plan reemplaza al año de calendario del Lincoln.
+        self.assertEqual(requisito.anio_cursado, 1)
 
     def test_lincoln_no_genera_mensajes_al_continuar(self):
         from django.contrib.messages import get_messages
@@ -1401,6 +1442,287 @@ class GeneracionAnaliticosTest(BasePrueba):
         self.assertContains(respuesta, "Ya existe el graduado")
         self.assertContains(respuesta, "Generar analítico")
         self.assertContains(respuesta, "Modificar la información")
+
+    def test_verificar_filas_contra_el_plan(self):
+        from academico.servicios.moduloAnalitico.plan_estudios import (
+            verificar_filas,
+        )
+
+        filas = [
+            {"codigo_materia": "9001", "nombre_materia": "Materia Uno"},
+            {
+                "codigo_materia": "9002",
+                "nombre_materia": "MATERIA DOS",
+            },
+            {"codigo_materia": "9001", "nombre_materia": "Otro nombre"},
+            {"codigo_materia": "9999", "nombre_materia": "Materia Tres"},
+            {"codigo_materia": "", "nombre_materia": "Sin código"},
+        ]
+
+        resultado = verificar_filas(self.carrera, filas)
+
+        self.assertEqual(resultado[0]["estado"], "ok")
+        self.assertEqual(resultado[0]["anio_plan"], 1)
+        self.assertEqual(resultado[0]["orden_plan"], 1)
+
+        # El nombre se compara sin caso ni acentos.
+        self.assertEqual(resultado[1]["estado"], "ok")
+        self.assertEqual(resultado[1]["anio_plan"], 2)
+
+        self.assertEqual(resultado[2]["estado"], "nombre_distinto")
+        self.assertEqual(resultado[2]["anio_plan"], 1)
+
+        self.assertEqual(resultado[3]["estado"], "codigo_no_en_plan")
+        self.assertEqual(resultado[3]["codigos_sugeridos"], ["9003"])
+
+        self.assertEqual(resultado[4]["estado"], "sin_codigo")
+
+    def test_verificar_pad_codigo_y_sin_plan(self):
+        from academico.servicios.moduloAnalitico.plan_estudios import (
+            pad_codigo,
+            verificar_filas,
+        )
+
+        materia = Materia.objects.create(
+            codigo_materia="0904",
+            nombre_materia="Materia Cuatro",
+        )
+        PlanEstudiosMateria.objects.create(
+            codigo_plan=self.carrera.plan_vigente,
+            codigo_materia=materia,
+            anio_materia=3,
+            cuatrimestre_materia="1er",
+            orden_materia=4,
+            materia_requisito=False,
+        )
+
+        filas = [
+            {"codigo_materia": "904", "nombre_materia": "Materia Cuatro"},
+        ]
+        resultado = verificar_filas(self.carrera, filas)
+
+        self.assertEqual(pad_codigo("904"), "0904")
+        self.assertEqual(resultado[0]["estado"], "ok")
+        self.assertEqual(resultado[0]["anio_plan"], 3)
+
+        incompleta = Materia.objects.create(
+            codigo_materia="0905",
+            nombre_materia="Materia Cinco",
+        )
+        PlanEstudiosMateria.objects.create(
+            codigo_plan=self.carrera.plan_vigente,
+            codigo_materia=incompleta,
+            anio_materia=None,
+            cuatrimestre_materia="",
+            orden_materia=None,
+            materia_requisito=False,
+        )
+        fila_incompleta = verificar_filas(self.carrera, [{
+            "codigo_materia": "905",
+            "nombre_materia": "Materia Cinco",
+        }])
+        self.assertEqual(fila_incompleta[0]["estado"], "plan_incompleto")
+        self.assertIsNone(fila_incompleta[0]["anio_plan"])
+
+        self.carrera.plan_vigente = None
+        self.carrera.save(update_fields=["plan_vigente"])
+
+        sin_plan = verificar_filas(
+            Carrera.objects.get(pk=self.carrera.pk), filas
+        )
+        self.assertEqual(sin_plan[0]["estado"], "sin_plan")
+        self.assertIsNone(sin_plan[0]["anio_plan"])
+
+    def test_discrepancias_no_bloquean_y_fuera_del_plan_va_al_final(self):
+        from academico.models import GraduadoExamen
+
+        self.iniciar_sesion(self.admin)
+        url = reverse("generacion_analiticos")
+
+        archivo = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture_discrepancias(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+        payload = dict(self._form_base())
+        payload["accion"] = "continuar"
+        payload["archivo_notas"] = archivo
+
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 302)
+
+        respuesta = self.client.get(respuesta.url)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Discrepancias con el plan de estudios")
+        self.assertContains(respuesta, "Nombre distinto")
+        self.assertContains(respuesta, "Código fuera del plan")
+        self.assertContains(respuesta, "no impiden validar ni descargar")
+
+        payload = dict(self._form_base())
+        payload["accion"] = "validar"
+        payload["fila_indice"] = ["01", "02"]
+        # Orden manual invertido: la fila fuera del plan debe ir al final.
+        payload["fila_orden"] = ["2", "1"]
+        payload["fila_anio"] = ["2020", "2021"]
+        payload["fila_espacio"] = [
+            "Materia Uno (nombre viejo)",
+            "Materia Fuera",
+        ]
+        payload["fila_nota"] = ["7", "8"]
+        payload["fila_fecha"] = ["2023-03-01", "2023-03-01"]
+        payload["fila_tipo"] = ["Final", "Final"]
+        payload["fila_respaldo"] = ["RG00000011", "RG00000012"]
+        payload["fila_materia"] = ["9001", "9999"]
+        payload["fila_codigo_lincoln"] = ["9001", "9999"]
+        payload["fila_nombre_lincoln"] = [
+            "Materia Uno (nombre viejo)",
+            "Materia Fuera",
+        ]
+
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 302)
+
+        filas = list(GraduadoExamen.objects.order_by("orden"))
+        self.assertEqual(
+            [
+                fila.id_examen.codigo_materia.codigo_materia
+                for fila in filas
+            ],
+            ["9001", "9999"],
+        )
+        self.assertEqual(filas[0].anio_cursado, 1)
+        self.assertIsNone(filas[1].anio_cursado)
+
+        # La descarga queda habilitada aunque haya discrepancias.
+        respuesta = self.client.post(
+            url,
+            {
+                "accion": "descargar",
+                "legajo": "1-41734713/17",
+                "carrera": "PR1",
+            },
+        )
+        self.assertEqual(respuesta.status_code, 200)
+
+    def test_orden_y_anio_del_plan_prevalecen_en_el_documento(self):
+        from docx import Document
+
+        from academico.models import GraduadoExamen
+
+        PlanEstudiosMateria.objects.filter(
+            codigo_materia=self.materia1
+        ).update(anio_materia=3, orden_materia=2)
+        PlanEstudiosMateria.objects.filter(
+            codigo_materia=self.materia2
+        ).update(anio_materia=1, orden_materia=1)
+
+        self.iniciar_sesion(self.admin)
+        url = reverse("generacion_analiticos")
+
+        payload = dict(self._form_base())
+        payload["accion"] = "validar"
+        payload["fila_indice"] = ["01", "02"]
+        # Orden manual y años de calendario que deben ser ignorados.
+        payload["fila_orden"] = ["1", "2"]
+        payload["fila_anio"] = ["2020", "2021"]
+        payload["fila_espacio"] = ["Materia Uno", "Materia Dos"]
+        payload["fila_nota"] = ["7", "10"]
+        payload["fila_fecha"] = ["2023-03-01", "2021-12-16"]
+        payload["fila_tipo"] = ["Final", "Final"]
+        payload["fila_respaldo"] = ["RG00000001", "RG00000002"]
+        payload["fila_materia"] = ["9001", "9002"]
+
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 302)
+
+        filas = list(GraduadoExamen.objects.order_by("orden"))
+        self.assertEqual(
+            [
+                fila.id_examen.codigo_materia.codigo_materia
+                for fila in filas
+            ],
+            ["9002", "9001"],
+        )
+        self.assertEqual([fila.orden for fila in filas], [1, 2])
+        self.assertEqual([fila.anio_cursado for fila in filas], [1, 3])
+
+        respuesta = self.client.post(
+            url,
+            {
+                "accion": "descargar",
+                "legajo": "1-41734713/17",
+                "carrera": "PR1",
+            },
+        )
+        self.assertEqual(respuesta.status_code, 200)
+
+        documento = Document(BytesIO(respuesta.content))
+        celdas = [
+            celda.text.strip()
+            for fila in documento.tables[0].rows for celda in fila.cells
+        ]
+        self.assertIn("1°", celdas)
+        self.assertIn("3°", celdas)
+        self.assertNotIn("2020", celdas)
+        self.assertNotIn("2021", celdas)
+
+    def test_carrera_sin_plan_conserva_orden_y_deja_anio_vacio(self):
+        from academico.models import GraduadoExamen
+
+        self.carrera.plan_vigente = None
+        self.carrera.save(update_fields=["plan_vigente"])
+
+        self.iniciar_sesion(self.admin)
+        url = reverse("generacion_analiticos")
+
+        archivo = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+        payload = dict(self._form_base())
+        payload["accion"] = "continuar"
+        payload["archivo_notas"] = archivo
+
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 302)
+
+        respuesta = self.client.get(respuesta.url)
+        self.assertContains(respuesta, "Sin plan vigente")
+        self.assertContains(respuesta, "no impiden validar ni descargar")
+
+        payload = dict(self._form_base())
+        payload["accion"] = "validar"
+        payload["fila_indice"] = ["01", "02"]
+        payload["fila_orden"] = ["2", "1"]
+        payload["fila_anio"] = ["1", "2"]
+        payload["fila_espacio"] = ["Materia Uno", "Materia Dos"]
+        payload["fila_nota"] = ["7", "10"]
+        payload["fila_fecha"] = ["2023-03-01", "2021-12-16"]
+        payload["fila_tipo"] = ["Final", "Final"]
+        payload["fila_respaldo"] = ["RG00000001", "RG00000002"]
+        payload["fila_materia"] = ["9001", "9002"]
+
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 302)
+
+        filas = list(GraduadoExamen.objects.order_by("orden"))
+        self.assertEqual(
+            [
+                fila.id_examen.codigo_materia.codigo_materia
+                for fila in filas
+            ],
+            ["9002", "9001"],
+        )
+        self.assertTrue(all(fila.anio_cursado is None for fila in filas))
 
 
 class TituloEnTramiteTest(BasePrueba):
