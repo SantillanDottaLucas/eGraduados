@@ -6,7 +6,10 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 
 from academico.models import Graduado, Carrera, GraduadoCarrera
-from academico.servicios.validaciones import validar_datos_graduado
+from academico.servicios.validaciones import (
+    anio_desde_valor,
+    validar_datos_graduado,
+)
 
 
 class CargaDatos:
@@ -122,7 +125,9 @@ class CargaDatos:
                     "promedio_con_aplazo"
                 )
 
-                fecha_ingreso_universidad = cls._fecha(
+                # La planilla histórica trae una fecha, pero sólo
+                # interesa el año. También se acepta un año suelto.
+                anio_ingreso_universidad = anio_desde_valor(
                     fila["fecha_ingreso_universidad"],
                     "fecha_ingreso_universidad"
                 )
@@ -143,14 +148,12 @@ class CargaDatos:
                     "legajo": legajo,
                     "dni": dni,
                     "anio_ingreso_universidad": (
-                        fecha_ingreso_universidad.year
-                        if fecha_ingreso_universidad else None
+                        anio_ingreso_universidad
                     ),
                     "anio_ingreso_carrera": (
                         fecha_ingreso_carrera.year
                         if fecha_ingreso_carrera else None
                     ),
-                    "fecha_ingreso_universidad": fecha_ingreso_universidad,
                     "fecha_ingreso_carrera": fecha_ingreso_carrera,
                     "fecha_egreso_carrera": fecha_egreso_carrera,
                 })
@@ -178,8 +181,8 @@ class CargaDatos:
                     "dni": dni,
                     "nombre": nombre,
                     "apellido": apellido,
-                    "fecha_ingreso_universidad":
-                        fecha_ingreso_universidad,
+                    "anio_ingreso_universidad":
+                        anio_ingreso_universidad,
                 }
 
                 if legajo in legajos_archivo:
@@ -196,8 +199,8 @@ class CargaDatos:
                     "dni": dni,
                     "nombre": nombre,
                     "apellido": apellido,
-                    "fecha_ingreso_universidad":
-                        fecha_ingreso_universidad,
+                    "anio_ingreso_universidad":
+                        anio_ingreso_universidad,
                     "codigo_carrera": codigo_carrera,
                     "fecha_ingreso_carrera": fecha_ingreso_carrera,
                     "fecha_egreso_carrera": fecha_egreso_carrera,
@@ -295,8 +298,8 @@ class CargaDatos:
                         "dni": persona["dni"],
                         "nombre": persona["nombre"],
                         "apellido": persona["apellido"],
-                        "fecha_ingreso_universidad":
-                            persona["fecha_ingreso_universidad"],
+                        "anio_ingreso_universidad":
+                            persona["anio_ingreso_universidad"],
                     }
                 )
 

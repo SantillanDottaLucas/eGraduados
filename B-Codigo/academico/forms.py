@@ -174,11 +174,17 @@ class EdicionGraduadoForm(forms.Form):
         widget=forms.TextInput(attrs={"class": "form-control"}),
     )
 
-    fecha_ingreso_universidad = forms.DateField(
-        label="Ingreso a la universidad",
-        widget=forms.DateInput(
-            attrs={"type": "date", "class": "form-control"},
-            format="%Y-%m-%d",
+    anio_ingreso_universidad = forms.IntegerField(
+        label="Año de ingreso a la UARG",
+        min_value=1900,
+        max_value=2100,
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "min": 1900,
+                "max": 2100,
+                "placeholder": "Ejemplo: 2017",
+            }
         ),
     )
 
@@ -288,20 +294,18 @@ class EdicionGraduadoForm(forms.Form):
 
         from .servicios.validaciones import validar_datos_graduado
 
-        fecha_uarg = datos.get("fecha_ingreso_universidad")
         fecha_carrera = datos.get("fecha_ingreso_carrera")
 
         normalizados, errores = validar_datos_graduado({
             "legajo": self.legajo,
             "dni": datos.get("dni"),
             "anio_ingreso_universidad": (
-                fecha_uarg.year if fecha_uarg else None
+                datos.get("anio_ingreso_universidad")
             ),
             "anio_ingreso_carrera": (
                 fecha_carrera.year if fecha_carrera else None
             ),
             "fecha_nacimiento": datos.get("fecha_nacimiento"),
-            "fecha_ingreso_universidad": fecha_uarg,
             "fecha_ingreso_carrera": fecha_carrera,
             "fecha_egreso_carrera": datos.get("fecha_egreso_carrera"),
         })
@@ -311,6 +315,146 @@ class EdicionGraduadoForm(forms.Form):
 
         if normalizados["dni"]:
             datos["dni"] = normalizados["dni"]
+
+        return datos
+
+
+# ==================================================
+# CARGA MANUAL DE GRADUADOS (DATOS MÍNIMOS)
+# ==================================================
+
+class CargaGraduadoForm(forms.Form):
+    """
+    Alta manual de un graduado con los datos mínimos: identificación,
+    año de ingreso a la UARG y datos de su carrera.
+
+    No incluye nacimiento, secundario, resoluciones ni promedio con
+    aplazo: esos datos se completan en otras pantallas.
+    """
+
+    legajo = forms.CharField(
+        max_length=50,
+        label="Legajo",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Ejemplo: 1-46189053/24",
+            }
+        ),
+    )
+
+    dni = forms.CharField(
+        max_length=20,
+        label="DNI",
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "Ejemplo: 46189053"}
+        ),
+    )
+
+    nombre = forms.CharField(
+        max_length=100,
+        label="Nombre",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+
+    apellido = forms.CharField(
+        max_length=100,
+        label="Apellido",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+
+    codigo_carrera = CarreraModelChoiceField(
+        queryset=Carrera.objects.select_related("id_escuela").order_by(
+            "nombre_carrera"
+        ),
+        label="Carrera",
+        empty_label="Seleccioná una carrera",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    anio_ingreso_universidad = forms.IntegerField(
+        label="Año de ingreso a la UARG",
+        min_value=1900,
+        max_value=2100,
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "min": 1900,
+                "max": 2100,
+                "placeholder": "Ejemplo: 2017",
+            }
+        ),
+    )
+
+    fecha_ingreso_carrera = forms.DateField(
+        label="Fecha de ingreso a la carrera",
+        widget=forms.DateInput(
+            attrs={"type": "date", "class": "form-control"},
+            format="%Y-%m-%d",
+        ),
+    )
+
+    fecha_egreso_carrera = forms.DateField(
+        label="Fecha de egreso de la carrera",
+        widget=forms.DateInput(
+            attrs={"type": "date", "class": "form-control"},
+            format="%Y-%m-%d",
+        ),
+    )
+
+    promedio_sin_aplazo = forms.FloatField(
+        label="Promedio general (sin aplazos)",
+        min_value=0,
+        max_value=10,
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "step": "0.01",
+                "min": 0,
+                "max": 10,
+                "placeholder": "Ejemplo: 8.75",
+            }
+        ),
+    )
+
+    def clean(self):
+        datos = super().clean()
+
+        from .servicios.validaciones import (
+            validar_datos_graduado,
+            validar_promedio,
+        )
+
+        fecha_carrera = datos.get("fecha_ingreso_carrera")
+
+        normalizados, errores = validar_datos_graduado({
+            "legajo": datos.get("legajo"),
+            "dni": datos.get("dni"),
+            "anio_ingreso_universidad": (
+                datos.get("anio_ingreso_universidad")
+            ),
+            "anio_ingreso_carrera": (
+                fecha_carrera.year if fecha_carrera else None
+            ),
+            "fecha_ingreso_carrera": fecha_carrera,
+            "fecha_egreso_carrera": datos.get("fecha_egreso_carrera"),
+        })
+
+        for error in errores:
+            self.add_error(None, error)
+
+        datos["legajo"] = normalizados["legajo"] or datos.get("legajo")
+        datos["dni"] = normalizados["dni"] or datos.get("dni")
+
+        promedio = datos.get("promedio_sin_aplazo")
+
+        if promedio is not None:
+            try:
+                datos["promedio_sin_aplazo"] = validar_promedio(
+                    promedio, "promedio_sin_aplazo"
+                )
+            except ValueError as error:
+                self.add_error("promedio_sin_aplazo", str(error))
 
         return datos
 

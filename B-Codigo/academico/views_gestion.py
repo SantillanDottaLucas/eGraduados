@@ -224,8 +224,8 @@ def editar_graduado(request, legajo, carrera):
                     graduado.nombre = datos["nombre"]
                     graduado.apellido = datos["apellido"]
                     graduado.dni = datos["dni"]
-                    graduado.fecha_ingreso_universidad = (
-                        datos["fecha_ingreso_universidad"]
+                    graduado.anio_ingreso_universidad = (
+                        datos["anio_ingreso_universidad"]
                     )
                     graduado.save()
 
@@ -391,8 +391,8 @@ def editar_graduado(request, legajo, carrera):
                 "nombre": graduado.nombre,
                 "apellido": graduado.apellido,
                 "dni": graduado.dni,
-                "fecha_ingreso_universidad": (
-                    graduado.fecha_ingreso_universidad
+                "anio_ingreso_universidad": (
+                    graduado.anio_ingreso_universidad
                 ),
                 "fecha_ingreso_carrera": (
                     registro.fecha_ingreso_carrera

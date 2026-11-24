@@ -3,6 +3,7 @@ from . import views
 from . import views_abm
 from . import views_gestion
 from . import views_analiticos
+from . import views_carga_graduados
 from django.urls import path, re_path
 
 urlpatterns = [
@@ -72,6 +73,11 @@ urlpatterns = [
         "carga_datos/",
         views.carga_datos,
         name="carga_datos"
+    ),
+    path(
+        "carga_graduados/",
+        views_carga_graduados.carga_graduados,
+        name="carga_graduados",
     ),
 
 ]

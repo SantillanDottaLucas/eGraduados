@@ -1,0 +1,179 @@
+{% extends "academico/base.html" %}
+
+{% block title %}eGraduados | Carga de graduados{% endblock %}
+
+{% block content %}
+
+<div class="carga-contenedor">
+
+    {% include "academico/componentes/page_header.html" with titulo="Carga de graduados" descripcion="Ingresá sólo los datos mínimos que conforman a un graduado y a su carrera. Si el legajo, el DNI o la carrera ya existen, se te va a pedir confirmación antes de sobrescribirlos." volver=1 %}
+
+    <ol class="app-stepper" aria-label="Progreso de la carga">
+        <li class="app-stepper-item actual" aria-current="step">
+            <span class="app-stepper-numero">1</span>
+            <span>Datos del graduado</span>
+        </li>
+        <li class="app-stepper-item">
+            <span class="app-stepper-numero">2</span>
+            <span>Confirmación</span>
+        </li>
+        <li class="app-stepper-item">
+            <span class="app-stepper-numero">3</span>
+            <span>Guardado</span>
+        </li>
+    </ol>
+
+    <section class="carga-tarjeta">
+
+        <div class="carga-icono" aria-hidden="true">
+            <i class="bi bi-person-plus"></i>
+        </div>
+
+        <h2>Datos mínimos</h2>
+
+        <p class="carga-descripcion">
+            Completá los nueve campos. El año de ingreso a la UARG
+            se registra sólo con el año (por ejemplo, 2017).
+        </p>
+
+        <form method="post" id="formularioCargaGraduado">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="guardar">
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="row g-3">
+
+                <div class="col-12 col-md-6">
+                    <label for="id_legajo" class="form-label fw-semibold">Legajo</label>
+                    {{ form.legajo }}
+                    {% if form.legajo.errors %}
+                        <div class="text-danger small mt-1">{{ form.legajo.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_dni" class="form-label fw-semibold">DNI</label>
+                    {{ form.dni }}
+                    {% if form.dni.errors %}
+                        <div class="text-danger small mt-1">{{ form.dni.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_nombre" class="form-label fw-semibold">Nombre</label>
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}
+                        <div class="text-danger small mt-1">{{ form.nombre.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_apellido" class="form-label fw-semibold">Apellido</label>
+                    {{ form.apellido }}
+                    {% if form.apellido.errors %}
+                        <div class="text-danger small mt-1">{{ form.apellido.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12">
+                    <label for="id_codigo_carrera" class="form-label fw-semibold">Carrera</label>
+                    {{ form.codigo_carrera }}
+                    {% if form.codigo_carrera.errors %}
+                        <div class="text-danger small mt-1">{{ form.codigo_carrera.errors.0 }}</div>
+                    {% endif %}
+                    <div class="form-text">
+                        Si la carrera no figura, cargala primero desde «Gestión académica».
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_anio_ingreso_universidad" class="form-label fw-semibold">
+                        Año de ingreso a la UARG
+                    </label>
+                    {{ form.anio_ingreso_universidad }}
+                    {% if form.anio_ingreso_universidad.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.anio_ingreso_universidad.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_promedio_sin_aplazo" class="form-label fw-semibold">
+                        Promedio general (sin aplazos)
+                    </label>
+                    {{ form.promedio_sin_aplazo }}
+                    {% if form.promedio_sin_aplazo.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.promedio_sin_aplazo.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_fecha_ingreso_carrera" class="form-label fw-semibold">
+                        Fecha de ingreso a la carrera
+                    </label>
+                    {{ form.fecha_ingreso_carrera }}
+                    {% if form.fecha_ingreso_carrera.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.fecha_ingreso_carrera.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="id_fecha_egreso_carrera" class="form-label fw-semibold">
+                        Fecha de egreso de la carrera
+                    </label>
+                    {{ form.fecha_egreso_carrera }}
+                    {% if form.fecha_egreso_carrera.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.fecha_egreso_carrera.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <div class="carga-ayuda mt-4">
+                <div class="carga-ayuda-icono" aria-hidden="true">
+                    <i class="bi bi-info-circle"></i>
+                </div>
+                <div>
+                    <strong>Formato de los datos</strong>
+                    <p>
+                        El legajo debe tener el formato
+                        <code>1-46189053/24</code> (prefijo del 1 al 4,
+                        DNI y los dos últimos dígitos del año de ingreso).
+                        El promedio va entre 0 y 10 y la fecha de egreso
+                        debe ser posterior a la de ingreso a la carrera.
+                    </p>
+                </div>
+            </div>
+
+            <div class="carga-acciones">
+                <a href="{% url 'index' %}" class="carga-boton carga-boton-secundario">
+                    Cancelar
+                </a>
+                <button type="submit" class="carga-boton carga-boton-principal">
+                    <i class="bi bi-save" aria-hidden="true"></i>
+                    Guardar graduado
+                </button>
+            </div>
+
+        </form>
+    </section>
+
+    <footer class="carga-pie">
+        Secretaría Académica · Universidad Nacional de la Patagonia Austral · UARG
+    </footer>
+</div>
+{% endblock %}

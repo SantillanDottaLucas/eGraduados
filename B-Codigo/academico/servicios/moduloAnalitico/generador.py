@@ -252,7 +252,7 @@ def contexto_analitico(graduado, carrera, tipo_documento):
 
     filas = examenes_ordenados(graduado, carrera)
 
-    fecha_ingreso_universidad = graduado.fecha_ingreso_universidad
+    anio_ingreso_universidad = graduado.anio_ingreso_universidad
 
     return {
         "tipo_documento": tipo_documento,
@@ -267,8 +267,8 @@ def contexto_analitico(graduado, carrera, tipo_documento):
         "texto_resoluciones_ministeriales": texto_minist,
         "texto_otros_instrumentos": texto_otros,
         "anio_ingreso_universidad": (
-            fecha_ingreso_universidad.year
-            if fecha_ingreso_universidad else ""
+            anio_ingreso_universidad
+            if anio_ingreso_universidad else ""
         ),
         "anio_ingreso_carrera": (
             registro.fecha_ingreso_carrera.year if registro else ""

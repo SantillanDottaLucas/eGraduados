@@ -1,15 +1,18 @@
 """
 Validaciones de negocio compartidas por la carga de datos
-(por Excel), la edición manual de graduados y la generación
-de analíticos.
+(por Excel), la carga manual de graduados, la edición manual
+y la generación de analíticos.
 
 Todas las funciones lanzan ValueError con un mensaje orientado
 al usuario, para que cada llamador decida cómo presentarlo.
 ``validar_datos_graduado`` es la fachada que reúne todas las
 reglas y devuelve la lista de errores.
+
+El ingreso a la UARG se informa como AÑO (no como fecha).
 """
 
 import re
+from datetime import date, datetime
 
 from academico.models import Graduado
 
@@ -24,6 +27,9 @@ DNI_MAX_DIGITOS = 8
 # Legajo institucional: <prefijo 1..4>-<DNI>/<últimos 2 dígitos del año>.
 # Ejemplo: 1-46189053/24
 RE_LEGAJO = re.compile(r"^([1-4])-(\d{7,8})/(\d{2})$")
+
+ANIO_MIN = 1900
+ANIO_MAX = 2100
 
 
 def validar_dni(dni):
@@ -111,6 +117,78 @@ def validar_legajo(legajo, dni=None, anio_ingreso=None):
 # AÑOS Y FECHAS
 # ==================================================
 
+def validar_anio(valor, campo="anio"):
+    """Valida un año de 4 dígitos y lo devuelve como entero."""
+
+    if valor in (None, ""):
+        raise ValueError(f"El campo «{campo}» es obligatorio.")
+
+    try:
+        texto = str(valor).strip()
+
+        if isinstance(valor, float) and valor.is_integer():
+            texto = str(int(valor))
+
+        if not re.fullmatch(r"\d{4}", texto):
+            raise ValueError
+
+        anio = int(texto)
+    except (TypeError, ValueError):
+        raise ValueError(
+            f"El campo «{campo}» debe contener un año de 4 dígitos."
+        )
+
+    if not ANIO_MIN <= anio <= ANIO_MAX:
+        raise ValueError(
+            f"El campo «{campo}» debe estar entre {ANIO_MIN} y {ANIO_MAX}."
+        )
+
+    return anio
+
+
+def anio_desde_valor(valor, campo="anio"):
+    """
+    Normaliza un valor que puede ser un año suelto o una fecha a
+    un año entero. Se usa en la importación Excel, donde conviven
+    planillas con ``fecha_ingreso_universidad`` y con año.
+    """
+
+    if valor is None or (isinstance(valor, str) and not valor.strip()):
+        raise ValueError(f"El campo «{campo}» es obligatorio.")
+
+    # NaN de pandas: no es igual ni siquiera a sí mismo.
+    if isinstance(valor, float) and valor != valor:
+        raise ValueError(f"El campo «{campo}» es obligatorio.")
+
+    if isinstance(valor, datetime):
+        valor = valor.date()
+
+    if isinstance(valor, date):
+        return validar_anio(valor.year, campo)
+
+    texto = str(valor).strip()
+
+    # Excel puede entregar el año como texto «2014.0».
+    if re.fullmatch(r"\d{4}\.0+", texto):
+        texto = texto.split(".")[0]
+
+    try:
+        return validar_anio(texto, campo)
+    except ValueError as error_anio:
+        for formato in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
+            try:
+                fecha = datetime.strptime(texto, formato).date()
+            except ValueError:
+                continue
+
+            return validar_anio(fecha.year, campo)
+
+        raise ValueError(
+            f"El campo «{campo}» debe ser un año de 4 dígitos "
+            "o una fecha válida."
+        ) from error_anio
+
+
 def validar_anios(
     fecha_nacimiento=None,
     anio_ingreso_universidad=None,
@@ -155,7 +233,6 @@ def validar_anios(
 
 
 def _errores_cronologia_fechas(
-    fecha_ingreso_universidad,
     fecha_ingreso_carrera,
     fecha_egreso_carrera,
     fecha_nacimiento=None,
@@ -165,16 +242,6 @@ def _errores_cronologia_fechas(
     errores = []
 
     if (
-        fecha_ingreso_universidad is not None
-        and fecha_ingreso_carrera is not None
-        and fecha_ingreso_universidad > fecha_ingreso_carrera
-    ):
-        errores.append(
-            "El ingreso a la carrera no puede ser anterior "
-            "al ingreso a la universidad."
-        )
-
-    if (
         fecha_ingreso_carrera is not None
         and fecha_egreso_carrera is not None
         and fecha_ingreso_carrera >= fecha_egreso_carrera
@@ -182,16 +249,6 @@ def _errores_cronologia_fechas(
         errores.append(
             "La fecha de egreso debe ser posterior a la fecha "
             "de ingreso a la carrera."
-        )
-
-    if (
-        fecha_ingreso_universidad is not None
-        and fecha_egreso_carrera is not None
-        and fecha_ingreso_universidad >= fecha_egreso_carrera
-    ):
-        errores.append(
-            "La fecha de egreso debe ser posterior a la fecha "
-            "de ingreso a la universidad."
         )
 
     if (
@@ -208,16 +265,13 @@ def _errores_cronologia_fechas(
 
 
 def validar_cronologia_fechas(
-    fecha_ingreso_universidad,
     fecha_ingreso_carrera,
     fecha_egreso_carrera,
     fecha_nacimiento=None,
 ):
     """
-    Comprueba la coherencia cronológica de las fechas de un
-    graduado: el ingreso a la universidad debe ser el mismo día
-    o anterior al ingreso a la carrera, y el egreso debe ser
-    posterior a ambos ingresos.
+    Comprueba la coherencia cronológica de las fechas de la
+    carrera: el egreso debe ser posterior al ingreso.
 
     Lanza el primer error (para los llamadores que esperan una
     única excepción). La fachada usa ``_errores_cronologia_fechas``
@@ -225,7 +279,6 @@ def validar_cronologia_fechas(
     """
 
     errores = _errores_cronologia_fechas(
-        fecha_ingreso_universidad,
         fecha_ingreso_carrera,
         fecha_egreso_carrera,
         fecha_nacimiento,
@@ -241,23 +294,22 @@ def validar_cronologia_fechas(
 
 def validar_promedio(valor, campo):
     """
-    Valora un promedio numérico entre 0 y 10.
+    Valida un promedio numérico entre 0 y 10.
 
     Devuelve el valor convertido a float.
     """
 
     try:
-        texto = str(valor).strip()
+        texto = str(valor).strip().replace(",", ".")
         promedio = float(texto)
-
     except (TypeError, ValueError):
         raise ValueError(
-            f"El campo '{campo}' debe ser numérico."
+            f"El campo «{campo}» debe ser numérico."
         )
 
     if not 0 <= promedio <= 10:
         raise ValueError(
-            f"El campo '{campo}' debe estar entre 0 y 10."
+            f"El campo «{campo}» debe estar entre 0 y 10."
         )
 
     return promedio
@@ -273,25 +325,42 @@ def validar_datos_graduado(datos):
 
     ``datos`` puede contener:``dni``, ``legajo``,
     ``anio_ingreso_universidad``, ``anio_ingreso_carrera``,
-    ``fecha_nacimiento``, ``fecha_ingreso_universidad``,
-    ``fecha_ingreso_carrera`` y ``fecha_egreso_carrera``.
+    ``fecha_nacimiento``, ``fecha_ingreso_carrera`` y
+    ``fecha_egreso_carrera``.
 
     Devuelve ``(normalizados, errores)``. ``normalizados`` trae
-    el DNI y el legajo sin espacios para que el llamador los use
-    al persistir.
+    el DNI, el legajo y el año de ingreso a la UARG listos para
+    persistir.
     """
 
     errores = []
     normalizados = {
         "dni": "",
         "legajo": "",
+        "anio_ingreso_universidad": None,
     }
 
     dni = datos.get("dni")
     legajo = datos.get("legajo")
-    anio_uarg = datos.get("anio_ingreso_universidad")
-    anio_carrera = datos.get("anio_ingreso_carrera")
-    fecha_nac = datos.get("fecha_nacimiento")
+
+    try:
+        anio_uarg = validar_anio(
+            datos.get("anio_ingreso_universidad"),
+            "anio_ingreso_universidad",
+        )
+        normalizados["anio_ingreso_universidad"] = anio_uarg
+    except ValueError as error:
+        anio_uarg = None
+        errores.append(str(error))
+
+    try:
+        anio_carrera = datos.get("anio_ingreso_carrera")
+
+        if anio_carrera is not None:
+            anio_carrera = validar_anio(anio_carrera, "anio_ingreso_carrera")
+    except ValueError as error:
+        anio_carrera = None
+        errores.append(str(error))
 
     try:
         normalizados["dni"] = validar_dni(dni)
@@ -308,19 +377,24 @@ def validar_datos_graduado(datos):
         errores.append(str(error))
 
     try:
-        validar_anios(fecha_nac, anio_uarg, anio_carrera)
+        validar_anios(
+            datos.get("fecha_nacimiento"),
+            anio_uarg,
+            anio_carrera,
+        )
     except ValueError as error:
         errores.append(str(error))
 
-    fechas = (
-        datos.get("fecha_ingreso_universidad"),
-        datos.get("fecha_ingreso_carrera"),
-        datos.get("fecha_egreso_carrera"),
-    )
+    fecha_ingreso = datos.get("fecha_ingreso_carrera")
+    fecha_egreso = datos.get("fecha_egreso_carrera")
 
-    if all(fecha is not None for fecha in fechas):
+    if fecha_ingreso is not None and fecha_egreso is not None:
         errores.extend(
-            _errores_cronologia_fechas(*fechas, fecha_nacimiento=fecha_nac)
+            _errores_cronologia_fechas(
+                fecha_ingreso,
+                fecha_egreso,
+                fecha_nacimiento=datos.get("fecha_nacimiento"),
+            )
         )
 
     return normalizados, errores

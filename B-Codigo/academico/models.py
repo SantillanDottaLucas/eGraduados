@@ -50,7 +50,10 @@ class Graduado(models.Model):
         primary_key=True
     )
     dni = models.CharField(max_length=20, unique=True)
-    fecha_ingreso_universidad = models.DateField()
+
+    # Sólo interesa el año de ingreso a la UARG: el día y el mes
+    # no se registran (antes se guardaba una fecha completa).
+    anio_ingreso_universidad = models.IntegerField()
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
 

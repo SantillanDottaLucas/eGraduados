@@ -71,6 +71,15 @@ MODULOS = (
         "admin": False,
     },
     {
+        "clave": "carga_graduados",
+        "etiqueta": "Carga de graduados",
+        "descripcion": "Alta manual con datos mínimos",
+        "grupo": "Datos",
+        "url_name": "carga_graduados",
+        "icono": "bi-person-plus",
+        "admin": False,
+    },
+    {
         "clave": "gestion_academica",
         "etiqueta": "Gestión académica",
         "descripcion": "Escuelas, carreras, planes y materias",

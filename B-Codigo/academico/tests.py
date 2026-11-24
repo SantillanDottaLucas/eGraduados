@@ -36,6 +36,7 @@ from .models import (
 )
 from .servicios.moduloAnalitico.promedios import calcular_promedios
 from .servicios.moduloAnalitico.utilidades_texto import tipo_examen_legible
+from .servicios.moduloGraduados.carga_graduados import CLAVE_PENDIENTE
 from .servicios.moduloGraduados.consulta_graduados import (
     obtener_filas_filtradas,
 )
@@ -169,7 +170,7 @@ class EdicionGraduadoTest(BasePrueba):
         cls.graduado = Graduado.objects.create(
             legajo_graduado="1-12345678/15",
             dni="12345678",
-            fecha_ingreso_universidad=date(2015, 3, 1),
+            anio_ingreso_universidad=2015,
             nombre="Ana",
             apellido="Perez",
         )
@@ -192,7 +193,7 @@ class EdicionGraduadoTest(BasePrueba):
                 "nombre": "Ana Maria",
                 "apellido": "Perez",
                 "dni": "12345678",
-                "fecha_ingreso_universidad": "2015-03-01",
+                "anio_ingreso_universidad": "2015",
                 "fecha_ingreso_carrera": "2016-03-01",
                 "fecha_egreso_carrera": "2020-12-15",
                 "promedio_sin_aplazo": "8.5",
@@ -216,7 +217,7 @@ class EdicionGraduadoTest(BasePrueba):
                 "nombre": "Ana",
                 "apellido": "Perez",
                 "dni": "12345678",
-                "fecha_ingreso_universidad": "2015-03-01",
+                "anio_ingreso_universidad": "2015",
                 "fecha_ingreso_carrera": "2021-03-01",
                 "fecha_egreso_carrera": "2020-12-15",
                 "promedio_sin_aplazo": "8.0",
@@ -231,7 +232,7 @@ class EdicionGraduadoTest(BasePrueba):
         Graduado.objects.create(
             legajo_graduado="1-99999999/14",
             dni="99999999",
-            fecha_ingreso_universidad=date(2014, 3, 1),
+            anio_ingreso_universidad=2014,
             nombre="Otro",
             apellido="Alumno",
         )
@@ -245,7 +246,7 @@ class EdicionGraduadoTest(BasePrueba):
                 "nombre": "Ana",
                 "apellido": "Perez",
                 "dni": "99999999",
-                "fecha_ingreso_universidad": "2015-03-01",
+                "anio_ingreso_universidad": "2015",
                 "fecha_ingreso_carrera": "2016-03-01",
                 "fecha_egreso_carrera": "2020-12-15",
                 "promedio_sin_aplazo": "8.0",
@@ -282,7 +283,7 @@ class EdicionGraduadoTest(BasePrueba):
                 "nombre": "Ana",
                 "apellido": "Perez",
                 "dni": "12345678",
-                "fecha_ingreso_universidad": "2015-03-01",
+                "anio_ingreso_universidad": "2015",
                 "fecha_ingreso_carrera": "2016-03-01",
                 "fecha_egreso_carrera": "2020-12-15",
                 "promedio_sin_aplazo": "",
@@ -333,7 +334,7 @@ class EdicionGraduadoTest(BasePrueba):
                 "nombre": "Ana",
                 "apellido": "Perez",
                 "dni": "12345678",
-                "fecha_ingreso_universidad": "2015-03-01",
+                "anio_ingreso_universidad": "2015",
                 "fecha_ingreso_carrera": "2016-03-01",
                 "fecha_egreso_carrera": "2020-12-15",
                 "promedio_sin_aplazo": "8.5",
@@ -377,7 +378,7 @@ class EdicionGraduadoTest(BasePrueba):
                 "nombre": "Ana",
                 "apellido": "Perez",
                 "dni": "12345678",
-                "fecha_ingreso_universidad": "2015-03-01",
+                "anio_ingreso_universidad": "2015",
                 "fecha_ingreso_carrera": "2016-03-01",
                 "fecha_egreso_carrera": "2020-12-15",
                 "promedio_sin_aplazo": "8.5",
@@ -405,35 +406,257 @@ class EdicionGraduadoTest(BasePrueba):
         )
 
 
+class CargaGraduadosTest(BasePrueba):
+    """Carga manual de un graduado con datos mínimos."""
+
+    LEGAJO = "1-41734713/17"
+    DNI = "41734713"
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+
+        cls.escuela = Escuela.objects.create(
+            nombre_escuela="Escuela Carga Manual"
+        )
+        cls.carrera = Carrera.objects.create(
+            codigo_carrera="CARGA1",
+            nombre_carrera="Carrera Carga Manual",
+            id_escuela=cls.escuela,
+        )
+
+    def datos(self, **cambios):
+        datos = {
+            "legajo": self.LEGAJO,
+            "dni": self.DNI,
+            "nombre": "Ana",
+            "apellido": "Perez",
+            "codigo_carrera": self.carrera.codigo_carrera,
+            "anio_ingreso_universidad": "2017",
+            "fecha_ingreso_carrera": "2018-03-01",
+            "fecha_egreso_carrera": "2024-04-24",
+            "promedio_sin_aplazo": "8.5",
+        }
+        datos.update(cambios)
+
+        return datos
+
+    def enviar(self, datos):
+        return self.client.post(reverse("carga_graduados"), datos)
+
+    def crear_duplicado(self, dni="11111111"):
+        graduado = Graduado.objects.create(
+            legajo_graduado=self.LEGAJO,
+            dni=dni,
+            anio_ingreso_universidad=2016,
+            nombre="Viejo",
+            apellido="Datos",
+        )
+        registro = GraduadoCarrera.objects.create(
+            legajo_graduado=graduado,
+            codigo_carrera=self.carrera,
+            fecha_ingreso_carrera=date(2018, 3, 1),
+            fecha_egreso_carrera=date(2023, 1, 10),
+            promedio_sin_aplazo=7.0,
+            promedio_con_aplazo=6.0,
+        )
+
+        return graduado, registro
+
+    def test_get_sin_sesion_redirige_al_login(self):
+        respuesta = self.client.get(reverse("carga_graduados"))
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertIn(reverse("login"), respuesta.url)
+
+    def test_get_con_sesion_muestra_el_formulario(self):
+        self.iniciar_sesion(self.titulos)
+
+        respuesta = self.client.get(reverse("carga_graduados"))
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Carga de graduados")
+        self.assertContains(respuesta, "anio_ingreso_universidad")
+        self.assertNotContains(
+            respuesta, 'name="fecha_ingreso_universidad"'
+        )
+
+    def test_alta_correcta_guarda_anio_y_auditoria(self):
+        self.iniciar_sesion(self.titulos)
+        self.assertFalse(Graduado.objects.exists())
+
+        respuesta = self.enviar(self.datos())
+
+        self.assertRedirects(respuesta, reverse("carga_graduados"))
+
+        graduado = Graduado.objects.get(pk=self.LEGAJO)
+        self.assertEqual(graduado.dni, self.DNI)
+        self.assertEqual(graduado.anio_ingreso_universidad, 2017)
+
+        registro = GraduadoCarrera.objects.get(
+            legajo_graduado=graduado,
+            codigo_carrera=self.carrera,
+        )
+        self.assertEqual(registro.promedio_sin_aplazo, 8.5)
+        self.assertEqual(
+            registro.origen_promedio_sin_aplazo,
+            OrigenPromedio.MANUAL,
+        )
+
+        auditoria = Auditoria.objects.get(
+            accion="graduado_cargado_manualmente"
+        )
+        self.assertEqual(auditoria.entidad_id, self.LEGAJO)
+        self.assertEqual(auditoria.id_usuario, self.titulos)
+        self.assertFalse(auditoria.detalle["sobrescribiendo"])
+
+    def test_datos_invalidos_no_guardan(self):
+        self.iniciar_sesion(self.titulos)
+
+        respuesta = self.enviar(
+            self.datos(fecha_egreso_carrera="2017-01-01")
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "egreso")
+        self.assertFalse(Graduado.objects.exists())
+        self.assertFalse(Auditoria.objects.exists())
+
+    def test_duplicado_sin_confirmar_no_guarda(self):
+        graduado, registro = self.crear_duplicado()
+        self.iniciar_sesion(self.titulos)
+
+        respuesta = self.enviar(self.datos())
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Confirmar sobrescritura")
+        self.assertContains(respuesta, "Datos de la carrera")
+        self.assertIn(CLAVE_PENDIENTE, self.client.session)
+
+        graduado.refresh_from_db()
+        registro.refresh_from_db()
+        self.assertEqual(graduado.anio_ingreso_universidad, 2016)
+        self.assertEqual(registro.promedio_sin_aplazo, 7.0)
+        self.assertFalse(Auditoria.objects.exists())
+
+    def test_cancelar_no_guarda_cambios(self):
+        graduado, registro = self.crear_duplicado()
+        self.iniciar_sesion(self.titulos)
+        self.enviar(self.datos())
+
+        respuesta = self.client.post(
+            reverse("carga_graduados"), {"accion": "cancelar"}
+        )
+
+        self.assertRedirects(respuesta, reverse("carga_graduados"))
+        self.assertNotIn(CLAVE_PENDIENTE, self.client.session)
+
+        graduado.refresh_from_db()
+        registro.refresh_from_db()
+        self.assertEqual(graduado.nombre, "Viejo")
+        self.assertEqual(registro.promedio_sin_aplazo, 7.0)
+        self.assertFalse(Auditoria.objects.exists())
+
+    def test_confirmar_sobrescribe_y_conserva_promedio_con_aplazo(self):
+        graduado, registro = self.crear_duplicado()
+        self.iniciar_sesion(self.titulos)
+        self.enviar(self.datos())
+        token = self.client.session[CLAVE_PENDIENTE]["token"]
+
+        respuesta = self.client.post(
+            reverse("carga_graduados"),
+            {"accion": "confirmar", "token": token},
+        )
+
+        self.assertRedirects(respuesta, reverse("carga_graduados"))
+        self.assertNotIn(CLAVE_PENDIENTE, self.client.session)
+
+        graduado.refresh_from_db()
+        registro.refresh_from_db()
+        self.assertEqual(graduado.nombre, "Ana")
+        self.assertEqual(graduado.anio_ingreso_universidad, 2017)
+        self.assertEqual(registro.promedio_sin_aplazo, 8.5)
+        self.assertEqual(registro.promedio_con_aplazo, 6.0)
+
+        auditoria = Auditoria.objects.get(
+            accion="graduado_cargado_manualmente"
+        )
+        self.assertTrue(auditoria.detalle["sobrescribiendo"])
+
+    def test_token_invalido_no_guarda(self):
+        graduado, registro = self.crear_duplicado()
+        self.iniciar_sesion(self.titulos)
+        self.enviar(self.datos())
+
+        respuesta = self.client.post(
+            reverse("carga_graduados"),
+            {"accion": "confirmar", "token": "token-invalido"},
+        )
+
+        self.assertRedirects(respuesta, reverse("carga_graduados"))
+        graduado.refresh_from_db()
+        self.assertEqual(graduado.nombre, "Viejo")
+        self.assertEqual(registro.promedio_sin_aplazo, 7.0)
+        self.assertFalse(Auditoria.objects.exists())
+
+    def test_conflicto_nuevo_vuelve_a_pedir_confirmacion(self):
+        self.crear_duplicado()
+        self.iniciar_sesion(self.titulos)
+        self.enviar(self.datos())
+        token = self.client.session[CLAVE_PENDIENTE]["token"]
+
+        # Otro legajo adoptó el DNI mientras se esperaba la confirmación.
+        Graduado.objects.create(
+            legajo_graduado="1-99999999/19",
+            dni=self.DNI,
+            anio_ingreso_universidad=2019,
+            nombre="Otro",
+            apellido="Alumno",
+        )
+
+        respuesta = self.client.post(
+            reverse("carga_graduados"),
+            {"accion": "confirmar", "token": token},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "DNI ya registrado en otro legajo")
+        self.assertFalse(
+            Graduado.objects.filter(legajo_graduado=self.LEGAJO)
+            .exclude(nombre="Viejo")
+            .exists()
+        )
+        self.assertFalse(Auditoria.objects.exists())
+
+
 class ValidacionFechasTest(TestCase):
-    def test_mismo_dia_valido(self):
+    def test_ingreso_y_egreso_validos(self):
         validar_cronologia_fechas(
             date(2016, 3, 1),
-            date(2016, 3, 1),
             date(2020, 12, 15),
+            date(1995, 3, 1),
         )
 
-    def test_carrera_posterior_valida(self):
-        validar_cronologia_fechas(
-            date(2015, 3, 1),
-            date(2016, 3, 1),
-            date(2020, 12, 15),
-        )
-
-    def test_carrera_anterior_rechazada(self):
+    def test_nacimiento_posterior_al_egreso_rechazado(self):
         with self.assertRaises(ValueError):
             validar_cronologia_fechas(
-                date(2016, 3, 2),
                 date(2016, 3, 1),
                 date(2020, 12, 15),
+                date(2021, 3, 1),
             )
 
     def test_egreso_anterior_al_ingreso_rechazado(self):
         with self.assertRaises(ValueError):
             validar_cronologia_fechas(
-                date(2015, 3, 1),
+                date(2016, 3, 2),
                 date(2016, 3, 1),
-                date(2015, 12, 15),
+            )
+
+    def test_egreso_igual_al_ingreso_rechazado(self):
+        with self.assertRaises(ValueError):
+            validar_cronologia_fechas(
+                date(2016, 3, 1),
+                date(2016, 3, 1),
             )
 
 
@@ -453,7 +676,7 @@ class EstadisticaPorAnioTest(BasePrueba):
             g = Graduado.objects.create(
                 legajo_graduado=f"L{i}",
                 dni=f"1000000{i}",
-                fecha_ingreso_universidad=date(2015, 1, 1),
+                anio_ingreso_universidad=2015,
                 nombre="N",
                 apellido="A",
             )
@@ -1140,7 +1363,7 @@ class GeneracionAnaliticosTest(BasePrueba):
         graduado = Graduado.objects.create(
             legajo_graduado="1-42000000/17",
             dni="42000000",
-            fecha_ingreso_universidad=date(2017, 3, 1),
+            anio_ingreso_universidad=2017,
             nombre="Juan",
             apellido="Perez",
         )
@@ -1418,7 +1641,7 @@ class GeneracionAnaliticosTest(BasePrueba):
         graduado = Graduado.objects.create(
             legajo_graduado="1-41734713/17",
             dni="41734713",
-            fecha_ingreso_universidad=date(2017, 3, 1),
+            anio_ingreso_universidad=2017,
             nombre="Juan",
             apellido="Perez",
         )
@@ -1740,7 +1963,7 @@ class TituloEnTramiteTest(BasePrueba):
             dni="41734713",
             nombre="Juan",
             apellido="Perez",
-            fecha_ingreso_universidad=date(2017, 3, 1),
+            anio_ingreso_universidad=2017,
         )
         GraduadoCarrera.objects.create(
             legajo_graduado=self.graduado,
@@ -2085,7 +2308,7 @@ class FiltrosListadoTest(BasePrueba):
             graduado = Graduado.objects.create(
                 legajo_graduado=legajo,
                 dni=f"42{legajo[-3:]}",
-                fecha_ingreso_universidad=date(2015, 3, 1),
+                anio_ingreso_universidad=2015,
                 nombre=nombre,
                 apellido="Apellido",
             )
@@ -2126,6 +2349,27 @@ class FiltrosListadoTest(BasePrueba):
             "spreadsheetml",
             respuesta["Content-Type"],
         )
+
+    def test_exportacion_incluye_anio_uarg(self):
+        from openpyxl import load_workbook
+
+        self.iniciar_sesion(self.admin)
+
+        respuesta = self.client.get(reverse("exportar_graduados"))
+        libro = load_workbook(BytesIO(respuesta.content))
+        hoja = libro.active
+
+        self.assertIn(
+            "Año de ingreso a la UARG",
+            [celda.value for celda in hoja[1]],
+        )
+
+        fila = next(
+            fila
+            for fila in hoja.iter_rows(min_row=2, values_only=True)
+            if fila[0] == "F001"
+        )
+        self.assertEqual(fila[4], 2015)
 
 
 class BloqueoLoginTest(BasePrueba):
@@ -2302,7 +2546,7 @@ class ListaGraduadosTest(BasePrueba):
             graduado = Graduado.objects.create(
                 legajo_graduado=f"LI{indice:03d}",
                 dni=f"4100000{indice:02d}",
-                fecha_ingreso_universidad=date(2015, 3, 1),
+                anio_ingreso_universidad=2015,
                 nombre=f"Nombre{indice}",
                 apellido=f"Apellido{indice}",
             )
@@ -2347,6 +2591,7 @@ class NavegacionTest(BasePrueba):
         self.assertContains(respuesta, reverse("lista_graduados"))
         self.assertContains(respuesta, reverse("estadisticas"))
         self.assertContains(respuesta, reverse("carga_datos"))
+        self.assertContains(respuesta, reverse("carga_graduados"))
         self.assertContains(respuesta, reverse("gestion_academica"))
 
     def test_navbar_oculta_administracion_a_no_admin(self):
@@ -2385,6 +2630,7 @@ class NavegacionTest(BasePrueba):
             "generacion_analiticos",
             "titulo_en_tramite",
             "carga_datos",
+            "carga_graduados",
             "abm_usuarios",
             "abm_roles",
         )
@@ -2451,25 +2697,23 @@ class ValidacionesNegocioTest(TestCase):
         # El año de egreso del secundario no se valida.
         validar_anios(date(1999, 1, 1), 2017, 2018)
 
-    def test_egreso_debe_ser_posterior_a_ambos_ingresos(self):
+    def test_egreso_debe_ser_posterior_al_ingreso_a_la_carrera(self):
         with self.assertRaises(ValueError):
             validar_cronologia_fechas(
-                date(2017, 3, 1),
                 date(2018, 3, 1),
                 date(2018, 3, 1),
             )
 
         with self.assertRaises(ValueError):
             validar_cronologia_fechas(
-                date(2017, 3, 1),
                 date(2017, 3, 1),
                 date(2017, 3, 1),
             )
 
         validar_cronologia_fechas(
-            date(2017, 3, 1),
             date(2018, 3, 1),
             date(2024, 4, 24),
+            date(1999, 1, 1),
         )
 
     def test_fachada_devuelve_todos_los_errores(self):
@@ -2479,7 +2723,6 @@ class ValidacionesNegocioTest(TestCase):
             "anio_ingreso_universidad": 2019,
             "anio_ingreso_carrera": 2018,
             "fecha_nacimiento": date(2020, 1, 1),
-            "fecha_ingreso_universidad": date(2019, 3, 1),
             "fecha_ingreso_carrera": date(2018, 3, 1),
             "fecha_egreso_carrera": date(2017, 1, 1),
         })
@@ -2515,7 +2758,7 @@ class EliminacionGraduadoTest(BasePrueba):
         cls.graduado = Graduado.objects.create(
             legajo_graduado=cls.LEGAJO,
             dni="12345678",
-            fecha_ingreso_universidad=date(2015, 3, 1),
+            anio_ingreso_universidad=2015,
             nombre="Ana",
             apellido="Perez",
         )
@@ -2818,7 +3061,7 @@ class ProvinciasSugeridasTest(BasePrueba):
         graduado = Graduado.objects.create(
             legajo_graduado="1-12345678/15",
             dni="12345678",
-            fecha_ingreso_universidad=date(2015, 3, 1),
+            anio_ingreso_universidad=2015,
             nombre="Ana",
             apellido="Perez",
         )
@@ -2899,6 +3142,36 @@ class CargaDatosValidacionesTest(BasePrueba):
         self.assertTrue(
             Graduado.objects.filter(pk="1-41734713/17").exists()
         )
+
+    def test_acepta_anio_suelto_en_excel(self):
+        resultado = CargaDatos.cargar_excel(
+            self._archivo(
+                "1-41734713/17",
+                41734713,
+                2017,
+                "01/03/2018",
+                "24/04/2024",
+            )
+        )
+
+        self.assertEqual(resultado["filas_procesadas"], 1)
+        graduado = Graduado.objects.get(pk="1-41734713/17")
+        self.assertEqual(graduado.anio_ingreso_universidad, 2017)
+
+    def test_acepta_fecha_y_conserva_solo_el_anio(self):
+        resultado = CargaDatos.cargar_excel(
+            self._archivo(
+                "1-41734713/17",
+                41734713,
+                date(2017, 5, 10),
+                "01/03/2018",
+                "24/04/2024",
+            )
+        )
+
+        self.assertEqual(resultado["filas_procesadas"], 1)
+        graduado = Graduado.objects.get(pk="1-41734713/17")
+        self.assertEqual(graduado.anio_ingreso_universidad, 2017)
 
     def test_rechaza_dni_y_legajo_invalidos(self):
         with self.assertRaises(ValueError) as contexto:

@@ -35,7 +35,7 @@ def _encabezados():
         "DNI",
         "Nombre",
         "Apellido",
-        "Fecha de ingreso a la universidad",
+        "Año de ingreso a la UARG",
         "Carrera",
         "Fecha de ingreso a la carrera",
         "Fecha de egreso de la carrera",
@@ -57,16 +57,16 @@ def _formatear_libro(libro, hoja):
             wrap_text=True
         )
 
-    # Formato de fechas y promedios
+    # Formato de fechas y promedios (la columna 5 es un año entero)
     for fila in hoja.iter_rows(min_row=2):
-        for indice in (5, 7, 8):
+        for indice in (7, 8):
             fila[indice - 1].number_format = "dd/mm/yyyy"
 
         for indice in (9, 10):
             fila[indice - 1].number_format = "0.00"
 
     # Ancho de columnas
-    anchos = [22, 14, 22, 22, 25, 42, 24, 24, 20, 20]
+    anchos = [22, 14, 22, 22, 20, 42, 24, 24, 20, 20]
 
     for indice, ancho in enumerate(anchos, start=1):
         hoja.column_dimensions[get_column_letter(indice)].width = ancho
@@ -121,7 +121,7 @@ def generar_excel_filas(filas):
             _celda_segura(graduado.dni),
             _celda_segura(graduado.nombre),
             _celda_segura(graduado.apellido),
-            graduado.fecha_ingreso_universidad,
+            graduado.anio_ingreso_universidad,
             _celda_segura(fila.codigo_carrera.nombre_carrera),
             fila.fecha_ingreso_carrera,
             fila.fecha_egreso_carrera,
@@ -156,7 +156,7 @@ def generar_excel_graduados(graduados):
                 _celda_segura(graduado.dni),
                 _celda_segura(graduado.nombre),
                 _celda_segura(graduado.apellido),
-                graduado.fecha_ingreso_universidad,
+                graduado.anio_ingreso_universidad,
                 _celda_segura(
                     graduado_carrera.codigo_carrera.nombre_carrera
                 ),

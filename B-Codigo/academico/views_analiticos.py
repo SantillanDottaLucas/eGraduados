@@ -202,8 +202,8 @@ def _datos_precargados(graduado, registro):
         "apellido": graduado.apellido if graduado else "",
         "dni": graduado.dni if graduado else "",
         "anio_ingreso_uarg": (
-            graduado.fecha_ingreso_universidad.year
-            if graduado and graduado.fecha_ingreso_universidad
+            graduado.anio_ingreso_universidad
+            if graduado and graduado.anio_ingreso_universidad
             else ""
         ),
         "carrera": registro.codigo_carrera_id if registro else "",
@@ -354,9 +354,6 @@ def _validar_datos(datos_form):
     )
 
     fecha_egreso_txt = _limpiar(datos_form.get("fecha_egreso_carrera"))
-    fecha_ingreso_uarg_txt = _limpiar(
-        datos_form.get("fecha_ingreso_uarg_completa")
-    )
 
     for campo in (
         "nombre",
@@ -388,19 +385,6 @@ def _validar_datos(datos_form):
     datos["fecha_egreso_carrera"] = (
         fecha_egreso.isoformat() if fecha_egreso else ""
     )
-
-    if fecha_ingreso_uarg_txt:
-        try:
-            fecha_ingreso_uarg = date.fromisoformat(fecha_ingreso_uarg_txt)
-        except ValueError:
-            fecha_ingreso_uarg = None
-    else:
-        fecha_ingreso_uarg = (
-            date(datos["anio_ingreso_uarg"], 3, 1)
-            if datos["anio_ingreso_uarg"] else None
-        )
-
-    datos["fecha_ingreso_universidad"] = fecha_ingreso_uarg
 
     # Promedios: se validan sólo si vienen informados. En la
     # previsualización se completan con el cálculo de exámenes.
@@ -490,9 +474,6 @@ def _validar_datos(datos_form):
         "anio_ingreso_universidad": datos["anio_ingreso_uarg"],
         "anio_ingreso_carrera": datos["anio_ingreso_carrera"],
         "fecha_nacimiento": datos.get("fecha_nacimiento"),
-        "fecha_ingreso_universidad": datos.get(
-            "fecha_ingreso_universidad"
-        ),
         "fecha_ingreso_carrera": (
             date(datos["anio_ingreso_carrera"], 3, 1)
             if datos["anio_ingreso_carrera"] else None
@@ -1378,9 +1359,6 @@ def _contexto_preview(request, tipo_documento, datos, filas, materias,
     datos_formulario["fecha_nacimiento"] = _fecha_iso(
         datos.get("fecha_nacimiento")
     )
-    datos_formulario["fecha_ingreso_universidad"] = _fecha_iso(
-        datos.get("fecha_ingreso_universidad")
-    )
     datos_formulario["fecha_egreso_carrera"] = _fecha_iso(
         datos.get("fecha_egreso_carrera") or datos.get("fecha_egreso")
     )
@@ -1607,10 +1585,6 @@ def _continuar(request, tipo_documento):
             "fecha_nacimiento": (
                 datos["fecha_nacimiento"].isoformat()
                 if datos["fecha_nacimiento"] else ""
-            ),
-            "fecha_ingreso_universidad": (
-                datos["fecha_ingreso_universidad"].isoformat()
-                if datos["fecha_ingreso_universidad"] else ""
             ),
         },
         "examenes": [
@@ -2094,10 +2068,7 @@ def _validar(request, tipo_documento):
                 "dni": datos["dni"],
                 "nombre": datos["nombre"],
                 "apellido": datos["apellido"],
-                "fecha_ingreso_universidad": (
-                    datos["fecha_ingreso_universidad"]
-                    or date(datos["anio_ingreso_uarg"], 3, 1)
-                ),
+                "anio_ingreso_universidad": datos["anio_ingreso_uarg"],
             },
         )
 

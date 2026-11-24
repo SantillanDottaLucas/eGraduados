@@ -1,0 +1,104 @@
+{% extends "academico/base.html" %}
+
+{% block title %}eGraduados | Confirmar carga de graduado{% endblock %}
+
+{% block content %}
+
+<div class="carga-contenedor">
+
+    {% include "academico/componentes/page_header.html" with titulo="Confirmar sobrescritura" descripcion="Ya hay datos registrados que coinciden con lo que estás cargando. Revisá las diferencias antes de continuar." volver=1 %}
+
+    <ol class="app-stepper" aria-label="Progreso de la carga">
+        <li class="app-stepper-item completado">
+            <span class="app-stepper-numero"><i class="bi bi-check"></i></span>
+            <span>Datos del graduado</span>
+        </li>
+        <li class="app-stepper-item actual" aria-current="step">
+            <span class="app-stepper-numero">2</span>
+            <span>Confirmación</span>
+        </li>
+        <li class="app-stepper-item">
+            <span class="app-stepper-numero">3</span>
+            <span>Guardado</span>
+        </li>
+    </ol>
+
+    <section class="carga-tarjeta">
+
+        <div class="carga-icono" aria-hidden="true">
+            <i class="bi bi-exclamation-triangle"></i>
+        </div>
+
+        <h2>Datos que se van a reemplazar</h2>
+
+        <p class="carga-descripcion">
+            Si confirmás, los valores «Actuales» se reemplazan por los
+            «Nuevos». El resto de la información del graduado no se modifica.
+        </p>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Dato afectado</th>
+                        <th scope="col">Valor actual</th>
+                        <th scope="col">Valor nuevo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conflicto in conflictos %}
+                        <tr>
+                            <td>
+                                <strong>{{ conflicto.entidad }}</strong><br>
+                                <code>{{ conflicto.clave }}</code>
+                            </td>
+                            <td>{{ conflicto.actual }}</td>
+                            <td>{{ conflicto.nuevo }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="carga-ayuda mt-4">
+            <div class="carga-ayuda-icono" aria-hidden="true">
+                <i class="bi bi-info-circle"></i>
+            </div>
+            <div>
+                <strong>Resumen de la carga</strong>
+                <p>
+                    {{ datos.apellido }}, {{ datos.nombre }} · DNI {{ datos.dni }}<br>
+                    Legajo {{ datos.legajo }} · ingreso UARG
+                    {{ datos.anio_ingreso_universidad }}<br>
+                    Carrera {{ datos.codigo_carrera }} ·
+                    ingreso {{ datos.fecha_ingreso_carrera }} ·
+                    egreso {{ datos.fecha_egreso_carrera }} ·
+                    promedio sin aplazos {{ datos.promedio_sin_aplazo }}
+                </p>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="token" value="{{ token }}">
+
+            <div class="carga-acciones">
+                <button type="submit" name="accion" value="cancelar"
+                        class="carga-boton carga-boton-secundario">
+                    Cancelar
+                </button>
+                <button type="submit" name="accion" value="confirmar"
+                        class="carga-boton carga-boton-principal">
+                    <i class="bi bi-check-lg" aria-hidden="true"></i>
+                    Confirmar y guardar
+                </button>
+            </div>
+        </form>
+
+    </section>
+
+    <footer class="carga-pie">
+        Secretaría Académica · Universidad Nacional de la Patagonia Austral · UARG
+    </footer>
+</div>
+{% endblock %}
