@@ -1,5 +1,27 @@
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
+    {# Respaldo de la acción: el botón podría no enviarse si se deshabilita. #}
+    <input type="hidden" name="accion" value="continuar">
+
+    {% if hay_borrador %}
+        <div class="alert alert-info d-flex flex-wrap align-items-center gap-2 py-2 small mb-3"
+             role="status">
+            <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+            <span class="flex-grow-1">
+                <strong>Retomaste un borrador guardado.</strong>
+                Revisalo y volvé a presionar «Continuar».
+                <span class="d-block mt-1">
+                    El archivo Excel no se guarda en el borrador: volvé a seleccionarlo.
+                </span>
+            </span>
+            {# Mismo formulario: el valor del botón gana sobre el hidden. #}
+            <button type="submit" name="accion" value="descartar_borrador"
+                    formnovalidate
+                    class="btn btn-outline-danger btn-sm">
+                Descartar borrador
+            </button>
+        </div>
+    {% endif %}
 
     <div class="alert alert-secondary py-2 small mb-3" role="status">
         Completá los datos y presioná <strong>Continuar</strong>.
@@ -31,7 +53,9 @@
                 <div class="mb-3">
                     <label for="legajo" class="form-label">Legajo <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="legajo" name="legajo"
-                           value="{{ datos.legajo }}" placeholder="UARG-24827" required>
+                           value="{{ datos.legajo }}" placeholder="1-41734713/17"
+                           title="Formato: 1-DNI/AA, por ejemplo 1-41734713/17" required>
+                    <div class="form-text">Formato: <strong>1-DNI/AA</strong> (ej.: 1-41734713/17).</div>
                 </div>
                 <div class="mb-3">
                     <label for="dni" class="form-label">DNI <span class="text-danger">*</span></label>
@@ -206,13 +230,18 @@
                     </div>
                 </div>
 
-                <div class="analitico-upload">
-                    <div class="mb-2 fw-bold text-primary-emphasis">Certificado Lincoln</div>
+                <div class="analitico-upload" data-estado="sin-archivo">
+                    <div class="mb-2 fw-bold">
+                        <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
+                        Certificado Lincoln
+                    </div>
                     <label for="archivo_notas" class="form-label">Seleccionar archivo Excel (.xls / .xlsx)</label>
                     <input type="file" class="form-control" id="archivo_notas" name="archivo_notas"
                            accept=".xlsx,.xls">
-                    <div class="form-text mt-2">
-                        Si el graduado ya tiene exámenes cargados, podés continuar sin adjuntar el archivo.
+                    <div class="form-text mt-2" data-ayuda-archivo
+                         role="status" aria-live="polite">
+                        Rojo hasta que selecciones el Excel. Si el graduado ya tiene
+                        exámenes cargados, podés continuar sin adjuntarlo.
                     </div>
                 </div>
             </section>

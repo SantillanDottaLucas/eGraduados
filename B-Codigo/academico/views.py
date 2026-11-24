@@ -1,4 +1,5 @@
 from datetime import date
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -50,8 +51,10 @@ from .servicios.moduloEstadistica.graficador_estadistico import (
 )
 
 from .servicios.moduloGraduados.consulta_graduados import (
+    ORDENES_BUSQUEDA,
+    SITUACIONES_BUSQUEDA,
+    obtener_filas_busqueda,
     obtener_filas_filtradas,
-    obtener_graduados_filtrados,
 )
 
 from .servicios.moduloGraduados.eliminacion import (
@@ -372,8 +375,16 @@ def lista_graduados(request):
 
     from .models import Analitico
 
-    filas = obtener_filas_filtradas(request.GET)
-    legajos = filas.values_list("legajo_graduado_id", flat=True)
+    filas = obtener_filas_busqueda(request.GET)
+    legajos = {fila.legajo_graduado_id for fila in filas}
+
+    situacion = (request.GET.get("situacion") or "todas").strip()
+    if situacion not in SITUACIONES_BUSQUEDA:
+        situacion = "todas"
+
+    orden = (request.GET.get("orden") or "inconsistencias").strip()
+    if orden not in ORDENES_BUSQUEDA:
+        orden = "inconsistencias"
 
     pagina = request.GET.get("pagina")
     paginator = Paginator(filas, 25)
@@ -404,6 +415,23 @@ def lista_graduados(request):
     querystring.pop("pagina", None)
     filtros_qs = querystring.urlencode()
 
+    # El Excel conserva sus filtros históricos: «situacion» y «orden»
+    # son controles exclusivos del buscador y no se le pasan.
+    excel_parametros = {}
+    for clave in (
+        "nombre",
+        "legajo",
+        "escuela",
+        "carrera",
+        "fecha_desde",
+        "fecha_hasta",
+    ):
+        valor = (request.GET.get(clave) or "").strip()
+        if valor:
+            excel_parametros[clave] = valor
+
+    excel_qs = urlencode(excel_parametros)
+
     # Marcar las filas que tienen analíticos validados.
     for fila in filas_pagina.object_list:
         clave = (fila.legajo_graduado_id, fila.codigo_carrera_id)
@@ -415,14 +443,15 @@ def lista_graduados(request):
         "filas": filas_pagina,
         "page_obj": filas_pagina,
         "paginator": paginator,
-        "total_filas": paginator.count,
-        "total_graduados": filas.values(
-            "legajo_graduado_id"
-        ).distinct().count(),
+        "total_filas": len(filas),
+        "total_graduados": len(legajos),
         "analiticos_titulo": analiticos_titulo,
         "analiticos_tramite": analiticos_tramite,
         "legajos_con_analiticos": legajos_con_analiticos,
         "filtros_qs": filtros_qs,
+        "excel_qs": excel_qs,
+        "situacion": situacion,
+        "orden": orden,
     })
 
     return render(

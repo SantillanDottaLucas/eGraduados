@@ -24,7 +24,7 @@ from academico.models import (
     TipoResolucion,
 )
 from academico.servicios.moduloAnalitico.plan_estudios import (
-    aplicar_plan_a_filas,
+    verificar_filas,
 )
 from academico.servicios.moduloAnalitico.utilidades_texto import (
     dni_con_puntos,
@@ -125,13 +125,12 @@ def texto_resoluciones(agrupadas):
 
 def examenes_ordenados(graduado, carrera):
     """
-    Exámenes en el orden del plan de estudios de la carrera.
+    Exámenes en el orden y con el año guardados al validar.
 
-    El orden guardado en ``GraduadoExamen.orden`` se calculó con el plan
-    al validar; el valor manual del usuario sólo sirvió para desempatar.
-    Se vuelve a aplicar ``aplicar_plan_a_filas`` para recuperar el año
-    del plan (``anio_materia``) y las discrepancias, sin caer nunca en
-    el año de calendario del certificado.
+    El usuario puede cambiar las posiciones y el año en la
+    previsualización; ``_validar`` persiste ambos en ``GraduadoExamen``.
+    Acá se respeta ese dato sin volver a aplicar el plan. El plan se
+    consulta únicamente para los avisos de discrepancias.
     """
 
     examenes = (
@@ -175,6 +174,8 @@ def examenes_ordenados(graduado, carrera):
         else:
             nota_txt = nota_a_letras(examen.nota)
 
+        anio = examen.anio_cursado
+
         filas.append({
             "orden": f"{indice:02d}",
             "orden_num": indice,
@@ -198,9 +199,20 @@ def examenes_ordenados(graduado, carrera):
             "materia_codigo": materia.codigo_materia,
             "nota_valor": examen.nota,
             "es_requisito": examen.es_requisito,
+            "anio": anio if anio is not None else "",
+            "anio_num": anio,
+            "anio_cursado": anio,
+            "anio_txt": f"{anio}°" if anio is not None else "",
         })
 
-    return aplicar_plan_a_filas(carrera, filas)
+    # El plan sólo aporta avisos: ni reordena ni reemplaza el año.
+    for fila, verificacion in zip(
+        filas, verificar_filas(carrera, filas)
+    ):
+        fila["verificacion"] = verificacion
+        fila["orden_plan"] = verificacion["orden_plan"]
+
+    return filas
 
 
 def contexto_analitico(graduado, carrera, tipo_documento):

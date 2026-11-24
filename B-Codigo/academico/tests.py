@@ -38,6 +38,7 @@ from .servicios.moduloAnalitico.promedios import calcular_promedios
 from .servicios.moduloAnalitico.utilidades_texto import tipo_examen_legible
 from .servicios.moduloGraduados.carga_graduados import CLAVE_PENDIENTE
 from .servicios.moduloGraduados.consulta_graduados import (
+    obtener_filas_busqueda,
     obtener_filas_filtradas,
 )
 from .servicios.validaciones import (
@@ -1579,7 +1580,7 @@ class GeneracionAnaliticosTest(BasePrueba):
         payload["accion"] = "validar"
         payload["fila_indice"] = ["1", "2"]
         payload["fila_orden"] = ["2", "1"]
-        payload["fila_anio"] = ["2020", "2021"]
+        payload["fila_anio"] = ["1", "2"]
         payload["fila_espacio"] = ["Materia Uno", "Materia Dos"]
         payload["fila_nota"] = ["7", "10"]
         payload["fila_fecha"] = ["2023-03-01", "2021-12-16"]
@@ -1609,7 +1610,7 @@ class GeneracionAnaliticosTest(BasePrueba):
             id_examen__codigo_materia=self.materia1
         )
         self.assertTrue(requisito.es_requisito)
-        # El año del plan reemplaza al año de calendario del Lincoln.
+        # El año escrito en la grilla se guarda tal cual.
         self.assertEqual(requisito.anio_cursado, 1)
 
     def test_lincoln_no_genera_mensajes_al_continuar(self):
@@ -1636,6 +1637,577 @@ class GeneracionAnaliticosTest(BasePrueba):
 
         self.assertEqual(respuesta.status_code, 302)
         self.assertEqual(list(get_messages(respuesta.wsgi_request)), [])
+
+    def test_post_sin_accion_no_vacia_el_formulario(self):
+        """El botón puede no enviarse si se deshabilita en el submit."""
+
+        from django.contrib.messages import get_messages
+
+        self.iniciar_sesion(self.admin)
+
+        payload = self._form_base()
+
+        respuesta = self.client.post(
+            reverse("generacion_analiticos"), payload
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.context["vista"], "carga")
+        self.assertEqual(respuesta.context["datos"]["nombre"], "Juan")
+        self.assertEqual(
+            respuesta.context["datos"]["legajo"],
+            "1-41734713/17",
+        )
+
+        mensajes = [str(m) for m in get_messages(respuesta.wsgi_request)]
+        self.assertTrue(any("acción" in m.lower() for m in mensajes))
+
+    def test_datos_invalidos_conservan_dni_y_legajo(self):
+        self.iniciar_sesion(self.admin)
+
+        payload = self._form_base()
+        payload["accion"] = "continuar"
+        payload["dni"] = "41.734.713"
+        payload["legajo"] = "UARG-24827"
+
+        respuesta = self.client.post(
+            reverse("generacion_analiticos"), payload
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(
+            respuesta.context["datos"]["dni"],
+            "41.734.713",
+        )
+        self.assertEqual(
+            respuesta.context["datos"]["legajo"],
+            "UARG-24827",
+        )
+
+    def test_formulario_no_deshabilita_el_boton_al_enviar(self):
+        self.iniciar_sesion(self.admin)
+
+        respuesta = self.client.get(reverse("generacion_analiticos"))
+        contenido = respuesta.content.decode()
+
+        self.assertIn('name="accion"', contenido)
+        self.assertNotIn("boton.disabled = true", contenido)
+        self.assertIn("1-41734713/17", contenido)
+
+    def test_borrador_sobrevive_a_la_recarga(self):
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+        payload = self._form_base()
+        payload["accion"] = "continuar"
+        payload["dni"] = "41.734.713"
+
+        respuesta = self.client.post(url, payload)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(respuesta.context["hay_borrador"])
+        self.assertContains(respuesta, "Retomaste un borrador guardado")
+
+        recarga = self.client.get(url)
+
+        self.assertTrue(recarga.context["hay_borrador"])
+        self.assertEqual(recarga.context["datos"]["nombre"], "Juan")
+        self.assertEqual(recarga.context["datos"]["dni"], "41.734.713")
+        self.assertEqual(
+            recarga.context["datos"]["resoluciones_institucionales"],
+            ["141/CS/98", "218/CS/00"],
+        )
+        self.assertContains(recarga, "Retomaste un borrador guardado")
+        self.assertContains(
+            recarga, "El archivo Excel no se guarda en el borrador"
+        )
+
+    def test_borrador_es_por_usuario_y_tipo_de_documento(self):
+        from academico.views_analiticos import (
+            CLAVE_SESION_BORRADOR,
+            TipoDocumentoAnalitico,
+        )
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+        payload = self._form_base()
+        payload["accion"] = "continuar"
+        payload["dni"] = "41.734.713"
+
+        self.client.post(url, payload)
+
+        self.iniciar_sesion(self.titulos)
+        recarga = self.client.get(url)
+        self.assertFalse(recarga.context["hay_borrador"])
+        self.assertEqual(recarga.context["datos"]["dni"], "")
+
+        self.iniciar_sesion(self.admin)
+        sesion = self.client.session
+        borrador = sesion[CLAVE_SESION_BORRADOR]
+        borrador["tipo_documento"] = TipoDocumentoAnalitico.EN_TRAMITE.value
+        sesion[CLAVE_SESION_BORRADOR] = borrador
+        sesion.save()
+
+        recarga = self.client.get(url)
+        self.assertFalse(recarga.context["hay_borrador"])
+
+    def test_borrador_no_guarda_el_archivo_excel(self):
+        from academico.views_analiticos import CLAVE_SESION_BORRADOR
+
+        self.iniciar_sesion(self.admin)
+
+        payload = self._form_base()
+        payload["accion"] = "continuar"
+        payload["dni"] = "41.734.713"
+        payload["archivo_notas"] = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+        self.client.post(reverse("generacion_analiticos"), payload)
+
+        borrador = self.client.session[CLAVE_SESION_BORRADOR]
+        self.assertNotIn("archivo_notas", borrador)
+        self.assertNotIn("archivo_notas", borrador["datos"])
+
+    def test_descartar_borrador_limpia_la_sesion(self):
+        from academico.views_analiticos import CLAVE_SESION_BORRADOR
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+        payload = self._form_base()
+        payload["accion"] = "continuar"
+        payload["dni"] = "41.734.713"
+
+        self.client.post(url, payload)
+        self.assertIn(CLAVE_SESION_BORRADOR, self.client.session)
+
+        respuesta = self.client.post(
+            url,
+            {"accion": "descartar_borrador"},
+            follow=True,
+        )
+
+        self.assertContains(respuesta, "Borrador descartado.")
+        self.assertNotIn(CLAVE_SESION_BORRADOR, self.client.session)
+        self.assertFalse(respuesta.context["hay_borrador"])
+        self.assertEqual(respuesta.context["datos"]["nombre"], "")
+
+    def test_borrador_se_limpia_al_llegar_a_la_previsualizacion(self):
+        from academico.views_analiticos import CLAVE_SESION_BORRADOR
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+        payload = self._form_base()
+        payload["accion"] = "continuar"
+        payload["dni"] = "41.734.713"
+
+        self.client.post(url, payload)
+        self.assertIn(CLAVE_SESION_BORRADOR, self.client.session)
+
+        payload = self._form_base()
+        payload["accion"] = "continuar"
+        payload["archivo_notas"] = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+        respuesta = self.client.post(url, payload)
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertIn("modo=preview", respuesta.url)
+        self.assertNotIn(CLAVE_SESION_BORRADOR, self.client.session)
+
+    def test_lincoln_rojo_hasta_elegir_archivo(self):
+        self.iniciar_sesion(self.admin)
+
+        respuesta = self.client.get(reverse("generacion_analiticos"))
+        contenido = respuesta.content.decode()
+
+        self.assertIn(
+            'class="analitico-upload" data-estado="sin-archivo"',
+            contenido,
+        )
+        self.assertIn("Rojo hasta que selecciones el Excel", contenido)
+        self.assertIn(
+            'addEventListener("change", actualizarEstadoArchivo)',
+            contenido,
+        )
+        self.assertIn("tiene-archivo", contenido)
+
+    def test_bordes_visibles_en_formularios_y_paneles(self):
+        from django.conf import settings
+
+        css = (
+            settings.BASE_DIR
+            / "academico"
+            / "static"
+            / "css"
+            / "app.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn("border-color: transparent !important", css)
+        self.assertIn("border: 1px solid #d5dee8", css)
+        self.assertIn(".abm-pagina .form-control", css)
+        self.assertIn(".abm-pagina .abm-panel", css)
+        self.assertIn(".abm-tabla .table td", css)
+        self.assertIn(".analitico-upload.tiene-archivo", css)
+
+    def _grilla_payload(self, filas=None):
+        """Arma los campos repetibles de la grilla de previsualización."""
+
+        if filas is None:
+            filas = [
+                {
+                    "indice": "01",
+                    "orden": "1",
+                    "anio": "1",
+                    "espacio": "Materia Uno",
+                    "nota": "7",
+                    "fecha": "2023-03-01",
+                    "tipo": "Final",
+                    "respaldo": "RG00000001",
+                    "codigo": "9001",
+                },
+                {
+                    "indice": "02",
+                    "orden": "2",
+                    "anio": "2",
+                    "espacio": "Materia Dos",
+                    "nota": "10",
+                    "fecha": "2021-12-16",
+                    "tipo": "Final",
+                    "respaldo": "RG00000002",
+                    "codigo": "9002",
+                },
+            ]
+
+        payload = self._form_base()
+
+        for destino, origen in (
+            ("fila_indice", "indice"),
+            ("fila_orden", "orden"),
+            ("fila_anio", "anio"),
+            ("fila_espacio", "espacio"),
+            ("fila_nota", "nota"),
+            ("fila_fecha", "fecha"),
+            ("fila_tipo", "tipo"),
+            ("fila_respaldo", "respaldo"),
+            ("fila_materia", "codigo"),
+            ("fila_codigo_lincoln", "codigo_lincoln"),
+            ("fila_nombre_lincoln", "nombre_lincoln"),
+        ):
+            payload[destino] = [fila.get(origen, "") for fila in filas]
+
+        return payload
+
+    def _grilla_desde_session(self):
+        """Convierte la previsualización guardada en un POST válido."""
+
+        from academico.views_analiticos import CLAVE_SESION_PREVIEW
+
+        examenes = self.client.session[CLAVE_SESION_PREVIEW]["examenes"]
+        filas = []
+
+        for indice, examen in enumerate(examenes, start=1):
+            filas.append({
+                "indice": f"{indice:02d}",
+                "orden": str(examen.get("orden") or indice),
+                "anio": str(examen.get("anio_cursado") or ""),
+                "espacio": examen.get("nombre_materia") or "",
+                "nota": (
+                    "" if examen.get("nota") is None
+                    else str(examen["nota"])
+                ),
+                "fecha": examen.get("fecha_examen") or "",
+                "tipo": examen.get("tipo") or "Examen",
+                "respaldo": examen.get("acta_respaldatoria") or "",
+                "codigo": examen.get("materia_codigo") or "",
+                "codigo_lincoln": examen.get("codigo_lincoln") or "",
+                "nombre_lincoln": examen.get("nombre_lincoln") or "",
+            })
+
+        return self._grilla_payload(filas)
+
+    def test_agregar_materia_manual_al_preview(self):
+        from academico.views_analiticos import CLAVE_SESION_PREVIEW
+
+        self.iniciar_sesion(self.admin)
+
+        payload = self._grilla_payload()
+        payload["accion"] = "agregar_materia"
+        payload["nueva_materia"] = "Materia Nueva"
+        payload["nuevo_codigo"] = "M-NUEVA"
+        payload["nueva_nota"] = "8"
+        payload["nueva_fecha"] = "2024-05-10"
+
+        respuesta = self.client.post(
+            reverse("generacion_analiticos"), payload
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Materia Nueva")
+        self.assertFalse(respuesta.context["validado"])
+
+        examenes = self.client.session[CLAVE_SESION_PREVIEW]["examenes"]
+        self.assertEqual(len(examenes), 3)
+        self.assertEqual(examenes[-1]["nombre_materia"], "Materia Nueva")
+        self.assertEqual(examenes[-1]["materia_codigo"], "M-NUEVA")
+        self.assertEqual(examenes[-1]["nota"], 8)
+
+        # El alta es sólo del analítico: no se crea en el catálogo
+        # ni se agrega al plan hasta que se valide.
+        self.assertFalse(
+            Materia.objects.filter(codigo_materia="M-NUEVA").exists()
+        )
+
+    def test_agregar_materia_manual_se_crea_al_validar(self):
+        from academico.models import GraduadoExamen
+
+        self.iniciar_sesion(self.admin)
+
+        payload = self._grilla_payload()
+        payload["accion"] = "agregar_materia"
+        payload["nueva_materia"] = "Materia Nueva"
+        payload["nuevo_codigo"] = "M-NUEVA"
+        payload["nueva_nota"] = "8"
+        payload["nueva_fecha"] = "2024-05-10"
+
+        respuesta = self.client.post(
+            reverse("generacion_analiticos"), payload
+        )
+        self.assertEqual(respuesta.status_code, 200)
+
+        payload = self._grilla_desde_session()
+        payload["accion"] = "validar"
+
+        respuesta = self.client.post(
+            reverse("generacion_analiticos"), payload
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(
+            Materia.objects.filter(codigo_materia="M-NUEVA").exists()
+        )
+        self.assertEqual(
+            GraduadoExamen.objects.filter(
+                legajo_graduado__legajo_graduado="1-41734713/17"
+            ).count(),
+            3,
+        )
+
+    def test_quitar_materia_del_preview_no_toca_el_catalogo(self):
+        from academico.views_analiticos import CLAVE_SESION_PREVIEW
+
+        self.iniciar_sesion(self.admin)
+
+        payload = self._grilla_payload()
+        payload["accion"] = "quitar_materia"
+        payload["fila_a_quitar"] = "01"
+
+        respuesta = self.client.post(
+            reverse("generacion_analiticos"), payload
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotIn(
+            'name="fila_espacio" value="Materia Uno"',
+            respuesta.content.decode(),
+        )
+        self.assertContains(respuesta, "Materia Dos")
+
+        examenes = self.client.session[CLAVE_SESION_PREVIEW]["examenes"]
+        self.assertEqual(len(examenes), 1)
+        self.assertEqual(examenes[0]["nombre_materia"], "Materia Dos")
+
+        self.assertTrue(
+            Materia.objects.filter(codigo_materia="9001").exists()
+        )
+
+    def test_quitar_materia_preserva_otras_ediciones(self):
+        from academico.views_analiticos import CLAVE_SESION_PREVIEW
+
+        self.iniciar_sesion(self.admin)
+
+        payload = self._grilla_payload()
+        payload["fila_nota"] = ["7", "9"]
+        payload["accion"] = "quitar_materia"
+        payload["fila_a_quitar"] = "01"
+
+        self.client.post(reverse("generacion_analiticos"), payload)
+
+        examenes = self.client.session[CLAVE_SESION_PREVIEW]["examenes"]
+        self.assertEqual(len(examenes), 1)
+        self.assertEqual(examenes[0]["nota"], 9)
+        self.assertEqual(examenes[0]["nombre_materia"], "Materia Dos")
+
+    def test_agregar_materia_sin_nombre_muestra_error(self):
+        from django.contrib.messages import get_messages
+
+        from academico.views_analiticos import CLAVE_SESION_PREVIEW
+
+        self.iniciar_sesion(self.admin)
+
+        payload = self._grilla_payload()
+        payload["accion"] = "agregar_materia"
+        payload["nueva_materia"] = "   "
+
+        respuesta = self.client.post(
+            reverse("generacion_analiticos"), payload
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        mensajes = [str(m) for m in get_messages(respuesta.wsgi_request)]
+        self.assertTrue(
+            any("nombre de la materia" in m.lower() for m in mensajes)
+        )
+        self.assertNotIn(CLAVE_SESION_PREVIEW, self.client.session)
+
+    def test_botones_de_alta_y_baja_en_la_previsualizacion(self):
+        from django.contrib.messages import get_messages
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+        archivo = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+        payload = dict(self._form_base())
+        payload["accion"] = "continuar"
+        payload["archivo_notas"] = archivo
+
+        respuesta = self.client.post(url, payload, follow=True)
+
+        self.assertEqual(respuesta.status_code, 200)
+        contenido = respuesta.content.decode()
+        self.assertIn('value="agregar_materia"', contenido)
+        self.assertIn('value="quitar_materia"', contenido)
+        self.assertIn('name="fila_a_quitar"', contenido)
+        self.assertIn("formnovalidate", contenido)
+        self.assertIn("data-fila=", contenido)
+        self.assertIn("restaurarBoton", contenido)
+        self.assertIn("Agregar materia manualmente", contenido)
+
+        # Los mensajes del redirect (si los hay) no se mezclan con la
+        # comprobación de los controles.
+        self.assertIsInstance(list(get_messages(respuesta.wsgi_request)), list)
+
+    def test_descarga_con_cambios_sin_validar_no_genera_archivo(self):
+        from django.contrib.messages import get_messages
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+        archivo = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+        payload = dict(self._form_base())
+        payload["accion"] = "continuar"
+        payload["archivo_notas"] = archivo
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 302)
+
+        payload = self._grilla_payload()
+        payload["accion"] = "validar"
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 302)
+
+        # Una edición posterior deja cambios pendientes en sesión.
+        payload = self._grilla_payload()
+        payload["accion"] = "agregar_materia"
+        payload["nueva_materia"] = "Materia Pendiente"
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 200)
+
+        respuesta = self.client.post(
+            url,
+            {
+                "accion": "descargar",
+                "legajo": "1-41734713/17",
+                "carrera": "PR1",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotEqual(
+            respuesta["Content-Type"],
+            (
+                "application/vnd.openxmlformats-officedocument."
+                "wordprocessingml.document"
+            ),
+        )
+        mensajes = [str(m) for m in get_messages(respuesta.wsgi_request)]
+        self.assertTrue(
+            any("sin validar" in m.lower() for m in mensajes)
+        )
+
+    def test_descarga_con_datos_incompletos_redirige_con_error(self):
+        from django.contrib.messages import get_messages
+
+        from academico.models import Analitico, DatosNacimiento
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+        archivo = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+        payload = dict(self._form_base())
+        payload["accion"] = "continuar"
+        payload["archivo_notas"] = archivo
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 302)
+
+        payload = self._grilla_payload()
+        payload["accion"] = "validar"
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(Analitico.objects.exists())
+
+        DatosNacimiento.objects.all().delete()
+
+        respuesta = self.client.post(
+            url,
+            {
+                "accion": "descargar",
+                "legajo": "1-41734713/17",
+                "carrera": "PR1",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        mensajes = [str(m) for m in get_messages(respuesta.wsgi_request)]
+        self.assertTrue(
+            any("no se puede descargar" in m.lower() for m in mensajes)
+        )
 
     def test_ya_existe_el_graduado_ofrece_opciones(self):
         graduado = Graduado.objects.create(
@@ -1695,8 +2267,13 @@ class GeneracionAnaliticosTest(BasePrueba):
         self.assertEqual(resultado[2]["estado"], "nombre_distinto")
         self.assertEqual(resultado[2]["anio_plan"], 1)
 
-        self.assertEqual(resultado[3]["estado"], "codigo_no_en_plan")
-        self.assertEqual(resultado[3]["codigos_sugeridos"], ["9003"])
+        # El código no está en el plan, pero el nombre sí: se asiste
+        # con la materia del plan en vez de dejar el año vacío.
+        self.assertEqual(resultado[3]["estado"], "codigo_distinto")
+        self.assertEqual(resultado[3]["codigo_esperado"], "9003")
+        self.assertEqual(resultado[3]["anio_plan"], 2)
+        self.assertEqual(resultado[3]["orden_plan"], 2)
+        self.assertEqual(resultado[3]["tipo_sugerencia"], "exacto")
 
         self.assertEqual(resultado[4]["estado"], "sin_codigo")
 
@@ -1750,13 +2327,24 @@ class GeneracionAnaliticosTest(BasePrueba):
         self.carrera.plan_vigente = None
         self.carrera.save(update_fields=["plan_vigente"])
 
+        # Sin plan vigente pero con un único plan cargado, se usa ese
+        # como sugerencia y se avisa.
+        con_plan_no_vigente = verificar_filas(
+            Carrera.objects.get(pk=self.carrera.pk), filas
+        )
+        self.assertEqual(con_plan_no_vigente[0]["estado"], "ok")
+        self.assertEqual(con_plan_no_vigente[0]["anio_plan"], 3)
+        self.assertTrue(con_plan_no_vigente[0]["plan_no_vigente"])
+
+        PlanEstudios.objects.all().delete()
+
         sin_plan = verificar_filas(
             Carrera.objects.get(pk=self.carrera.pk), filas
         )
         self.assertEqual(sin_plan[0]["estado"], "sin_plan")
         self.assertIsNone(sin_plan[0]["anio_plan"])
 
-    def test_discrepancias_no_bloquean_y_fuera_del_plan_va_al_final(self):
+    def test_discrepancias_no_bloquean_y_orden_manual_se_respeta(self):
         from academico.models import GraduadoExamen
 
         self.iniciar_sesion(self.admin)
@@ -1788,9 +2376,10 @@ class GeneracionAnaliticosTest(BasePrueba):
         payload = dict(self._form_base())
         payload["accion"] = "validar"
         payload["fila_indice"] = ["01", "02"]
-        # Orden manual invertido: la fila fuera del plan debe ir al final.
+        # Orden manual invertido: debe prevalecer aunque haya
+        # discrepancias con el plan.
         payload["fila_orden"] = ["2", "1"]
-        payload["fila_anio"] = ["2020", "2021"]
+        payload["fila_anio"] = ["1", "2"]
         payload["fila_espacio"] = [
             "Materia Uno (nombre viejo)",
             "Materia Fuera",
@@ -1815,10 +2404,10 @@ class GeneracionAnaliticosTest(BasePrueba):
                 fila.id_examen.codigo_materia.codigo_materia
                 for fila in filas
             ],
-            ["9001", "9999"],
+            ["9999", "9001"],
         )
-        self.assertEqual(filas[0].anio_cursado, 1)
-        self.assertIsNone(filas[1].anio_cursado)
+        self.assertEqual(filas[0].anio_cursado, 2)
+        self.assertEqual(filas[1].anio_cursado, 1)
 
         # La descarga queda habilitada aunque haya discrepancias.
         respuesta = self.client.post(
@@ -1831,11 +2420,13 @@ class GeneracionAnaliticosTest(BasePrueba):
         )
         self.assertEqual(respuesta.status_code, 200)
 
-    def test_orden_y_anio_del_plan_prevalecen_en_el_documento(self):
+    def test_orden_y_anio_editados_se_respetan_en_el_documento(self):
         from docx import Document
 
         from academico.models import GraduadoExamen
 
+        # El plan sugiere otro orden y otros años: lo escrito en la
+        # grilla debe ganar tanto en la base como en el .docx.
         PlanEstudiosMateria.objects.filter(
             codigo_materia=self.materia1
         ).update(anio_materia=3, orden_materia=2)
@@ -1849,9 +2440,8 @@ class GeneracionAnaliticosTest(BasePrueba):
         payload = dict(self._form_base())
         payload["accion"] = "validar"
         payload["fila_indice"] = ["01", "02"]
-        # Orden manual y años de calendario que deben ser ignorados.
         payload["fila_orden"] = ["1", "2"]
-        payload["fila_anio"] = ["2020", "2021"]
+        payload["fila_anio"] = ["4", "2"]
         payload["fila_espacio"] = ["Materia Uno", "Materia Dos"]
         payload["fila_nota"] = ["7", "10"]
         payload["fila_fecha"] = ["2023-03-01", "2021-12-16"]
@@ -1868,10 +2458,10 @@ class GeneracionAnaliticosTest(BasePrueba):
                 fila.id_examen.codigo_materia.codigo_materia
                 for fila in filas
             ],
-            ["9002", "9001"],
+            ["9001", "9002"],
         )
         self.assertEqual([fila.orden for fila in filas], [1, 2])
-        self.assertEqual([fila.anio_cursado for fila in filas], [1, 3])
+        self.assertEqual([fila.anio_cursado for fila in filas], [4, 2])
 
         respuesta = self.client.post(
             url,
@@ -1884,20 +2474,25 @@ class GeneracionAnaliticosTest(BasePrueba):
         self.assertEqual(respuesta.status_code, 200)
 
         documento = Document(BytesIO(respuesta.content))
-        celdas = [
-            celda.text.strip()
-            for fila in documento.tables[0].rows for celda in fila.cells
+        filas_doc = [
+            [celda.text.strip() for celda in fila.cells]
+            for fila in documento.tables[0].rows[1:]
         ]
-        self.assertIn("1°", celdas)
-        self.assertIn("3°", celdas)
-        self.assertNotIn("2020", celdas)
-        self.assertNotIn("2021", celdas)
+        self.assertEqual([fila[0] for fila in filas_doc], ["01", "02"])
+        self.assertEqual([fila[1] for fila in filas_doc], ["4°", "2°"])
+        self.assertEqual(
+            [fila[2] for fila in filas_doc],
+            ["Materia Uno", "Materia Dos"],
+        )
 
-    def test_carrera_sin_plan_conserva_orden_y_deja_anio_vacio(self):
+    def test_carrera_sin_plan_conserva_orden_y_anio_editado(self):
         from academico.models import GraduadoExamen
 
+        # Sin plan vigente ni planes cargados: no hay sugerencias, pero
+        # el usuario puede completar orden y año a mano.
         self.carrera.plan_vigente = None
         self.carrera.save(update_fields=["plan_vigente"])
+        PlanEstudios.objects.all().delete()
 
         self.iniciar_sesion(self.admin)
         url = reverse("generacion_analiticos")
@@ -1945,7 +2540,90 @@ class GeneracionAnaliticosTest(BasePrueba):
             ],
             ["9002", "9001"],
         )
-        self.assertTrue(all(fila.anio_cursado is None for fila in filas))
+        self.assertEqual([fila.anio_cursado for fila in filas], [2, 1])
+
+    def test_matcheo_asistido_por_nombre_con_codigo_distinto(self):
+        from academico.servicios.moduloAnalitico.plan_estudios import (
+            aplicar_plan_a_filas,
+            verificar_filas,
+        )
+
+        # Caso «Organización de las Computadores»: el código del
+        # certificado no existe en el plan, pero el nombre sí.
+        filas = [{
+            "codigo_lincoln": "9999",
+            "nombre_lincoln": "Materia Tres",
+            "materia_codigo": "9999",
+        }]
+        verificacion = verificar_filas(self.carrera, filas)[0]
+
+        self.assertEqual(verificacion["estado"], "codigo_distinto")
+        self.assertEqual(verificacion["codigo_esperado"], "9003")
+        self.assertEqual(verificacion["anio_plan"], 2)
+        self.assertEqual(verificacion["orden_plan"], 2)
+        self.assertEqual(verificacion["tipo_sugerencia"], "exacto")
+
+        aplicadas = aplicar_plan_a_filas(
+            self.carrera,
+            [{
+                "codigo_lincoln": "9999",
+                "nombre_lincoln": "Materia Tres",
+                "espacio": "Materia Tres",
+                "materia_codigo": "9999",
+                "anio": "",
+                "orden_num": None,
+            }],
+            respetar_edicion=True,
+        )
+        self.assertEqual(aplicadas[0]["anio"], 2)
+        self.assertEqual(aplicadas[0]["anio_txt"], "2°")
+        self.assertEqual(aplicadas[0]["orden_num"], 1)
+
+        # Un nombre con una pequeña diferencia también se asocia.
+        parecidas = verificar_filas(self.carrera, [{
+            "codigo_lincoln": "9999",
+            "nombre_lincoln": "Materia Uno!",
+        }])
+        self.assertEqual(parecidas[0]["estado"], "codigo_distinto")
+        self.assertEqual(parecidas[0]["tipo_sugerencia"], "similar")
+        self.assertEqual(parecidas[0]["anio_plan"], 1)
+
+    def test_plan_unico_no_vigente_se_sugiere_y_anio_es_editable(self):
+        import re
+
+        self.carrera.plan_vigente = None
+        self.carrera.save(update_fields=["plan_vigente"])
+
+        self.iniciar_sesion(self.admin)
+        url = reverse("generacion_analiticos")
+
+        archivo = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+        payload = dict(self._form_base())
+        payload["accion"] = "continuar"
+        payload["archivo_notas"] = archivo
+
+        respuesta = self.client.post(url, payload)
+        self.assertEqual(respuesta.status_code, 302)
+
+        respuesta = self.client.get(respuesta.url)
+        self.assertContains(respuesta, "Plan no vigente")
+        self.assertContains(respuesta, "PRP1")
+
+        contenido = respuesta.content.decode()
+        campo_anio = re.search(
+            r'<input[^>]*name="fila_anio"[^>]*>', contenido
+        )
+        self.assertIsNotNone(campo_anio)
+        self.assertIn('value="1"', campo_anio.group(0))
+        self.assertNotIn("readonly", campo_anio.group(0))
 
 
 class TituloEnTramiteTest(BasePrueba):
@@ -2318,6 +2996,120 @@ class FiltrosListadoTest(BasePrueba):
                 fecha_ingreso_carrera=date(2016, 3, 1),
                 fecha_egreso_carrera=date(2020, 12, 1),
             )
+
+    def _crear_graduado_sin_carrera(self):
+        return Graduado.objects.create(
+            legajo_graduado="F003",
+            dni="42333",
+            anio_ingreso_universidad=2013,
+            nombre="Carlos",
+            apellido="SinCarrera",
+        )
+
+    def test_listado_devuelve_una_fila_por_carrera(self):
+        graduado = Graduado.objects.get(pk="F001")
+        GraduadoCarrera.objects.create(
+            legajo_graduado=graduado,
+            codigo_carrera=self.carrera_b,
+            fecha_ingreso_carrera=date(2017, 3, 1),
+            fecha_egreso_carrera=date(2021, 12, 1),
+        )
+
+        filas = obtener_filas_busqueda({})
+        mismo_legajo = [
+            fila for fila in filas if fila.legajo_graduado_id == "F001"
+        ]
+
+        self.assertEqual(len(mismo_legajo), 2)
+        self.assertEqual(
+            {fila.codigo_carrera_id for fila in mismo_legajo},
+            {"FA1", "FB1"},
+        )
+        self.assertTrue(
+            all(fila.cantidad_carreras == 2 for fila in mismo_legajo)
+        )
+
+    def test_graduado_sin_carrera_aparece_con_vacio_en_el_listado(self):
+        self._crear_graduado_sin_carrera()
+
+        filas = obtener_filas_busqueda({})
+        fila = next(
+            fila for fila in filas if fila.legajo_graduado_id == "F003"
+        )
+
+        self.assertTrue(fila.sin_carrera)
+        self.assertIsNone(fila.codigo_carrera_id)
+        self.assertEqual(fila.cantidad_carreras, 0)
+        self.assertEqual(fila.anio_ingreso_universidad, 2013)
+
+        self.iniciar_sesion(self.titulos)
+        respuesta = self.client.get(reverse("lista_graduados"))
+
+        self.assertContains(respuesta, "F003")
+        self.assertContains(respuesta, "Sin carrera")
+        self.assertContains(respuesta, "Vacio")
+        self.assertContains(respuesta, "2013")
+        self.assertNotContains(
+            respuesta,
+            reverse("editar_graduado", args=["F003", "FA1"]),
+        )
+
+    def test_filtro_situacion_y_orden_por_inconsistencias(self):
+        self._crear_graduado_sin_carrera()
+
+        filas = obtener_filas_busqueda({"situacion": "sin_carrera"})
+        self.assertEqual(
+            [fila.legajo_graduado_id for fila in filas],
+            ["F003"],
+        )
+
+        filas = obtener_filas_busqueda({"situacion": "con_carrera"})
+        self.assertEqual(
+            {fila.legajo_graduado_id for fila in filas},
+            {"F001", "F002"},
+        )
+
+        # El orden por defecto pone la inconsistencia al principio.
+        filas = obtener_filas_busqueda({})
+        self.assertEqual(filas[0].legajo_graduado_id, "F003")
+        self.assertTrue(filas[0].sin_carrera)
+
+        # Con otro orden, vuelve a mandar el legajo.
+        filas = obtener_filas_busqueda({"orden": "legajo"})
+        self.assertEqual(filas[0].legajo_graduado_id, "F001")
+
+    def test_filtro_de_carrera_excluye_a_quien_no_tiene_carrera(self):
+        self._crear_graduado_sin_carrera()
+
+        filas = obtener_filas_busqueda({"carrera": "FA1"})
+
+        self.assertEqual(
+            [fila.legajo_graduado_id for fila in filas],
+            ["F001"],
+        )
+
+    def test_excel_ignora_los_controles_nuevos_del_buscador(self):
+        from openpyxl import load_workbook
+
+        self._crear_graduado_sin_carrera()
+        self.iniciar_sesion(self.admin)
+
+        respuesta = self.client.get(
+            reverse("exportar_graduados") + "?situacion=sin_carrera&orden=legajo"
+        )
+        libro = load_workbook(BytesIO(respuesta.content))
+        legajos = [
+            fila[0]
+            for fila in libro.active.iter_rows(min_row=2, values_only=True)
+        ]
+
+        self.assertIn("F001", legajos)
+        self.assertNotIn("F003", legajos)
+
+        lista = self.client.get(
+            reverse("lista_graduados") + "?situacion=sin_carrera"
+        )
+        self.assertNotIn("situacion", lista.context["excel_qs"])
 
     def test_filtro_por_carrera_no_pierde_la_condicion(self):
         filas = obtener_filas_filtradas({"carrera": "FA1"})

@@ -47,29 +47,36 @@ ejecutarla. El respaldo indicado arriba permite volver al estado previo.
 
 ## Analíticos y promedios
 
-Cada fila del Lincoln se contrasta con `PlanEstudiosMateria` del plan
-**vigente** de la carrera (`Carrera.plan_vigente`):
+Cada fila del Lincoln se contrasta con `PlanEstudiosMateria` del plan de
+la carrera (se prefiere `Carrera.plan_vigente`; si no hay vigente pero
+existe un único plan cargado, se usa ese y se avisa):
 
 - Se compara el código leído del Lincoln (numérico con 4 cifras,
   `901` → `0901`) y el nombre normalizado (sin acentos, caso ni espacios).
   El aviso muestra siempre los valores originales del certificado.
+- Si el código no está en el plan, se busca la materia por nombre: una
+  coincidencia exacta o muy parecida y única adopta su año y orden como
+  sugerencia y avisa `codigo_distinto`. Si hay ambigüedad, se listan los
+  códigos candidatos sin adoptar ninguno.
 - Estados posibles: `ok`, `nombre_distinto` (el código está en el plan
-  pero el nombre no), `codigo_no_en_plan` (con sugerencias por nombre),
+  pero el nombre no), `codigo_distinto` (el nombre coincide pero el
+  código no), `codigo_no_en_plan` (con sugerencias por nombre),
   `sin_codigo`, `plan_incompleto` (la fila del plan no tiene año u orden)
   y `sin_plan`.
 - **Ninguna discrepancia bloquea**: se muestra en la previsualización
   (grilla editable y vista de sólo lectura) y se puede validar, generar
   y descargar el analítico igual.
-- El **Orden** y el **Año** salen de `orden_materia` y `anio_materia`
-  del plan (el año se imprime como `1°`, `2°`...), no del año de
-  calendario del Lincoln. El número de Orden de la grilla sigue siendo
-  editable y se usa **sólo para desempatar** filas con el mismo orden
-  del plan o sin orden de plan.
-- Las filas sin materia en el plan (o de carreras sin plan vigente) van
-  al final y quedan con el año vacío, con su aviso correspondiente. No
-  se busca un plan alternativo.
+- El plan **sugiere** el **Orden** y el **Año** (`orden_materia` y
+  `anio_materia`, impreso como `1°`, `2°`...), no el año de calendario
+  del Lincoln. Ambos campos de la grilla son editables: las posiciones y
+  el año que escriba el usuario prevalecen al validar, al guardar en la
+  base y al generar el `.docx`. No editar nada equivale a aceptar la
+  sugerencia del plan.
+- Las filas que no pudieron asociarse al plan y sin año escrito quedan
+  al final con el año vacío, con su aviso correspondiente.
 - `GraduadoExamen.anio_cursado` y `GraduadoExamen.orden` se reutilizan
-  para guardar estos valores; no hicieron falta migraciones.
+  para guardar estos valores; no hicieron falta migraciones. La descarga
+  lee de la base y ya no vuelve a aplicar el plan.
 
 ## Promedios
 

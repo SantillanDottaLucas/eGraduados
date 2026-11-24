@@ -82,7 +82,41 @@ from .servicios.moduloAnalitico.utilidades_texto import (
 from .views_gestion import _redirigir_gestion
 
 CLAVE_SESION_PREVIEW = "analitico_preview"
+CLAVE_SESION_BORRADOR = "analitico_borrador"
 CLAVE_PROMEDIOS_CALCULADOS = "promedios_calculados"
+
+# Campos del formulario que se guardan en el borrador. El Excel queda
+# afuera: los navegadores no permiten rellenar un <input type="file">.
+CAMPOS_BORRADOR = (
+    "legajo",
+    "nombre",
+    "apellido",
+    "dni",
+    "anio_ingreso_uarg",
+    "carrera",
+    "anio_ingreso_carrera",
+    "fecha_egreso_carrera",
+    "promedio_sin_aplazo",
+    "promedio_con_aplazo",
+    "fecha_nacimiento",
+    "ciudad_nacimiento",
+    "provincia_nacimiento",
+    "nombre_secundario",
+    "titulo_secundario",
+    "ciudad_secundario",
+    "provincia_secundario",
+    "anio_egreso_secundario",
+    "titulo_otorgado",
+    "resoluciones_institucionales",
+    "resoluciones_ministeriales",
+    "otros_instrumentos",
+)
+
+CAMPOS_REPETIBLES_BORRADOR = (
+    "resoluciones_institucionales",
+    "resoluciones_ministeriales",
+    "otros_instrumentos",
+)
 
 
 # ==================================================
@@ -133,6 +167,88 @@ def _lista_resoluciones(datos_form, campo):
                 resultado.append(texto)
 
     return resultado
+
+
+def _guardar_borrador(request, tipo_documento):
+    """
+    Guarda en sesión lo que la persona escribió en el formulario.
+
+    Se usa cuando el envío no llega a destino (validación, POST sin
+    acción, archivo inválido, etc.). Los valores se toman del POST
+    crudo para que la sesión siga siendo serializable y para no
+    perder lo que el usuario efectivamente tecleó.
+
+    Devuelve ``True`` si guardó algo; un POST de la previsualización
+    (que no trae estos campos) no debe pisar un borrador existente.
+    """
+
+    if not any(campo in request.POST for campo in (
+        "nombre",
+        "apellido",
+        "dni",
+        "legajo",
+    )):
+        return False
+
+    datos = {}
+
+    for campo in CAMPOS_BORRADOR:
+        if campo in CAMPOS_REPETIBLES_BORRADOR:
+            datos[campo] = [
+                valor for valor in request.POST.getlist(campo)
+                if _limpiar(valor)
+            ]
+        else:
+            datos[campo] = _limpiar(request.POST.get(campo))
+
+    usuario = getattr(request, "usuario_actual", None)
+
+    request.session[CLAVE_SESION_BORRADOR] = {
+        "usuario_id": getattr(usuario, "id_usuario", None),
+        "tipo_documento": tipo_documento.value,
+        "legajo": datos["legajo"],
+        "carrera": datos["carrera"],
+        "datos": datos,
+    }
+
+    return True
+
+
+def _recuperar_borrador(request, tipo_documento, legajo=None, carrera=None):
+    """
+    Devuelve el borrador de esta persona y trámite, o ``None``.
+
+    Los filtros opcionales de legajo/carrera evitan que un borrador
+    anterior se mezcle cuando se abre un graduado distinto.
+    """
+
+    borrador = request.session.get(CLAVE_SESION_BORRADOR)
+
+    if not borrador:
+        return None
+
+    usuario = getattr(request, "usuario_actual", None)
+
+    if (
+        borrador.get("tipo_documento") != tipo_documento.value
+        or borrador.get("usuario_id") != getattr(
+            usuario, "id_usuario", None
+        )
+    ):
+        return None
+
+    if legajo is not None and borrador.get("legajo") != legajo:
+        return None
+
+    if carrera is not None and borrador.get("carrera") != carrera:
+        return None
+
+    datos = dict(borrador.get("datos") or {})
+
+    for campo in CAMPOS_REPETIBLES_BORRADOR:
+        datos[campo] = datos.get(campo) or []
+
+    return datos
 
 
 def _normalizar(texto):
@@ -481,8 +597,12 @@ def _validar_datos(datos_form):
         "fecha_egreso_carrera": fecha_egreso,
     })
 
-    datos["dni"] = normalizados["dni"]
-    datos["legajo"] = normalizados["legajo"]
+    # Si la validación falla, los normalizados quedan vacíos: conservar
+    # lo que escribió la persona para no borrarle los campos al volver
+    # a mostrar el formulario. Los valores normalizados se usan cuando
+    # no hay errores (que es cuando se persiste).
+    datos["dni"] = normalizados["dni"] or datos["dni"]
+    datos["legajo"] = normalizados["legajo"] or datos["legajo"]
     errores.extend(errores_negocio)
 
     return datos, errores
@@ -683,6 +803,261 @@ def _preview_con_session(request, tipo_documento, legajo, carrera):
     )
 
 
+def _datos_para_session(datos):
+    """Convierte fechas a texto para poder guardarlas en sesión."""
+
+    serializados = dict(datos)
+
+    for campo in (
+        "fecha_egreso",
+        "fecha_egreso_carrera",
+        "fecha_nacimiento",
+    ):
+        valor = serializados.get(campo)
+        serializados[campo] = (
+            valor.isoformat()
+            if hasattr(valor, "isoformat")
+            else (valor or "")
+        )
+
+    return serializados
+
+
+def _filas_a_session(filas):
+    """
+    Convierte las filas editadas de la previsualización al formato de
+    ``CLAVE_SESION_PREVIEW["examenes"]``.
+
+    Se conservan tanto el valor crudo del Lincoln (para contrastar con
+    el plan) como la corrección hecha por el usuario en el selector.
+    """
+
+    return [
+        {
+            "nombre_materia": fila.get("espacio") or "",
+            "codigo_lincoln": (
+                fila.get("codigo_lincoln")
+                or fila.get("materia_codigo") or ""
+            ),
+            "nombre_lincoln": (
+                fila.get("nombre_lincoln")
+                or fila.get("espacio") or ""
+            ),
+            "fecha_examen": fila.get("fecha_examen") or "",
+            "nota": fila.get("nota"),
+            "nota_txt": (
+                fila.get("nota_txt")
+                if fila.get("nota_txt") is not None
+                else (
+                    "" if fila.get("nota") is None
+                    else str(fila["nota"])
+                )
+            ),
+            "tipo": fila.get("tipo") or "Examen",
+            "acta_respaldatoria": (
+                fila.get("respaldo")
+                or fila.get("acta_respaldatoria") or ""
+            ),
+            "anio": fila.get("anio") or "",
+            "anio_cursado": (
+                fila.get("anio_cursado")
+                or _entero_o_none(fila.get("anio"))
+            ),
+            "materia_codigo": fila.get("materia_codigo") or "",
+            "es_requisito": bool(fila.get("es_requisito")),
+            "orden": fila.get("orden_num") or fila.get("orden"),
+        }
+        for fila in filas
+    ]
+
+
+def _render_preview_no_guardada(request, tipo_documento, filas):
+    """
+    Vuelve a dibujar la previsualización sin tocar la sesión.
+
+    Se usa cuando la acción no se pudo completar (nombre vacío, fila no
+    encontrada, datos inválidos) para no perder las ediciones del POST.
+    """
+
+    datos, _ = _validar_datos(request.POST)
+    carrera = Carrera.objects.filter(
+        codigo_carrera=datos["carrera"]
+    ).first()
+    materias = _materias_disponibles()
+    filas = _preparar_filas(carrera, filas, materias)
+    calculado = promedios_desde_filas(filas, carrera)
+
+    contexto = _contexto_preview(
+        request,
+        tipo_documento,
+        datos,
+        filas,
+        materias,
+        validado=False,
+        modo_db=False,
+        advertencias=calculado.advertencias,
+        promedios_calculados={
+            "sin_aplazo": calculado.promedio_sin_aplazo,
+            "con_aplazo": calculado.promedio_con_aplazo,
+        },
+    )
+    contexto["errores_revalidar"] = True
+
+    return render(
+        request,
+        "academico/generacion_analiticos.html",
+        contexto,
+    )
+
+
+def _guardar_preview_editada(request, tipo_documento, filas):
+    """
+    Persiste en sesión la grilla resultante de agregar/quitar una fila.
+
+    No crea materias ni exámenes: eso sigue ocurriendo al validar. La
+    previsualización se marca como no validada para obligar a revalidar.
+    """
+
+    datos, errores = _validar_datos(request.POST)
+    carrera = Carrera.objects.filter(
+        codigo_carrera=datos["carrera"]
+    ).first()
+
+    if errores or carrera is None:
+        if carrera is None:
+            errores.append("La carrera elegida no existe.")
+
+        for error in errores:
+            messages.error(request, error)
+
+        return _render_preview_no_guardada(request, tipo_documento, filas)
+
+    materias = _materias_disponibles()
+    filas = _preparar_filas(carrera, filas, materias)
+    calculado = promedios_desde_filas(filas, carrera)
+
+    graduado = Graduado.objects.filter(
+        legajo_graduado=datos["legajo"]
+    ).first()
+    registro = (
+        GraduadoCarrera.objects.filter(
+            legajo_graduado=graduado,
+            codigo_carrera_id=datos["carrera"],
+        ).first()
+        if graduado else None
+    )
+
+    datos.update(_promedio_para_preview(datos, calculado, registro))
+
+    usuario = getattr(request, "usuario_actual", None)
+
+    request.session[CLAVE_SESION_PREVIEW] = {
+        "tipo_documento": tipo_documento.value,
+        "usuario_id": getattr(usuario, "id_usuario", None),
+        "legajo": datos["legajo"],
+        "carrera": datos["carrera"],
+        "advertencias": list(calculado.advertencias),
+        "promedios_calculados": {
+            "sin_aplazo": calculado.promedio_sin_aplazo,
+            "con_aplazo": calculado.promedio_con_aplazo,
+        },
+        "datos": _datos_para_session(datos),
+        "examenes": _filas_a_session(filas),
+    }
+    request.session.modified = True
+
+    return _preview_con_session(
+        request,
+        tipo_documento,
+        datos["legajo"],
+        datos["carrera"],
+    )
+
+
+def _agregar_materia(request, tipo_documento):
+    """Agrega una fila escrita a mano a la previsualización."""
+
+    filas = _filas_desde_post(request)
+    nombre = _limpiar(request.POST.get("nueva_materia"))
+    codigo = _limpiar(request.POST.get("nuevo_codigo"))
+
+    if not nombre:
+        messages.error(
+            request,
+            "Ingresá el nombre de la materia que querés agregar.",
+        )
+
+        return _render_preview_no_guardada(
+            request, tipo_documento, filas
+        )
+
+    nota = _entero_o_none(_limpiar(request.POST.get("nueva_nota")))
+    anio = _limpiar(request.POST.get("nuevo_anio"))
+    orden = _entero_o_none(_limpiar(request.POST.get("nuevo_orden")))
+
+    filas.append({
+        "indice": str(len(filas) + 1),
+        "espacio": nombre,
+        "materia_codigo": codigo,
+        "codigo_lincoln": "",
+        "nombre_lincoln": nombre,
+        "nota": nota,
+        "nota_txt": "" if nota is None else str(nota),
+        "fecha_examen": _limpiar(request.POST.get("nueva_fecha")),
+        "tipo": _limpiar(request.POST.get("nuevo_tipo")) or "Examen",
+        "respaldo": _limpiar(request.POST.get("nuevo_acta")),
+        "anio": anio,
+        "anio_cursado": _entero_o_none(anio),
+        "orden": f"{orden:02d}" if orden else "",
+        "orden_num": orden,
+        "es_requisito": _limpiar(
+            request.POST.get("nueva_requisito")
+        ) in ("si", "on", "1", "true"),
+    })
+
+    filas = _normalizar_orden(filas)
+
+    messages.success(
+        request,
+        f"«{nombre}» se agregó a la previsualización. "
+        "Volvé a validar el analítico para guardarla.",
+    )
+
+    return _guardar_preview_editada(request, tipo_documento, filas)
+
+
+def _quitar_materia(request, tipo_documento):
+    """Quita una fila de la previsualización (no del catálogo)."""
+
+    filas = _filas_desde_post(request)
+    objetivo = _limpiar(request.POST.get("fila_a_quitar"))
+
+    restantes = [
+        fila for fila in filas
+        if str(fila.get("indice")) != objetivo
+    ]
+
+    if len(restantes) == len(filas):
+        messages.error(
+            request,
+            "No se encontró la fila que querés quitar.",
+        )
+
+        return _render_preview_no_guardada(
+            request, tipo_documento, filas
+        )
+
+    restantes = _normalizar_orden(restantes)
+
+    messages.success(
+        request,
+        "La fila se quitó de la previsualización. "
+        "Volvé a validar el analítico para guardar el cambio.",
+    )
+
+    return _guardar_preview_editada(request, tipo_documento, restantes)
+
+
 def _preview_con_bd(request, tipo_documento, graduado, registro,
                     validado):
     contexto = contexto_analitico(
@@ -770,6 +1145,12 @@ def generacion_analiticos(request):
     if request.method == "POST":
         accion = request.POST.get("accion", "")
 
+        if accion == "descartar_borrador":
+            request.session.pop(CLAVE_SESION_BORRADOR, None)
+            messages.info(request, "Borrador descartado.")
+
+            return redirect(url)
+
         if accion == "continuar":
             return _continuar(request, tipo_documento)
 
@@ -779,10 +1160,22 @@ def generacion_analiticos(request):
         if accion == "recalcular":
             return _recalcular(request, tipo_documento)
 
+        if accion == "agregar_materia":
+            return _agregar_materia(request, tipo_documento)
+
+        if accion == "quitar_materia":
+            return _quitar_materia(request, tipo_documento)
+
         if accion == "descargar":
             return _descargar(request, tipo_documento)
 
-        return redirect(url)
+        messages.error(
+            request,
+            "No se recibió la acción del botón. Volvé a presionarlo; "
+            "si vuelve a pasar, actualizá la página.",
+        )
+
+        return _post_sin_accion(request, tipo_documento)
 
     modo = request.GET.get("modo", "carga")
 
@@ -857,8 +1250,19 @@ def generacion_analiticos(request):
             },
         )
 
-    # GET: formulario de carga (nunca buscador).
-    if graduado is not None and registro is not None:
+    # GET: formulario de carga (nunca buscador). El borrador tiene
+    # prioridad sobre los datos de la BD cuando coincide el trámite.
+    datos_borrador = _recuperar_borrador(
+        request,
+        tipo_documento,
+        legajo=legajo_sel or None,
+        carrera=carrera_sel or None,
+    )
+    hay_borrador = datos_borrador is not None
+
+    if datos_borrador is not None:
+        datos = datos_borrador
+    elif graduado is not None and registro is not None:
         datos = _datos_precargados(graduado, registro)
     else:
         datos = {
@@ -886,13 +1290,11 @@ def generacion_analiticos(request):
             "resoluciones_institucionales": [],
         }
 
-    return render(
+    return _render_carga(
         request,
-        "academico/generacion_analiticos.html",
-        {
-            **_contexto_formulario(request, tipo_documento, datos),
-            "vista": "carga",
-        },
+        tipo_documento,
+        datos,
+        hay_borrador=hay_borrador,
     )
 
 
@@ -1015,8 +1417,20 @@ def titulo_en_tramite(request):
         if accion == "recalcular":
             return _recalcular(request, tipo_documento)
 
+        if accion == "agregar_materia":
+            return _agregar_materia(request, tipo_documento)
+
+        if accion == "quitar_materia":
+            return _quitar_materia(request, tipo_documento)
+
         if accion == "descargar":
             return _descargar(request, tipo_documento)
+
+        messages.error(
+            request,
+            "No se recibió la acción del botón. Volvé a presionarlo; "
+            "si vuelve a pasar, actualizá la página.",
+        )
 
         return redirect(url)
 
@@ -1071,8 +1485,8 @@ def _armar_filas(examenes, carrera=None):
 
     Los valores crudos del Lincoln se conservan aparte para contrastarlos
     con el plan aunque el usuario haya corregido el selector de materia.
-    Después se aplica el plan: orden y año salen de
-    ``PlanEstudiosMateria`` y las discrepancias se adjuntan a cada fila.
+    El plan sugiere orden y año, pero lo que ya guardó la grilla tiene
+    prioridad; las discrepancias se adjuntan a cada fila.
     """
 
     materias = _materias_disponibles()
@@ -1091,11 +1505,14 @@ def _armar_filas(examenes, carrera=None):
                 None,
             )
 
-        orden_num = examen.get("orden") or indice
+        # Si la fila todavía no tiene orden (certificado recién leído),
+        # se deja vacío para que el plan lo sugiera. Si viene de la grilla
+        # o de la base, se respeta la posición que ya tiene.
+        orden_num = examen.get("orden")
 
         filas.append({
             "indice": indice,
-            "orden": f"{orden_num:02d}",
+            "orden": f"{orden_num:02d}" if orden_num else "",
             "orden_num": orden_num,
             "anio": (
                 examen.get("anio") or examen.get("anio_cursado") or ""
@@ -1128,7 +1545,10 @@ def _armar_filas(examenes, carrera=None):
             "es_requisito": bool(examen.get("es_requisito")),
         })
 
-    return aplicar_plan_a_filas(carrera, filas), materias
+    return (
+        aplicar_plan_a_filas(carrera, filas, respetar_edicion=True),
+        materias,
+    )
 
 
 def _filas_para_mostrar(datos_session):
@@ -1171,6 +1591,59 @@ def _contexto_formulario(request, tipo_documento, datos, advertencias=None):
         "provincias": provincias_sugeridas(),
         "ciudades": [c.nombre_ciudad for c in ciudades],
     }
+
+
+def _render_carga(request, tipo_documento, datos, hay_borrador=False):
+    """Dibuja el formulario de carga con el estado del borrador."""
+
+    return render(
+        request,
+        "academico/generacion_analiticos.html",
+        {
+            **_contexto_formulario(request, tipo_documento, datos),
+            "vista": "carga",
+            "hay_borrador": hay_borrador,
+        },
+    )
+
+
+def _render_carga_con_borrador(request, tipo_documento, datos):
+    """Graba el borrador del POST y vuelve a mostrar el formulario."""
+
+    guardado = _guardar_borrador(request, tipo_documento)
+
+    return _render_carga(
+        request,
+        tipo_documento,
+        datos,
+        hay_borrador=guardado,
+    )
+
+
+def _post_sin_accion(request, tipo_documento):
+    """
+    Un POST sin «accion» significa que el botón submit no llegó (por
+    ejemplo, si se deshabilitó durante el evento submit). En lugar
+    de redirigir a un formulario vacío, se vuelve a mostrar lo que
+    la persona había cargado.
+    """
+
+    # Si el POST viene de la previsualización, conservarla desde la
+    # sesión en vez de devolver la pantalla de carga.
+    if request.POST.getlist("fila_indice"):
+        preview = _preview_con_session(
+            request,
+            tipo_documento,
+            _limpiar(request.POST.get("legajo")),
+            _limpiar(request.POST.get("carrera")),
+        )
+
+        if preview is not None:
+            return preview
+
+    datos, _ = _validar_datos(request.POST)
+
+    return _render_carga_con_borrador(request, tipo_documento, datos)
 
 
 def _fecha_iso(valor):
@@ -1265,8 +1738,10 @@ ETIQUETAS_DISCREPANCIA = {
     "sin_plan": "Sin plan vigente",
     "sin_codigo": "Sin código",
     "codigo_no_en_plan": "Código fuera del plan",
+    "codigo_distinto": "Código distinto (por nombre)",
     "nombre_distinto": "Nombre distinto",
     "plan_incompleto": "Plan incompleto",
+    "plan_no_vigente": "Plan no vigente",
 }
 
 
@@ -1275,17 +1750,42 @@ def _discrepancias_plan(filas):
     Avisos del contraste con el plan, listos para la previsualización.
 
     Son informativos: nunca se agregan a los errores del formulario ni
-    impiden validar o descargar. El aviso «sin plan» se muestra una sola
-    vez, aunque afecte a todas las filas.
+    impiden validar o descargar. Los avisos globales («sin plan» y
+    «plan no vigente») se muestran una sola vez.
     """
 
     discrepancias = []
     sin_plan_visto = False
+    plan_no_vigente_visto = False
 
     for fila in filas:
         verificacion = fila.get("verificacion")
 
-        if not verificacion or verificacion.get("estado") == "ok":
+        if not verificacion:
+            continue
+
+        if (
+            verificacion.get("plan_no_vigente")
+            and not plan_no_vigente_visto
+        ):
+            plan_no_vigente_visto = True
+
+            discrepancias.append({
+                "etiqueta": "Plan no vigente",
+                "fila": "—",
+                "codigo_lincoln": "",
+                "nombre_lincoln": "",
+                "codigo_esperado": "",
+                "nombre_esperado": "",
+                "mensaje": (
+                    f"Se usó el plan {verificacion.get('plan_codigo', '')} "
+                    "aunque no está marcado como vigente para la "
+                    "carrera. Marcá uno en Gestión académica si "
+                    "corresponde."
+                ),
+            })
+
+        if verificacion.get("estado") == "ok":
             continue
 
         estado = verificacion["estado"]
@@ -1308,11 +1808,12 @@ def _discrepancias_plan(filas):
 
 def _preparar_filas(carrera, filas, materias):
     """
-    Resuelve la materia del catálogo y aplica el plan a las filas del POST.
+    Resuelve la materia del catálogo y completa las filas del POST.
 
     No crea materias: eso ocurre al validar. La verificación del plan se
     hace siempre con los valores crudos del Lincoln, que viajan en campos
-    ocultos de la grilla.
+    ocultos de la grilla. El orden y el año editados se respetan; el plan
+    sólo completa lo que quedó vacío.
     """
 
     por_codigo = {m.codigo_materia: m for m in materias}
@@ -1337,7 +1838,7 @@ def _preparar_filas(carrera, filas, materias):
         fila["materia_obj"] = materia
         fila["matcheada"] = materia is not None
 
-    return aplicar_plan_a_filas(carrera, filas)
+    return aplicar_plan_a_filas(carrera, filas, respetar_edicion=True)
 
 
 def _contexto_preview(request, tipo_documento, datos, filas, materias,
@@ -1406,28 +1907,14 @@ def _continuar(request, tipo_documento):
         for error in errores:
             messages.error(request, error)
 
-        return render(
-            request,
-            "academico/generacion_analiticos.html",
-            {
-                **_contexto_formulario(request, tipo_documento, datos),
-                "vista": "carga",
-            },
-        )
+        return _render_carga_con_borrador(request, tipo_documento, datos)
 
     carrera = Carrera.objects.filter(codigo_carrera=datos["carrera"]).first()
 
     if carrera is None:
         messages.error(request, "La carrera elegida no existe.")
 
-        return render(
-            request,
-            "academico/generacion_analiticos.html",
-            {
-                **_contexto_formulario(request, tipo_documento, datos),
-                "vista": "carga",
-            },
-        )
+        return _render_carga_con_borrador(request, tipo_documento, datos)
 
     materias = _materias_disponibles()
 
@@ -1442,28 +1929,14 @@ def _continuar(request, tipo_documento):
         if error_archivo:
             messages.error(request, error_archivo)
 
-            return render(
-                request,
-                "academico/generacion_analiticos.html",
-                {
-                    **_contexto_formulario(request, tipo_documento, datos),
-                    "vista": "carga",
-                },
-            )
+            return _render_carga_con_borrador(request, tipo_documento, datos)
 
         try:
             lincoln = leer_lincoln(lincoln_file)
         except ErrorLincoln as error:
             messages.error(request, str(error))
 
-            return render(
-                request,
-                "academico/generacion_analiticos.html",
-                {
-                    **_contexto_formulario(request, tipo_documento, datos),
-                    "vista": "carga",
-                },
-            )
+            return _render_carga_con_borrador(request, tipo_documento, datos)
 
         for indice, examen in enumerate(
             lincoln["examenes"],
@@ -1482,14 +1955,19 @@ def _continuar(request, tipo_documento):
                 "nota": examen["nota"],
                 "tipo": examen["tipo"],
                 "acta_respaldatoria": examen["acta_respaldatoria"],
-                "anio_cursado": examen["anio_cursado"],
+                # El año de calendario del certificado no es el año de
+                # cursada: la grilla muestra el año del plan como
+                # sugerencia y el usuario puede cambiarlo.
+                "anio_cursado": None,
                 "materia": materia,
                 "materia_codigo": (
                     materia.codigo_materia
                     if materia else examen["codigo_materia"]
                 ),
                 "es_requisito": False,
-                "orden": indice,
+                # Sin orden inicial: el plan sugiere las posiciones en
+                # la primera previsualización.
+                "orden": None,
             })
 
     else:
@@ -1538,14 +2016,7 @@ def _continuar(request, tipo_documento):
             "Adjuntá el Certificado Lincoln.",
         )
 
-        return render(
-            request,
-            "academico/generacion_analiticos.html",
-            {
-                **_contexto_formulario(request, tipo_documento, datos),
-                "vista": "carga",
-            },
-        )
+        return _render_carga_con_borrador(request, tipo_documento, datos)
 
     # --- Promedios: se calculan desde los exámenes del trámite.
     graduado = Graduado.objects.filter(
@@ -1579,14 +2050,7 @@ def _continuar(request, tipo_documento):
             "sin_aplazo": calculado.promedio_sin_aplazo,
             "con_aplazo": calculado.promedio_con_aplazo,
         },
-        "datos": {
-            **datos,
-            "fecha_egreso": datos["fecha_egreso"].isoformat(),
-            "fecha_nacimiento": (
-                datos["fecha_nacimiento"].isoformat()
-                if datos["fecha_nacimiento"] else ""
-            ),
-        },
+        "datos": _datos_para_session(datos),
         "examenes": [
             {
                 "nombre_materia": examen["nombre_materia"],
@@ -1611,6 +2075,10 @@ def _continuar(request, tipo_documento):
         ],
     }
     request.session.modified = True
+
+    # Los datos ya están en la previsualización: el borrador cumplió
+    # su objetivo y no debe reaparecer al volver a la carga.
+    request.session.pop(CLAVE_SESION_BORRADOR, None)
 
     destino = (
         f"{url}?{urlencode({'modo': 'preview', 'legajo': datos['legajo'], 'carrera': datos['carrera']})}"
@@ -1657,10 +2125,10 @@ def _normalizar_orden(filas):
     """
     Ordena las filas según el orden manual ingresado por el usuario.
 
-    Sólo se usa el número que el usuario escribió en la columna
-    «Orden»; después ``_preparar_filas`` aplica el plan y usa este
-    valor únicamente para desempatar. Las filas sin orden van al
-    final y se renumera 1..N para que el documento quede prolijo.
+    Se usa el número que el usuario escribió en la columna «Orden»:
+    ese orden es el que se guarda al validar y el que lleva el
+    documento. Las filas sin orden van al final y se renumera 1..N
+    para que la grilla quede prolija.
     """
 
     ordenadas = sorted(
@@ -2209,8 +2677,8 @@ def _validar(request, tipo_documento):
                     "nota": fila["nota"],
                     "resultado": resultado,
                     "es_requisito": fila["es_requisito"],
-                    # Año y orden vienen del plan de estudios; el año
-                    # de calendario del Lincoln ya no se persiste.
+                    # Año y orden son los que salen de la grilla: el plan
+                    # los sugiere, pero el usuario puede cambiarlos.
                     "anio_cursado": fila.get("anio_num"),
                     "orden": fila["orden_num"],
                 },
@@ -2270,8 +2738,9 @@ def _validar(request, tipo_documento):
             )
 
     # La previsualización de sesión ya no aplica: el documento se
-    # vuelve a leer desde la base.
+    # vuelve a leer desde la base. Tampoco el borrador de carga.
     request.session.pop(CLAVE_SESION_PREVIEW, None)
+    request.session.pop(CLAVE_SESION_BORRADOR, None)
 
     for advertencia in calculado.advertencias:
         messages.warning(request, advertencia)
@@ -2285,14 +2754,79 @@ def _validar(request, tipo_documento):
     return redirect(destino)
 
 
-def _descargar(request, tipo_documento):
-    from django.shortcuts import get_object_or_404
+def _faltantes_para_descarga(contexto):
+    """Datos esenciales que impiden generar el documento del título."""
 
+    graduado = contexto["graduado"]
+    registro = contexto["registro"]
+    nacimiento = contexto["datos_nacimiento"]
+    secundario = contexto["secundario"]
+
+    valores = (
+        ("Nombre", getattr(graduado, "nombre", None)),
+        ("Apellido", getattr(graduado, "apellido", None)),
+        ("DNI", getattr(graduado, "dni", None)),
+        ("Legajo", getattr(graduado, "legajo_graduado", None)),
+        (
+            "Año de ingreso a la carrera",
+            contexto.get("anio_ingreso_carrera"),
+        ),
+        ("Fecha de egreso", contexto.get("fecha_egreso")),
+        (
+            "Fecha de nacimiento",
+            getattr(nacimiento, "fecha_nacimiento", None),
+        ),
+        (
+            "Nombre del secundario",
+            getattr(secundario, "nombre_secundario", None),
+        ),
+        (
+            "Título secundario",
+            getattr(secundario, "titulo_secundario", None),
+        ),
+        (
+            "Año de egreso del secundario",
+            getattr(secundario, "anio_egreso_secundario", None),
+        ),
+    )
+
+    faltantes = [
+        etiqueta for etiqueta, valor in valores if _vacio(valor)
+    ]
+
+    if not contexto.get("filas"):
+        faltantes.append("Exámenes")
+
+    return faltantes
+
+
+def _descargar(request, tipo_documento):
     legajo = _limpiar(request.POST.get("legajo"))
     carrera_codigo = _limpiar(request.POST.get("carrera"))
 
-    graduado = get_object_or_404(Graduado, legajo_graduado=legajo)
-    carrera = get_object_or_404(Carrera, codigo_carrera=carrera_codigo)
+    destino = (
+        f"{_url_analitico(tipo_documento)}?"
+        + urlencode({
+            "modo": "preview",
+            "legajo": legajo,
+            "carrera": carrera_codigo,
+        })
+    )
+
+    graduado = Graduado.objects.filter(
+        legajo_graduado=legajo
+    ).first()
+    carrera = Carrera.objects.filter(
+        codigo_carrera=carrera_codigo
+    ).first()
+
+    if graduado is None or carrera is None:
+        messages.error(
+            request,
+            "No se encontró el graduado o la carrera del analítico.",
+        )
+
+        return redirect(destino)
 
     if not Analitico.objects.filter(
         legajo_graduado=graduado,
@@ -2304,18 +2838,51 @@ def _descargar(request, tipo_documento):
             "El analítico todavía no fue validado.",
         )
 
-        return redirect(
-            f"{_url_analitico(tipo_documento)}?"
-            + urlencode({
-                "modo": "preview",
-                "legajo": legajo,
-                "carrera": carrera_codigo,
-            })
+        return redirect(destino)
+
+    # Una edición pendiente en la grilla todavía no está en la base:
+    # descargar en ese estado generaría un documento desactualizado.
+    pendiente = request.session.get(CLAVE_SESION_PREVIEW) or {}
+
+    if (
+        pendiente.get("tipo_documento") == tipo_documento.value
+        and pendiente.get("legajo") == legajo
+        and pendiente.get("carrera") == carrera_codigo
+    ):
+        messages.error(
+            request,
+            "Tenés cambios sin validar en la previsualización. "
+            "Presioná «Validar analítico» antes de descargar.",
         )
 
-    contexto = contexto_analitico(graduado, carrera, tipo_documento)
+        return redirect(destino)
 
-    contenido = render_docx(contexto)
+    try:
+        contexto = contexto_analitico(graduado, carrera, tipo_documento)
+
+        # El título en trámite es incompleto por definición; el título
+        # final sí exige los datos básicos antes de emitirse.
+        if tipo_documento == TipoDocumentoAnalitico.TITULO:
+            faltantes = _faltantes_para_descarga(contexto)
+
+            if faltantes:
+                messages.error(
+                    request,
+                    "No se puede descargar el título: faltan "
+                    + ", ".join(faltantes) + ".",
+                )
+
+                return redirect(destino)
+
+        contenido = render_docx(contexto)
+    except Exception as error:
+        messages.error(
+            request,
+            "No se pudo generar el documento. Revisá los datos del "
+            f"analítico e intentá de nuevo. Detalle: {error}",
+        )
+
+        return redirect(destino)
 
     nombre = (
         f"Analitico_{_slug(graduado.apellido)}_"

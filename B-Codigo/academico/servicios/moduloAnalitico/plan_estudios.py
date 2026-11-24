@@ -1,20 +1,21 @@
 """
 Contraste de las filas del analítico con el plan de estudios de la carrera.
 
-El plan sólo se usa para dos cosas:
+El plan se usa como **ayuda asistida**:
 
 1. Avisar cuando el código y el nombre leídos del Lincoln no coinciden con
    una materia del plan asignado a la carrera. El aviso **no bloquea** la
    validación ni la descarga.
-2. Tomar el ``anio_materia`` y el ``orden_materia`` del plan para ordenar
-   el analítico y mostrar el año de cursada (1, 2, 3...), no el año de
-   calendario del certificado.
+2. Sugerir el ``anio_materia`` y el ``orden_materia`` del plan. Lo que el
+   usuario escribió en la previsualización tiene prioridad: el plan sólo
+   completa los valores que quedaron vacíos y desempata el orden.
 
-Las filas que no pueden asociarse a una materia del plan van al final,
-con el año vacío y el aviso correspondiente. El ``es_requisito`` sigue
-siendo un dato manual y no participa de este servicio.
+Si el código del Lincoln no existe en el plan pero el nombre coincide (o
+es muy parecido), se toma la fila del plan por nombre y se avisa
+``codigo_distinto``. El ``es_requisito`` sigue siendo un dato manual.
 """
 
+import difflib
 import re
 import unicodedata
 
@@ -37,6 +38,18 @@ def normalizar_nombre(nombre):
     )
 
     return re.sub(r"\s+", " ", sin_acentos).strip().lower()
+
+
+def _anio_o_none(valor):
+    """Entero tolerante con años ya numericados o escritos en un input."""
+
+    if valor is None or valor == "":
+        return None
+
+    try:
+        return int(float(str(valor).strip()))
+    except (TypeError, ValueError):
+        return None
 
 
 def _codigo_de(fila):
@@ -64,16 +77,22 @@ def _nombre_de(fila):
 
 def plan_de_carrera(carrera):
     """
-    Devuelve el plan vigente de la carrera o ``None``.
+    Devuelve el plan a sugerir para la carrera o ``None``.
 
-    No se busca un plan alternativo: si la carrera no tiene plan asignado,
-    se informa la discrepancia y se conserva el orden anterior.
+    Se prefiere el plan vigente. Si no hay ninguno marcado como vigente
+    pero la carrera tiene un solo plan cargado, se usa ese y se avisa
+    (``plan_no_vigente``) para que el usuario pueda corregir la marca.
     """
 
     if carrera is None:
         return None
 
-    return carrera.plan_vigente
+    if carrera.plan_vigente is not None:
+        return carrera.plan_vigente
+
+    planes = list(carrera.planes_estudio.all()[:2])
+
+    return planes[0] if len(planes) == 1 else None
 
 
 def _indice_del_plan(plan):
@@ -100,6 +119,66 @@ def _indice_del_plan(plan):
     return por_codigo, por_nombre
 
 
+def _sugerencia_por_nombre(nombre_norm, por_nombre):
+    """
+    Busca una fila del plan por nombre.
+
+    Devuelve ``(fila_del_plan, tipo, codigos_sugeridos)``. El tipo es
+    ``exacto``/``similar`` cuando se adoptó una única fila con seguridad;
+    si hay ambigüedad, no se adopta nada y se devuelven códigos para el
+    aviso.
+    """
+
+    exactas = por_nombre.get(nombre_norm, [])
+
+    if len(exactas) == 1:
+        return exactas[0], "exacto", []
+
+    if len(exactas) > 1:
+        codigos = sorted({
+            pad_codigo(item.codigo_materia_id) for item in exactas
+        })
+
+        return None, "ambiguo", codigos
+
+    if not nombre_norm:
+        return None, "", []
+
+    candidatos = []
+
+    for nombre, filas_plan in por_nombre.items():
+        if not nombre:
+            continue
+
+        proporcion = difflib.SequenceMatcher(
+            None, nombre_norm, nombre
+        ).ratio()
+        candidatos.append((proporcion, filas_plan))
+
+    candidatos.sort(key=lambda item: item[0], reverse=True)
+
+    if not candidatos:
+        return None, "", []
+
+    codigos = sorted({
+        pad_codigo(fila.codigo_materia_id)
+        for _, filas_plan in candidatos[:3]
+        for fila in filas_plan
+    })
+
+    mejor = candidatos[0]
+    segundo = candidatos[1][0] if len(candidatos) > 1 else 0
+
+    if (
+        mejor[0] >= 0.9
+        and mejor[0] - segundo >= 0.05
+        and len(mejor[1]) == 1
+    ):
+        return mejor[1][0], "similar", []
+
+    return None, "similar", codigos
+
+
 def _resultado(estado, mensaje, **extra):
     resultado = {
         "estado": estado,
@@ -110,6 +189,9 @@ def _resultado(estado, mensaje, **extra):
         "anio_plan": None,
         "orden_plan": None,
         "codigos_sugeridos": [],
+        "tipo_sugerencia": "",
+        "plan_no_vigente": False,
+        "plan_codigo": "",
         "mensaje": mensaje,
     }
     resultado.update(extra)
@@ -122,18 +204,25 @@ def verificar_filas(carrera, filas):
     Devuelve una verificación por fila, en el mismo orden que ``filas``.
 
     Cada fila debe traer ``codigo_materia``/``materia_codigo`` y
-    ``nombre_materia``/``espacio``.
+    ``nombre_materia``/``espacio``. Un código ausente en el plan se
+    contrasta por nombre: si hay una sola coincidencia confiable, se
+    adoptan su año y orden como sugerencia del plan.
     """
 
     plan = plan_de_carrera(carrera)
+    plan_no_vigente = (
+        plan is not None
+        and getattr(carrera, "plan_vigente_id", None) != plan.pk
+    )
     verificaciones = []
 
     if plan is None:
         return [
             _resultado(
                 "sin_plan",
-                "La carrera no tiene un plan de estudios vigente asignado; "
-                "no se puede contrastar la materia ni asignar el año del plan.",
+                "La carrera no tiene un plan de estudios asignado; "
+                "no se puede contrastar la materia ni sugerir el año. "
+                "Completá el año y el orden en la grilla.",
                 fila=indice,
                 codigo_lincoln=pad_codigo(_codigo_de(fila)),
                 nombre_lincoln=_nombre_de(fila),
@@ -143,6 +232,10 @@ def verificar_filas(carrera, filas):
         ]
 
     por_codigo, por_nombre = _indice_del_plan(plan)
+    comunes = {
+        "plan_no_vigente": plan_no_vigente,
+        "plan_codigo": str(plan.pk),
+    }
 
     for numero, fila in enumerate(filas, start=1):
         codigo = _codigo_de(fila)
@@ -157,38 +250,43 @@ def verificar_filas(carrera, filas):
             "espacio": fila.get("espacio", nombre),
         }
 
-        if not codigo_pad:
-            verificaciones.append(_resultado(
-                "sin_codigo",
-                "El Lincoln no informa código de materia; no se puede "
-                "contrastar con el plan.",
-                **base,
-            ))
-            continue
-
-        fila_plan = por_codigo.get(codigo_pad)
+        fila_plan = por_codigo.get(codigo_pad) if codigo_pad else None
+        tipo_sugerencia = ""
+        codigos_sugeridos = []
 
         if fila_plan is None:
-            sugeridas = por_nombre.get(nombre_norm, [])
-            codigos = sorted({
-                pad_codigo(item.codigo_materia_id) for item in sugeridas
-            })
-            mensaje = (
-                f"El código {codigo_pad} no existe en el plan de estudios "
-                f"de la carrera."
+            fila_plan, tipo_sugerencia, codigos_sugeridos = (
+                _sugerencia_por_nombre(nombre_norm, por_nombre)
             )
 
-            if codigos:
-                mensaje += (
-                    " El nombre coincide con materia(s) del plan con "
-                    f"código {', '.join(codigos)}; revisar."
+        if fila_plan is None:
+            if not codigo_pad:
+                mensaje = (
+                    "El Lincoln no informa código de materia y el nombre "
+                    "no coincide con el plan. Completá el año a mano."
+                )
+                estado = "sin_codigo"
+            else:
+                mensaje = (
+                    f"El código {codigo_pad} no existe en el plan de "
+                    "estudios de la carrera."
                 )
 
+                if codigos_sugeridos:
+                    mensaje += (
+                        " Posibles materias del plan: "
+                        + ", ".join(codigos_sugeridos)
+                        + "."
+                    )
+
+                estado = "codigo_no_en_plan"
+
             verificaciones.append(_resultado(
-                "codigo_no_en_plan",
+                estado,
                 mensaje,
-                codigos_sugeridos=codigos,
+                codigos_sugeridos=codigos_sugeridos,
                 **base,
+                **comunes,
             ))
             continue
 
@@ -197,7 +295,19 @@ def verificar_filas(carrera, filas):
         orden = fila_plan.orden_materia
         mensajes = []
 
-        if normalizar_nombre(nombre_plan) != nombre_norm:
+        if tipo_sugerencia:
+            como = (
+                "por nombre" if tipo_sugerencia == "exacto"
+                else "por nombre similar"
+            )
+            mensajes.append(
+                f"El código {codigo_pad or 'sin código'} no está en el "
+                f"plan; se tomó «{nombre_plan}» "
+                f"({pad_codigo(fila_plan.codigo_materia_id)}) del plan "
+                f"{como}. Revisá que sea la materia correcta."
+            )
+            estado = "codigo_distinto"
+        elif normalizar_nombre(nombre_plan) != nombre_norm:
             estado = "nombre_distinto"
             mensajes.append(
                 f"El código {codigo_pad} corresponde en el plan a "
@@ -212,8 +322,14 @@ def verificar_filas(carrera, filas):
         if anio is None or orden is None:
             estado = "plan_incompleto"
             mensajes.append(
-                "La fila del plan no tiene año ni orden cargados; se ubica "
-                "al final y el año queda vacío."
+                "La fila del plan no tiene año ni orden cargados: "
+                "completalos en la grilla si corresponde."
+            )
+
+        if plan_no_vigente:
+            mensajes.append(
+                f"Se usó el plan {plan} aunque no está marcado como "
+                "vigente para la carrera."
             )
 
         verificaciones.append(_resultado(
@@ -223,18 +339,25 @@ def verificar_filas(carrera, filas):
             nombre_esperado=nombre_plan,
             anio_plan=anio,
             orden_plan=orden,
+            codigos_sugeridos=codigos_sugeridos,
+            tipo_sugerencia=tipo_sugerencia,
             **base,
+            **comunes,
         ))
 
     return verificaciones
 
 
-def aplicar_plan_a_filas(carrera, filas):
+def aplicar_plan_a_filas(carrera, filas, respetar_edicion=False):
     """
-    Adjunta la verificación del plan, aplica año/orden y reordena las filas.
+    Adjunta la verificación del plan y completa año/orden de las filas.
 
-    El orden del plan es el criterio principal; el ``orden_num`` que ya
-    tuviera la fila (ingresado por el usuario) se usa sólo para desempatar.
+    Con ``respetar_edicion=True`` (modo de la previsualización) gana lo
+    que escribió el usuario: el ``orden_num`` mantiene las posiciones
+    elegidas y el ``anio``/``anio_num`` escrito se conserva. El plan
+    completa los valores vacíos y desempata. Sin esa opción se mantiene
+    el comportamiento histórico de ordenar por el plan.
+
     Devuelve las filas ordenadas; cada una incluye ``verificacion``,
     ``anio``, ``anio_txt`` y ``orden_plan``.
     """
@@ -244,12 +367,24 @@ def aplicar_plan_a_filas(carrera, filas):
 
     for indice, fila in originales:
         verificacion = verificaciones[indice]
-        anio = verificacion["anio_plan"]
+        anio_plan = verificacion["anio_plan"]
+        valor_anio = (
+            fila.get("anio_num")
+            if fila.get("anio_num") is not None
+            else fila.get("anio")
+        )
+        anio_manual = _anio_o_none(valor_anio)
+        anio = (
+            anio_manual
+            if respetar_edicion and anio_manual is not None
+            else anio_plan
+        )
 
         fila["verificacion"] = verificacion
         fila["orden_plan"] = verificacion["orden_plan"]
         fila["anio"] = anio if anio is not None else ""
         fila["anio_num"] = anio
+        fila["anio_cursado"] = anio
         fila["anio_txt"] = f"{anio}°" if anio is not None else ""
 
     def clave(item):
@@ -257,11 +392,23 @@ def aplicar_plan_a_filas(carrera, filas):
         verificacion = verificaciones[indice]
         orden_plan = verificacion["orden_plan"]
         orden_manual = fila.get("orden_num")
+        ultimo = 10 ** 6
+
+        if respetar_edicion and orden_manual is not None:
+            return (0, orden_manual, indice)
+
+        if orden_plan is not None:
+            return (
+                1,
+                orden_plan,
+                orden_manual if orden_manual is not None else ultimo,
+                indice,
+            )
 
         return (
-            orden_plan is None,
-            orden_plan if orden_plan is not None else 0,
-            orden_manual if orden_manual is not None else 10 ** 6,
+            2,
+            0,
+            orden_manual if orden_manual is not None else ultimo,
             indice,
         )
 

@@ -1,5 +1,10 @@
 <form method="post" action="{{ request.path }}">
     {% csrf_token %}
+    {# La JS completa este valor con el botón pulsado; si el botón no se
+       envía, la acción igual llega al servidor. #}
+    <input type="hidden" name="accion" value="">
+    {# La JS completa este valor con la fila del botón pulsado. #}
+    <input type="hidden" name="fila_a_quitar" value="">
     <input type="hidden" name="legajo" value="{{ datos.legajo }}">
     <input type="hidden" name="carrera" value="{{ datos.carrera }}">
 
@@ -31,7 +36,8 @@
             <strong>Discrepancias con el plan de estudios</strong>
             <p class="mb-1 mt-1">
                 El código y el nombre de cada fila se contrastan con el plan
-                vigente de la carrera.
+                de la carrera (si el código no coincide, se busca por
+                nombre).
                 <strong>no impiden validar ni descargar</strong> el analítico:
                 revisá las filas marcadas y corregí lo que corresponda.
             </p>
@@ -194,10 +200,12 @@
         <h3>Exámenes ({{ filas|length }})</h3>
 
         <p class="small text-muted mb-2">
-            El <strong>Orden</strong> y el <strong>Año</strong> se toman del
-            plan de estudios de la carrera. El número de Orden que aparece
-            abajo es editable y se usa sólo para desempatar materias con el
-            mismo orden del plan (o las que no están en él).
+            El plan de estudios <strong>sugiere</strong> el
+            <strong>Orden</strong> y el <strong>Año</strong>, pero ambos son
+            editables: si cambiás las posiciones o el año, eso es lo que se
+            guarda al validar y lo que lleva el documento. Cuando el código
+            del Lincoln no coincide, se busca la materia por nombre para
+            completar la sugerencia.
         </p>
 
         <div class="table-responsive">
@@ -214,6 +222,7 @@
                         <th>Resp.</th>
                         <th>Folio</th>
                         <th style="min-width: 90px;">Requisito</th>
+                        <th class="text-center" style="min-width: 48px;">Quitar</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -233,8 +242,8 @@
                             <td>
                                 <input type="number" class="form-control campo-documento {% if not fila.anio %}campo-faltante{% endif %}"
                                        name="fila_anio" min="1" max="5" step="1"
-                                       value="{{ fila.anio }}" readonly tabindex="-1"
-                                       title="Año del plan de estudios">
+                                       value="{{ fila.anio }}"
+                                       title="Año sugerido por el plan; podés cambiarlo">
                             </td>
                             <td>
                                 <input type="text" class="form-control campo-documento campo-documento-ancho {% if not fila.espacio %}campo-faltante{% endif %}"
@@ -292,10 +301,98 @@
                                     <label class="form-check-label" for="requisito_no_{{ forloop.counter }}">No</label>
                                 </div>
                             </td>
+                            <td class="text-center">
+                                <button type="submit" name="accion" value="quitar_materia"
+                                        data-fila="{{ fila.indice }}"
+                                        class="btn btn-outline-danger btn-sm px-2"
+                                        formnovalidate
+                                        title="Quitar esta fila del analítico (no borra la materia del catálogo)"
+                                        aria-label="Quitar {{ fila.espacio|default:'esta fila' }} del analítico"
+                                        onclick="return confirm('¿Quitar esta fila del analítico? La materia no se borrará del catálogo.');">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </section>
+
+    <section class="analitico-section mt-3 analitico-alta-manual">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+            <h2 class="h6 mb-0">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                Agregar materia manualmente
+            </h2>
+            <span class="small text-muted">
+                Se suma sólo a este analítico. Si no existe en el catálogo,
+                se crea al validar. No modifica el plan de estudios.
+            </span>
+        </div>
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label small mb-1" for="nueva_materia">Materia</label>
+                <input type="text" class="form-control form-control-sm campo-documento-alta"
+                       id="nueva_materia" name="nueva_materia"
+                       placeholder="Nombre de la materia">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1" for="nuevo_codigo">Código</label>
+                <input type="text" class="form-control form-control-sm campo-documento-alta"
+                       id="nuevo_codigo" name="nuevo_codigo"
+                       placeholder="Opcional">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1" for="nueva_nota">Nota</label>
+                <input type="number" class="form-control form-control-sm campo-documento-alta"
+                       id="nueva_nota" name="nueva_nota" min="1" max="10" step="1">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1" for="nueva_fecha">Fecha</label>
+                <input type="date" class="form-control form-control-sm campo-documento-alta"
+                       id="nueva_fecha" name="nueva_fecha">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1" for="nuevo_orden">Orden</label>
+                <input type="number" class="form-control form-control-sm campo-documento-alta"
+                       id="nuevo_orden" name="nuevo_orden" min="1" step="1">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1" for="nuevo_tipo">Tipo</label>
+                <input type="text" class="form-control form-control-sm campo-documento-alta"
+                       id="nuevo_tipo" name="nuevo_tipo" placeholder="Examen">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1" for="nuevo_acta">Acta respaldatoria</label>
+                <input type="text" class="form-control form-control-sm campo-documento-alta"
+                       id="nuevo_acta" name="nuevo_acta" placeholder="Ej. RG07205070">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1" for="nuevo_anio">Año</label>
+                <input type="number" class="form-control form-control-sm campo-documento-alta"
+                       id="nuevo_anio" name="nuevo_anio" min="1" max="5" step="1">
+            </div>
+            <div class="col-6 col-md-2">
+                <span class="form-label small mb-1 d-block">Requisito</span>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio"
+                           name="nueva_requisito" id="nueva_requisito_si" value="si">
+                    <label class="form-check-label small" for="nueva_requisito_si">Sí</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio"
+                           name="nueva_requisito" id="nueva_requisito_no" value="no" checked>
+                    <label class="form-check-label small" for="nueva_requisito_no">No</label>
+                </div>
+            </div>
+            <div class="col-12 col-md-2">
+                <button type="submit" name="accion" value="agregar_materia"
+                        class="btn btn-outline-primary btn-sm w-100" formnovalidate>
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                    Agregar
+                </button>
+            </div>
         </div>
     </section>
 

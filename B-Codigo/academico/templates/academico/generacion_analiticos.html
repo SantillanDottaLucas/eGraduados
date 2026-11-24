@@ -94,21 +94,124 @@
 {% block scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    function restaurarBoton(boton) {
+        if (!boton || !boton.dataset.contenidoOriginal) {
+            return;
+        }
+
+        boton.innerHTML = boton.dataset.contenidoOriginal;
+        delete boton.dataset.contenidoOriginal;
+        delete boton.dataset.descarga;
+        boton.removeAttribute("aria-disabled");
+        boton.classList.remove("is-enviando");
+
+        if (boton.form) {
+            delete boton.form.dataset.enviando;
+        }
+    }
+
     document.querySelectorAll("form").forEach(function (formulario) {
         formulario.addEventListener("submit", function (evento) {
-            const boton = evento.submitter
-                || formulario.querySelector('[type="submit"]');
-
-            if (!boton || boton.disabled) {
+            if (formulario.dataset.enviando === "1") {
+                evento.preventDefault();
                 return;
             }
 
-            boton.disabled = true;
+            const boton = evento.submitter
+                || formulario.querySelector('[type="submit"]');
+
+            if (!boton || boton.disabled
+                    || boton.getAttribute("aria-disabled") === "true") {
+                return;
+            }
+
+            // Copiar la acción al campo oculto ANTES de cualquier cambio
+            // visual: si el botón se deshabilita dentro de `submit`, el
+            // navegador no envía su name/value (p. ej. accion=continuar).
+            const accionOculta = formulario.querySelector(
+                'input[type="hidden"][name="accion"]'
+            );
+
+            if (accionOculta && boton.name === "accion" && boton.value) {
+                accionOculta.value = boton.value;
+            }
+
+            // Cada botón de baja lleva su índice en `data-fila`; el
+            // servidor lee un único campo oculto con ese valor.
+            if (boton.dataset.fila) {
+                const filaOculta = formulario.querySelector(
+                    'input[type="hidden"][name="fila_a_quitar"]'
+                );
+
+                if (filaOculta) {
+                    filaOculta.value = boton.dataset.fila;
+                }
+            }
+
+            formulario.dataset.enviando = "1";
             boton.dataset.contenidoOriginal = boton.innerHTML;
             boton.innerHTML =
                 '<span class="app-spinner" aria-hidden="true"></span> Procesando…';
+            boton.setAttribute("aria-disabled", "true");
+            boton.classList.add("is-enviando");
+
+            // La descarga responde con un archivo adjunto: el navegador
+            // no recarga la página, así que nadie quita el spinner. Se
+            // restaura enseguida para permitir descargas repetidas.
+            if (boton.value === "descargar") {
+                boton.dataset.descarga = "1";
+                window.setTimeout(function () {
+                    restaurarBoton(boton);
+                }, 600);
+            }
         });
     });
+
+    window.addEventListener("pageshow", function () {
+        document.querySelectorAll("[data-contenido-original]")
+            .forEach(restaurarBoton);
+    });
+
+    // Si el cuadro de guardado robó el foco, al volver a la pestaña el
+    // botón de descarga debe estar usable otra vez.
+    window.addEventListener("focus", function () {
+        document.querySelectorAll('[data-descarga="1"]')
+            .forEach(restaurarBoton);
+    });
+
+    // El recuadro del Lincoln arranca rojo y pasa a verde en cuanto
+    // se elige un archivo. No tocamos el atributo `required`: el
+    // Excel puede ser opcional si el graduado ya tiene exámenes.
+    const archivoNotas = document.getElementById("archivo_notas");
+
+    if (archivoNotas) {
+        const recuadro = archivoNotas.closest(".analitico-upload");
+        const ayuda = recuadro
+            ? recuadro.querySelector("[data-ayuda-archivo]")
+            : null;
+        const textoVacio = ayuda ? ayuda.textContent : "";
+
+        function actualizarEstadoArchivo() {
+            const tieneArchivo =
+                archivoNotas.files && archivoNotas.files.length > 0;
+
+            if (recuadro) {
+                recuadro.classList.toggle("tiene-archivo", tieneArchivo);
+                recuadro.dataset.estado = tieneArchivo
+                    ? "con-archivo"
+                    : "sin-archivo";
+            }
+
+            if (ayuda) {
+                ayuda.textContent = tieneArchivo
+                    ? "Excel seleccionado. Ya podés continuar."
+                    : textoVacio;
+            }
+        }
+
+        archivoNotas.addEventListener("change", actualizarEstadoArchivo);
+        actualizarEstadoArchivo();
+    }
 });
 </script>
 {% endblock %}

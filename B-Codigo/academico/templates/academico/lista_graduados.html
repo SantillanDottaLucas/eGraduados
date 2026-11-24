@@ -7,7 +7,7 @@
 
 <div class="pagina">
 
-    {% include "academico/componentes/page_header.html" with titulo="Listado de graduados" descripcion="Buscá graduados por sus datos personales, carrera, escuela o fecha de egreso. Podés descargar los resultados en Excel." %}
+    {% include "academico/componentes/page_header.html" with titulo="Listado de graduados" descripcion="Buscá por datos personales, carrera, escuela o egreso. El listado incluye graduados sin carrera y permite ordenar para detectar inconsistencias. El Excel mantiene el criterio anterior." %}
 
     <section class="panel">
         <h2>Filtros de búsqueda</h2>
@@ -71,6 +71,48 @@
                     </select>
                 </div>
 
+                <div class="col-12 col-md-6">
+                    <label for="situacion" class="form-label">Situación</label>
+                    <select id="situacion" name="situacion" class="form-select">
+                        <option value="todas" {% if situacion == "todas" %}selected{% endif %}>
+                            Todas (incluye sin carrera)
+                        </option>
+                        <option value="sin_carrera" {% if situacion == "sin_carrera" %}selected{% endif %}>
+                            Sin carrera
+                        </option>
+                        <option value="con_carrera" {% if situacion == "con_carrera" %}selected{% endif %}>
+                            Con carrera
+                        </option>
+                    </select>
+                    <div class="form-text">
+                        «Sin carrera» muestra esos legajos con Vacio en los datos de carrera.
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="orden" class="form-label">Orden</label>
+                    <select id="orden" name="orden" class="form-select">
+                        <option value="inconsistencias" {% if orden == "inconsistencias" %}selected{% endif %}>
+                            Inconsistencias primero (recomendado)
+                        </option>
+                        <option value="legajo" {% if orden == "legajo" %}selected{% endif %}>
+                            Legajo
+                        </option>
+                        <option value="apellido" {% if orden == "apellido" %}selected{% endif %}>
+                            Apellido
+                        </option>
+                        <option value="menos_carreras" {% if orden == "menos_carreras" %}selected{% endif %}>
+                            Menos carreras
+                        </option>
+                        <option value="ingreso_uarg_asc" {% if orden == "ingreso_uarg_asc" %}selected{% endif %}>
+                            Ingreso UARG (menor primero)
+                        </option>
+                        <option value="ingreso_uarg_desc" {% if orden == "ingreso_uarg_desc" %}selected{% endif %}>
+                            Ingreso UARG (mayor primero)
+                        </option>
+                    </select>
+                </div>
+
                 <div class="col-12">
                     <label class="form-label">Fecha de egreso</label>
                     <div class="row g-2">
@@ -116,7 +158,7 @@
                     </a>
 
                     <a
-                        href="{% url 'exportar_graduados' %}?{{ request.GET.urlencode }}"
+                        href="{% url 'exportar_graduados' %}{% if excel_qs %}?{{ excel_qs }}{% endif %}"
                         class="btn btn-success px-4 ms-md-auto"
                     >
                         <i class="bi bi-download" aria-hidden="true"></i>
@@ -161,9 +203,10 @@
                         <th>Nombre</th>
                         <th>Apellido</th>
                         <th>DNI</th>
+                        <th>Ingreso UARG</th>
                         <th>Carrera</th>
                         <th>Escuela</th>
-                        <th>Ingreso</th>
+                        <th>Ingreso carrera</th>
                         <th>Egreso</th>
                         <th>P. sin aplazo</th>
                         <th>P. con aplazo</th>
@@ -176,52 +219,72 @@
                         <tr>
                             <td class="legajo">
                                 {{ registro.legajo_graduado_id }}
+                                {% if registro.sin_carrera %}
+                                    <span class="badge-analitico app-badge-alerta">Sin carrera</span>
+                                {% endif %}
                             </td>
 
-                            <td>{{ registro.legajo_graduado.nombre }}</td>
-                            <td>{{ registro.legajo_graduado.apellido }}</td>
-                            <td>{{ registro.legajo_graduado.dni }}</td>
+                            <td>{{ registro.graduado.nombre }}</td>
+                            <td>{{ registro.graduado.apellido }}</td>
+                            <td>{{ registro.graduado.dni }}</td>
+                            <td>{{ registro.anio_ingreso_universidad }}</td>
 
-                            <td>{{ registro.codigo_carrera.nombre_carrera }}</td>
-                            <td>{{ registro.codigo_carrera.id_escuela.nombre_escuela }}</td>
+                            <td>
+                                {% if registro.sin_carrera %}Vacio{% else %}{{ registro.codigo_carrera.nombre_carrera }}{% endif %}
+                            </td>
+                            <td>
+                                {% if registro.sin_carrera %}Vacio{% else %}{{ registro.codigo_carrera.id_escuela.nombre_escuela }}{% endif %}
+                            </td>
 
-                            <td>{{ registro.fecha_ingreso_carrera|date:"d/m/Y" }}</td>
-                            <td>{{ registro.fecha_egreso_carrera|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if registro.sin_carrera %}Vacio{% else %}{{ registro.fecha_ingreso_carrera|date:"d/m/Y" }}{% endif %}
+                            </td>
+                            <td>
+                                {% if registro.sin_carrera %}Vacio{% else %}{{ registro.fecha_egreso_carrera|date:"d/m/Y" }}{% endif %}
+                            </td>
 
-                            <td>{{ registro.promedio_sin_aplazo|default_if_none:"—" }}</td>
-                            <td>{{ registro.promedio_con_aplazo|default_if_none:"—" }}</td>
+                            <td>
+                                {% if registro.sin_carrera %}Vacio{% else %}{{ registro.promedio_sin_aplazo|default_if_none:"—" }}{% endif %}
+                            </td>
+                            <td>
+                                {% if registro.sin_carrera %}Vacio{% else %}{{ registro.promedio_con_aplazo|default_if_none:"—" }}{% endif %}
+                            </td>
 
                             <td>
                                 <div class="acciones-fila">
-                                    <a href="{% url 'editar_graduado' registro.legajo_graduado_id registro.codigo_carrera_id %}?volver={{ request.GET.urlencode|urlencode }}"
-                                       class="btn btn-outline-primary btn-sm">
-                                        <i class="bi bi-pencil" aria-hidden="true"></i>
-                                        Editar
-                                    </a>
+                                    {% if not registro.sin_carrera %}
+                                        <a href="{% url 'editar_graduado' registro.legajo_graduado_id registro.codigo_carrera_id %}?volver={{ request.GET.urlencode|urlencode }}"
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-pencil" aria-hidden="true"></i>
+                                            Editar
+                                        </a>
 
-                                    <a href="{% url 'generacion_analiticos' %}?modo=preview&legajo={{ registro.legajo_graduado_id|urlencode }}&carrera={{ registro.codigo_carrera_id|urlencode }}"
-                                       class="btn btn-outline-info btn-sm"
-                                       title="Generar, ver o descargar el analítico">
-                                        <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
-                                        Analítico
-                                    </a>
+                                        <a href="{% url 'generacion_analiticos' %}?modo=preview&legajo={{ registro.legajo_graduado_id|urlencode }}&carrera={{ registro.codigo_carrera_id|urlencode }}"
+                                           class="btn btn-outline-info btn-sm"
+                                           title="Generar, ver o descargar el analítico">
+                                            <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                                            Analítico
+                                        </a>
 
-                                    <a href="{% url 'titulo_en_tramite' %}?modo=preview&legajo={{ registro.legajo_graduado_id|urlencode }}&carrera={{ registro.codigo_carrera_id|urlencode }}"
-                                       class="btn btn-outline-secondary btn-sm"
-                                       title="Generar, ver o descargar el título en trámite">
-                                        <i class="bi bi-patch-check" aria-hidden="true"></i>
-                                        En trámite
-                                    </a>
+                                        <a href="{% url 'titulo_en_tramite' %}?modo=preview&legajo={{ registro.legajo_graduado_id|urlencode }}&carrera={{ registro.codigo_carrera_id|urlencode }}"
+                                           class="btn btn-outline-secondary btn-sm"
+                                           title="Generar, ver o descargar el título en trámite">
+                                            <i class="bi bi-patch-check" aria-hidden="true"></i>
+                                            En trámite
+                                        </a>
+                                    {% endif %}
 
                                     {% if usuario_actual.id_rol.puede_administrar %}
-                                        <button type="button"
-                                                class="btn btn-outline-warning btn-sm"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#modal-carrera-{{ forloop.counter }}"
-                                                title="Quitar solo esta carrera">
-                                            <i class="bi bi-node-minus" aria-hidden="true"></i>
-                                            Quitar carrera
-                                        </button>
+                                        {% if not registro.sin_carrera %}
+                                            <button type="button"
+                                                    class="btn btn-outline-warning btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modal-carrera-{{ forloop.counter }}"
+                                                    title="Quitar solo esta carrera">
+                                                <i class="bi bi-node-minus" aria-hidden="true"></i>
+                                                Quitar carrera
+                                            </button>
+                                        {% endif %}
 
                                         <button type="button"
                                                 class="btn btn-outline-danger btn-sm"
@@ -234,66 +297,70 @@
                                     {% endif %}
                                 </div>
 
-                                {% if registro.analitico_titulo %}
-                                    <span class="badge-analitico">Analítico validado</span>
-                                {% endif %}
-                                {% if registro.analitico_tramite %}
-                                    <span class="badge-analitico app-badge-alerta">Título en trámite validado</span>
+                                {% if not registro.sin_carrera %}
+                                    {% if registro.analitico_titulo %}
+                                        <span class="badge-analitico">Analítico validado</span>
+                                    {% endif %}
+                                    {% if registro.analitico_tramite %}
+                                        <span class="badge-analitico app-badge-alerta">Título en trámite validado</span>
+                                    {% endif %}
                                 {% endif %}
 
                                 {% if usuario_actual.id_rol.puede_administrar %}
-                                    <!-- Confirmación: quitar carrera -->
-                                    <div class="modal fade" id="modal-carrera-{{ forloop.counter }}" tabindex="-1"
-                                         aria-labelledby="modal-carrera-label-{{ forloop.counter }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <form method="post"
-                                                      action="{% url 'eliminar_graduado' registro.legajo_graduado_id %}">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="accion" value="carrera">
-                                                    <input type="hidden" name="carrera" value="{{ registro.codigo_carrera_id }}">
-                                                    <input type="hidden" name="filtros_qs" value="{{ filtros_qs }}">
+                                    {% if not registro.sin_carrera %}
+                                        <!-- Confirmación: quitar carrera -->
+                                        <div class="modal fade" id="modal-carrera-{{ forloop.counter }}" tabindex="-1"
+                                             aria-labelledby="modal-carrera-label-{{ forloop.counter }}" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <form method="post"
+                                                          action="{% url 'eliminar_graduado' registro.legajo_graduado_id %}">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="accion" value="carrera">
+                                                        <input type="hidden" name="carrera" value="{{ registro.codigo_carrera_id }}">
+                                                        <input type="hidden" name="filtros_qs" value="{{ filtros_qs }}">
 
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="modal-carrera-label-{{ forloop.counter }}">
-                                                            Quitar carrera
-                                                        </h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                                                aria-label="Cerrar"></button>
-                                                    </div>
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="modal-carrera-label-{{ forloop.counter }}">
+                                                                Quitar carrera
+                                                            </h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                                    aria-label="Cerrar"></button>
+                                                        </div>
 
-                                                    <div class="modal-body">
-                                                        <p class="mb-2">
-                                                            ¿Quitar la carrera
-                                                            <strong>{{ registro.codigo_carrera.nombre_carrera }}</strong>
-                                                            del legajo
-                                                            <strong>{{ registro.legajo_graduado_id }}</strong>?
-                                                        </p>
-                                                        <p class="text-muted small mb-3">
-                                                            Se borrarán los exámenes y analíticos de esa carrera.
-                                                            El graduado y sus otras carreras no se tocan.
-                                                        </p>
+                                                        <div class="modal-body">
+                                                            <p class="mb-2">
+                                                                ¿Quitar la carrera
+                                                                <strong>{{ registro.codigo_carrera.nombre_carrera }}</strong>
+                                                                del legajo
+                                                                <strong>{{ registro.legajo_graduado_id }}</strong>?
+                                                            </p>
+                                                            <p class="text-muted small mb-3">
+                                                                Se borrarán los exámenes y analíticos de esa carrera.
+                                                                El graduado y sus otras carreras no se tocan.
+                                                            </p>
 
-                                                        {% if registro.analitico_titulo or registro.analitico_tramite %}
-                                                            <div class="alert alert-danger small">
-                                                                Esta carrera tiene analíticos validados.
-                                                                Para confirmar, escribí <strong>ELIMINAR</strong>.
-                                                            </div>
-                                                            <input type="text" class="form-control" name="confirmacion"
-                                                                   placeholder="Escribí ELIMINAR" pattern="ELIMINAR"
-                                                                   title="Escribí exactamente ELIMINAR" required>
-                                                        {% endif %}
-                                                    </div>
+                                                            {% if registro.analitico_titulo or registro.analitico_tramite %}
+                                                                <div class="alert alert-danger small">
+                                                                    Esta carrera tiene analíticos validados.
+                                                                    Para confirmar, escribí <strong>ELIMINAR</strong>.
+                                                                </div>
+                                                                <input type="text" class="form-control" name="confirmacion"
+                                                                       placeholder="Escribí ELIMINAR" pattern="ELIMINAR"
+                                                                       title="Escribí exactamente ELIMINAR" required>
+                                                            {% endif %}
+                                                        </div>
 
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-outline-secondary"
-                                                                data-bs-dismiss="modal">Cancelar</button>
-                                                        <button type="submit" class="btn btn-warning">Quitar carrera</button>
-                                                    </div>
-                                                </form>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-outline-secondary"
+                                                                    data-bs-dismiss="modal">Cancelar</button>
+                                                            <button type="submit" class="btn btn-warning">Quitar carrera</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    {% endif %}
 
                                     <!-- Confirmación: graduado completo -->
                                     <div class="modal fade" id="modal-graduado-{{ forloop.counter }}" tabindex="-1"
@@ -353,7 +420,7 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="11" class="sin-resultados">
+                            <td colspan="12" class="sin-resultados">
                                 No se encontraron graduados con esos filtros.
                             </td>
                         </tr>

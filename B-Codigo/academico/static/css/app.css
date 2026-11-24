@@ -660,6 +660,34 @@ a:hover {
     box-shadow: 0 0 0 0.2rem rgba(77, 157, 224, 0.18);
 }
 
+/* ABM: bordes un poco más marcados para que los campos se distingan
+   del fondo del panel (alta/edición, búsqueda y tabla). */
+.abm-pagina .form-control,
+.abm-pagina .form-select {
+    border: 1px solid #cbd5e1;
+    box-shadow: none;
+}
+
+.abm-pagina .form-control:focus,
+.abm-pagina .form-select:focus {
+    border-color: var(--app-focus);
+    box-shadow: 0 0 0 0.2rem rgba(77, 157, 224, 0.18);
+}
+
+.abm-pagina .abm-panel,
+.abm-pagina .abm-tabla {
+    border: 1px solid #cbd5e1;
+}
+
+.abm-tabla .table {
+    border: 1px solid var(--app-border);
+}
+
+.abm-tabla .table th,
+.abm-tabla .table td {
+    border: 1px solid var(--app-border);
+}
+
 .form-text,
 .form-help {
     color: var(--app-muted);
@@ -695,6 +723,13 @@ a:hover {
     to {
         transform: rotate(360deg);
     }
+}
+
+/* Estado de envío sin usar `disabled`: un botón deshabilitado no envía
+   su name/value y se perdería la acción del formulario. */
+.is-enviando {
+    opacity: 0.75;
+    pointer-events: none;
 }
 
 .app-empty {
@@ -1287,8 +1322,13 @@ a:hover {
     padding: 0.15rem 0.25rem !important;
     font-size: 0.8rem !important;
     text-align: center;
-    border-color: transparent !important;
-    background: transparent !important;
+    border: 1px solid #d5dee8;
+    background: #f8fafc;
+}
+
+.campo-documento:hover {
+    border-color: #b6c4d4;
+    background: #ffffff;
 }
 
 .campo-documento:focus {
@@ -1330,11 +1370,57 @@ a:hover {
     font-size: 0.72rem;
 }
 
+/* El recuadro arranca en rojo aunque el archivo sea opcional: es una
+   señal visual de «falta el Lincoln», no una validación HTML. */
 .analitico-upload {
     padding: 1.2rem;
-    background: #f8fafc;
-    border: 1px dashed #bdd0e2;
+    background: #fff5f5;
+    border: 1px solid #dc3545;
     border-radius: var(--app-radius);
+}
+
+.analitico-upload > div:first-child,
+.analitico-upload .form-text {
+    color: #b02a37;
+}
+
+.analitico-upload.tiene-archivo {
+    background: #eefaf4;
+    border-color: #198754;
+}
+
+.analitico-upload.tiene-archivo > div:first-child,
+.analitico-upload.tiene-archivo .form-text {
+    color: #12634f;
+}
+
+.analitico-upload:focus-within {
+    box-shadow: 0 0 0 0.2rem rgba(77, 157, 224, 0.18);
+}
+
+.analitico-alta-manual {
+    padding: 1rem 1.2rem;
+}
+
+.analitico-alta-manual .form-label {
+    color: var(--app-muted);
+    font-weight: 600;
+}
+
+.campo-documento-alta {
+    border: 1px solid #d5dee8;
+    background: #f8fafc;
+}
+
+.campo-documento-alta:hover {
+    border-color: #b6c4d4;
+    background: #ffffff;
+}
+
+.campo-documento-alta:focus {
+    border-color: var(--app-focus);
+    box-shadow: 0 0 0 0.2rem rgba(77, 157, 224, 0.18);
+    background: #ffffff;
 }
 
 .fila-sin-materia {
