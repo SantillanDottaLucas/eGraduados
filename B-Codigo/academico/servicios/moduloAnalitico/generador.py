@@ -9,6 +9,7 @@ También genera el .docx descargable a partir de ese contexto.
 import re
 from datetime import date
 
+from django.conf import settings
 from django.db.models import Prefetch
 
 from academico.models import (
@@ -339,7 +340,11 @@ def render_docx(contexto):
         else "analitico_en_tramite.docx"
     )
 
-    doc = DocxTemplate(f"plantillas/{ruta}")
+    # Ruta absoluta basada en BASE_DIR: no depende del directorio
+    # de trabajo del proceso (systemd, gunicorn o runserver).
+    ruta_plantilla = settings.BASE_DIR / "plantillas" / ruta
+
+    doc = DocxTemplate(str(ruta_plantilla))
 
     fecha_emision = date.today()
 

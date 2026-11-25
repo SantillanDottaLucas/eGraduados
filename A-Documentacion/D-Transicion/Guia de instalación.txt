@@ -1,0 +1,72 @@
+GUIA DE INSTALACIÓN
+
+Instalación — producción en Ubuntu Server (según DEPLOY.md)
+1. Preparar el servidor
+sudo apt update
+sudo apt install -y python3-venv python3-dev default-libmysqlclient-dev \
+    build-essential pkg-config nginx mysql-client git
+Si la base va en el mismo servidor, agregar mysql-server. mysqlclient necesita esos headers para compilar.
+2. Instalar el proyecto
+sudo mkdir -p /srv/egraduados && sudo chown $USER:$USER /srv/egraduados
+cd /srv/egraduados
+git clone <url-del-repositorio> B-Codigo
+cd B-Codigo
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+3. Crear la base MySQL (una vez)
+CREATE DATABASE egraduados CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'egraduados'@'localhost' IDENTIFIED BY '<clave-segura>';
+GRANT ALL PRIVILEGES ON egraduados.* TO 'egraduados'@'localhost';
+FLUSH PRIVILEGES;
+4. Configurar .env
+cp .env.example .env
+nano .env
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+Completar: DJANGO_DEBUG=0, DJANGO_SECRET_KEY, DJANGO_ALLOWED_HOSTS, DJANGO_CSRF_TRUSTED_ORIGINS (con https://), DJANGO_DB_* y DJANGO_EMAIL_*. Luego:
+sudo chown root:www-data .env && sudo chmod 640 .env
+Sin export ni espacios alrededor de =. Con DEBUG=0, secret y hosts son obligatorios (si no, Django falla al arrancar).
+5. Migraciones y datos iniciales
+python manage.py check --deploy
+python manage.py migrate
+python manage.py collectstatic --noinput
+python manage.py crear_usuario_admin --email admin@gmail.com --nombre "Administrador"
+python manage.py recalcular_promedios
+No ejecutar cargar_datos_reales: el comando no existe en el código (la mención en scripts/datos_reales.sql es un comentario viejo). Los planes y materias ya están cargados en MySQL (PLANES_ESTUDIO.md).
+6. Servicio systemd — crear /etc/systemd/system/egraduados.service con el contenido de DEPLOY.md ( usuario www-data, EnvironmentFile apuntando al .env, ExecStart=.../gunicorn egraduados_core.wsgi:application --bind 127.0.0.1:8000 --workers 3), y luego:
+sudo mkdir -p /var/log/egraduados && sudo chown www-data:www-data /var/log/egraduados
+sudo systemctl daemon-reload
+sudo systemctl enable --now egraduados
+sudo systemctl status egraduados
+7. Nginx + TLS — configurar redirección 80→443, ssl_certificate/ssl_certificate_key, client_max_body_size 10m (igual a DJANGO_MAX_UPLOAD_SIZE), location /static/ → /srv/egraduados/B-Codigo/staticfiles/ y proxy_pass http://127.0.0.1:8000 con X-Forwarded-Proto $scheme. Verificar:
+sudo nginx -t && sudo systemctl reload nginx
+8. Verificación
+- python manage.py check --deploy sin avisos.
+- Ingresar con el usuario creado, cargar un analítico, validarlo y descargar el .docx.
+- Confirmar DJANGO_HABILITAR_ADMIN=0 y revisar /var/log/egraduados/error.log.
+9. Actualizaciones futuras
+git pull && python -m pip install -r requirements.txt
+python manage.py migrate && python manage.py collectstatic --noinput
+sudo systemctl restart egraduados
+
+
+Instalación — desarrollo en Windows
+1. Instalar Python 3.13 desde python.org. Verificar con py -3.13 --version.
+- En esta máquina el comando python suelto apunta al alias de Microsoft Store; usá py -3.13 o el ejecutable del venv (.\venv\Scripts\python.exe).
+2. Copiar/obtener el código y创建 el entornovirtual:
+cd C:\Users\Usuario\Documents\eGraduados\B-Codigo
+py -3.13 -m venv venv
+.\venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+3. Configurar: copiar .env.example a .env. Para Arbeiten sin servidor MySQL:
+DJANGO_DEBUG=1
+DJANGO_DB_ENGINE=django.db.backends.sqlite3
+DJANGO_DB_NAME=db.sqlite3
+(Si hay MySQL disponible, dejar django.db.backends.mysql y completar DJANGO_DB_*.)
+4. Aplicar migraciones y datos iniciales:
+python manage.py migrate
+python manage.py crear_usuario_admin --email admin@gmail.com --nombre "Administrador"
+python manage.py recalcular_promedios   # solo una vez tras migrar; probar antes con --dry-run
+5. Levantar: python manage.py runserver → http://127.0.0.1:8000
