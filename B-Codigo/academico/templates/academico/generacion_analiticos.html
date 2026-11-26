@@ -55,7 +55,7 @@
                 <div>
                     <h2>Ya existe el graduado</h2>
                     <p>
-                        Legajo <strong>{{ legajo }}</strong> · carrera informada.
+                        DNI <strong>{{ dni }}</strong> · carrera informada.
                         {{ graduado.apellido }}, {{ graduado.nombre }}.
                     </p>
                 </div>
@@ -69,10 +69,10 @@
 
             <p>¿Qué querés hacer?</p>
             <div class="d-flex gap-2 flex-wrap">
-                <a href="?modo=preview&legajo={{ legajo }}&carrera={{ carrera }}" class="btn btn-primary">
+                <a href="?modo=preview&dni={{ dni }}&carrera={{ carrera }}" class="btn btn-primary">
                     Generar analítico
                 </a>
-                <a href="{% url 'editar_graduado' legajo carrera %}" class="btn btn-outline-primary">
+                <a href="{% url 'editar_graduado' dni carrera %}" class="btn btn-outline-primary">
                     Modificar la información
                 </a>
             </div>

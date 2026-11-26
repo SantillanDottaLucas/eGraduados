@@ -3,7 +3,7 @@ Generación del analítico: carga de datos, previsualización,
 validación y descarga del documento.
 
 Flujo:
-    1. Buscar por legajo (o cargar todo a mano).
+    1. Buscar por DNI (o cargar todo a mano).
     2. «Continuar»: valida datos personales + parsea el Lincoln
        y muestra la previsualización (editable en tiempo real).
     3. «Validar analítico»: persiste TODO en la base de datos
@@ -11,7 +11,7 @@ Flujo:
        ANALITICO) y habilita la descarga.
     4. «Descargar analítico»: genera el .docx desde la base.
 
-Si el legajo + la carrera ya existen, se avisa y se ofrecen dos
+Si el DNI + la carrera ya existen, se avisa y se ofrecen dos
 opciones: «Generar analítico» (revisar/actualizar) o «Modificar
 la información» (pantalla de edición de graduados).
 """
@@ -88,7 +88,6 @@ CLAVE_PROMEDIOS_CALCULADOS = "promedios_calculados"
 # Campos del formulario que se guardan en el borrador. El Excel queda
 # afuera: los navegadores no permiten rellenar un <input type="file">.
 CAMPOS_BORRADOR = (
-    "legajo",
     "nombre",
     "apellido",
     "dni",
@@ -186,7 +185,6 @@ def _guardar_borrador(request, tipo_documento):
         "nombre",
         "apellido",
         "dni",
-        "legajo",
     )):
         return False
 
@@ -206,7 +204,7 @@ def _guardar_borrador(request, tipo_documento):
     request.session[CLAVE_SESION_BORRADOR] = {
         "usuario_id": getattr(usuario, "id_usuario", None),
         "tipo_documento": tipo_documento.value,
-        "legajo": datos["legajo"],
+        "dni": datos["dni"],
         "carrera": datos["carrera"],
         "datos": datos,
     }
@@ -214,11 +212,11 @@ def _guardar_borrador(request, tipo_documento):
     return True
 
 
-def _recuperar_borrador(request, tipo_documento, legajo=None, carrera=None):
+def _recuperar_borrador(request, tipo_documento, dni=None, carrera=None):
     """
     Devuelve el borrador de esta persona y trámite, o ``None``.
 
-    Los filtros opcionales de legajo/carrera evitan que un borrador
+    Los filtros opcionales de dni/carrera evitan que un borrador
     anterior se mezcle cuando se abre un graduado distinto.
     """
 
@@ -237,7 +235,7 @@ def _recuperar_borrador(request, tipo_documento, legajo=None, carrera=None):
     ):
         return None
 
-    if legajo is not None and borrador.get("legajo") != legajo:
+    if dni is not None and borrador.get("dni") != dni:
         return None
 
     if carrera is not None and borrador.get("carrera") != carrera:
@@ -313,10 +311,10 @@ def _datos_precargados(graduado, registro):
     """Valores para precargar el formulario desde la base."""
 
     datos = {
-        "legajo": graduado.legajo_graduado if graduado else "",
         "nombre": graduado.nombre if graduado else "",
         "apellido": graduado.apellido if graduado else "",
         "dni": graduado.dni if graduado else "",
+        "legajo": graduado.legajo if graduado else "",
         "anio_ingreso_uarg": (
             graduado.anio_ingreso_universidad
             if graduado and graduado.anio_ingreso_universidad
@@ -356,7 +354,7 @@ def _datos_precargados(graduado, registro):
     if graduado:
         nacimiento = (
             DatosNacimiento.objects
-            .filter(legajo_graduado=graduado)
+            .filter(dni_graduado=graduado)
             .select_related("id_ciudad", "id_provincia")
             .first()
         )
@@ -377,7 +375,7 @@ def _datos_precargados(graduado, registro):
 
         secundario = (
             Secundario.objects
-            .filter(legajo_graduado=graduado)
+            .filter(dni_graduado=graduado)
             .select_related("id_ciudad", "id_provincia")
             .first()
         )
@@ -457,10 +455,10 @@ def _validar_datos(datos_form):
     errores = []
 
     datos = {}
-    datos["legajo"] = _limpiar(datos_form.get("legajo"))
+    datos["dni"] = _limpiar(datos_form.get("dni"))
     datos["nombre"] = _limpiar(datos_form.get("nombre"))
     datos["apellido"] = _limpiar(datos_form.get("apellido"))
-    datos["dni"] = _limpiar(datos_form.get("dni"))
+    datos["legajo"] = None
     datos["anio_ingreso_uarg"] = _anio_de(
         datos_form.get("anio_ingreso_uarg")
     )
@@ -479,8 +477,8 @@ def _validar_datos(datos_form):
         if not datos[campo]:
             errores.append(f"El campo «{campo}» es obligatorio.")
 
-    if not datos["legajo"]:
-        errores.append("El campo «legajo» es obligatorio.")
+    if not datos["dni"]:
+        errores.append("El campo «DNI» es obligatorio.")
 
     for campo in ("anio_ingreso_uarg", "anio_ingreso_carrera"):
         if datos[campo] is None:
@@ -584,25 +582,27 @@ def _validar_datos(datos_form):
             errores.append(f"El campo «{campo}» es obligatorio.")
 
     # Reglas de negocio compartidas con la edición y la carga Excel.
-    normalizados, errores_negocio = validar_datos_graduado({
-        "dni": datos["dni"],
-        "legajo": datos["legajo"],
-        "anio_ingreso_universidad": datos["anio_ingreso_uarg"],
-        "anio_ingreso_carrera": datos["anio_ingreso_carrera"],
-        "fecha_nacimiento": datos.get("fecha_nacimiento"),
-        "fecha_ingreso_carrera": (
-            date(datos["anio_ingreso_carrera"], 3, 1)
-            if datos["anio_ingreso_carrera"] else None
-        ),
-        "fecha_egreso_carrera": fecha_egreso,
-    })
+    normalizados, errores_negocio = validar_datos_graduado(
+        {
+            "dni": datos["dni"],
+            "anio_ingreso_universidad": datos["anio_ingreso_uarg"],
+            "anio_ingreso_carrera": datos["anio_ingreso_carrera"],
+            "fecha_nacimiento": datos.get("fecha_nacimiento"),
+            "fecha_ingreso_carrera": (
+                date(datos["anio_ingreso_carrera"], 3, 1)
+                if datos["anio_ingreso_carrera"] else None
+            ),
+            "fecha_egreso_carrera": fecha_egreso,
+        },
+        exigir_anio_uarg=True,
+    )
 
     # Si la validación falla, los normalizados quedan vacíos: conservar
     # lo que escribió la persona para no borrarle los campos al volver
     # a mostrar el formulario. Los valores normalizados se usan cuando
     # no hay errores (que es cuando se persiste).
     datos["dni"] = normalizados["dni"] or datos["dni"]
-    datos["legajo"] = normalizados["legajo"] or datos["legajo"]
+    datos["legajo"] = normalizados["legajo"]
     errores.extend(errores_negocio)
 
     return datos, errores
@@ -741,13 +741,13 @@ def _url_analitico(tipo_documento):
 
 def _sel_desde(request):
     graduado = Graduado.objects.filter(
-        legajo_graduado=_limpiar(request.GET.get("legajo")),
+        pk=_limpiar(request.GET.get("dni")),
     ).first()
 
     registro = (
         GraduadoCarrera.objects
         .filter(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=_limpiar(request.GET.get("carrera")),
         )
         .first()
@@ -757,11 +757,11 @@ def _sel_desde(request):
     return graduado, registro
 
 
-def _preview_con_session(request, tipo_documento, legajo, carrera):
+def _preview_con_session(request, tipo_documento, dni, carrera):
     """
     Recupera la previsualización guardada en sesión.
 
-    Se exige que coincidan usuario, tipo de documento, legajo y
+    Se exige que coincidan usuario, tipo de documento, dni y
     carrera: así una sesión no muestra los datos de otra persona ni
     de otro trámite.
     """
@@ -777,7 +777,7 @@ def _preview_con_session(request, tipo_documento, legajo, carrera):
     if (
         datos_session.get("tipo_documento") != tipo_documento.value
         or datos_session.get("usuario_id") != usuario_id
-        or datos_session.get("legajo") != legajo
+        or datos_session.get("dni") != dni
         or datos_session.get("carrera") != carrera
     ):
         return None
@@ -937,11 +937,11 @@ def _guardar_preview_editada(request, tipo_documento, filas):
     calculado = promedios_desde_filas(filas, carrera)
 
     graduado = Graduado.objects.filter(
-        legajo_graduado=datos["legajo"]
+        pk=datos["dni"]
     ).first()
     registro = (
         GraduadoCarrera.objects.filter(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera_id=datos["carrera"],
         ).first()
         if graduado else None
@@ -954,7 +954,7 @@ def _guardar_preview_editada(request, tipo_documento, filas):
     request.session[CLAVE_SESION_PREVIEW] = {
         "tipo_documento": tipo_documento.value,
         "usuario_id": getattr(usuario, "id_usuario", None),
-        "legajo": datos["legajo"],
+        "dni": datos["dni"],
         "carrera": datos["carrera"],
         "advertencias": list(calculado.advertencias),
         "promedios_calculados": {
@@ -969,7 +969,7 @@ def _guardar_preview_editada(request, tipo_documento, filas):
     return _preview_con_session(
         request,
         tipo_documento,
-        datos["legajo"],
+        datos["dni"],
         datos["carrera"],
     )
 
@@ -1110,7 +1110,7 @@ def _preview_en_tramite_ro(request, graduado, registro, validado):
 
     registro_header = (
         f"{datos['apellido']}, {datos['nombre']} "
-        f"· Legajo {datos['legajo']}"
+        f"· DNI {datos['dni']}"
     )
 
     return render(
@@ -1139,7 +1139,7 @@ def generacion_analiticos(request):
     url = reverse("generacion_analiticos")
     tipo_documento = TipoDocumentoAnalitico.TITULO
 
-    legajo_sel = _limpiar(request.GET.get("legajo"))
+    dni_sel = _limpiar(request.GET.get("dni"))
     carrera_sel = _limpiar(request.GET.get("carrera"))
 
     if request.method == "POST":
@@ -1185,7 +1185,7 @@ def generacion_analiticos(request):
         analitico_existe = (
             Analitico.objects
             .filter(
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera=(
                     registro.codigo_carrera if registro else None
                 ),
@@ -1199,7 +1199,7 @@ def generacion_analiticos(request):
             preview = _preview_con_session(
                 request,
                 tipo_documento,
-                legajo_sel,
+                dni_sel,
                 carrera_sel,
             )
 
@@ -1240,10 +1240,10 @@ def generacion_analiticos(request):
                 "vista": "elegir",
                 "graduado": graduado,
                 "registro": registro,
-                "legajo": legajo_sel,
+                "dni": dni_sel,
                 "carrera": carrera_sel,
                 "analitico_previo": Analitico.objects.filter(
-                    legajo_graduado=graduado,
+                    dni_graduado=graduado,
                     codigo_carrera=registro.codigo_carrera,
                     tipo_documento=tipo_documento,
                 ).exists(),
@@ -1255,7 +1255,7 @@ def generacion_analiticos(request):
     datos_borrador = _recuperar_borrador(
         request,
         tipo_documento,
-        legajo=legajo_sel or None,
+        dni=dni_sel or None,
         carrera=carrera_sel or None,
     )
     hay_borrador = datos_borrador is not None
@@ -1266,11 +1266,10 @@ def generacion_analiticos(request):
         datos = _datos_precargados(graduado, registro)
     else:
         datos = {
-            "legajo": legajo_sel,
             "carrera": carrera_sel,
             "nombre": "",
             "apellido": "",
-            "dni": "",
+            "dni": dni_sel or "",
             "anio_ingreso_uarg": "",
             "anio_ingreso_carrera": "",
             "fecha_egreso_carrera": "",
@@ -1308,31 +1307,31 @@ def titulo_en_tramite(request):
         accion = request.POST.get("accion", "")
 
         if accion == "buscar":
-            legajo = _limpiar(request.POST.get("legajo"))
+            dni = _limpiar(request.POST.get("dni"))
             carrera = _limpiar(request.POST.get("carrera"))
 
-            if not legajo or not carrera:
+            if not dni or not carrera:
                 messages.error(
                     request,
-                    "Ingresá legajo y carrera para buscar.",
+                    "Ingresá DNI y carrera para buscar.",
                 )
 
                 return redirect(url)
 
             destino = f"{url}?" + urlencode({
                 "modo": "preview",
-                "legajo": legajo,
+                "dni": dni,
                 "carrera": carrera,
             })
 
             graduado = Graduado.objects.filter(
-                legajo_graduado=legajo,
+                pk=dni,
             ).first()
 
             registro = (
                 GraduadoCarrera.objects
                 .filter(
-                    legajo_graduado=graduado,
+                    dni_graduado=graduado,
                     codigo_carrera_id=carrera,
                 )
                 .first()
@@ -1342,7 +1341,7 @@ def titulo_en_tramite(request):
             if graduado is None or registro is None:
                 messages.error(
                     request,
-                    "No hay un graduado con ese legajo en esa carrera. "
+                    "No hay un graduado con ese DNI en esa carrera. "
                     "Cargá los datos desde «Generar analítico».",
                 )
 
@@ -1354,17 +1353,17 @@ def titulo_en_tramite(request):
             # El documento es de sólo lectura; «generar» sólo
             # registra el documento como validado para habilitar
             # la descarga.
-            legajo = _limpiar(request.POST.get("legajo"))
+            dni = _limpiar(request.POST.get("dni"))
             carrera = _limpiar(request.POST.get("carrera"))
 
             graduado = Graduado.objects.filter(
-                legajo_graduado=legajo,
+                pk=dni,
             ).first()
 
             registro = (
                 GraduadoCarrera.objects
                 .filter(
-                    legajo_graduado=graduado,
+                    dni_graduado=graduado,
                     codigo_carrera_id=carrera,
                 )
                 .first()
@@ -1374,7 +1373,17 @@ def titulo_en_tramite(request):
             if graduado is None or registro is None:
                 messages.error(
                     request,
-                    "No hay un graduado con ese legajo en esa carrera.",
+                    "No hay un graduado con ese DNI en esa carrera.",
+                )
+
+                return redirect(url)
+
+            if graduado.anio_ingreso_universidad is None:
+                messages.error(
+                    request,
+                    "El graduado no tiene año de ingreso a la UARG. "
+                    "Cargalo desde «Generar analítico» antes de "
+                    "emitir el título en trámite.",
                 )
 
                 return redirect(url)
@@ -1382,13 +1391,12 @@ def titulo_en_tramite(request):
             usuario = getattr(request, "usuario_actual", None)
 
             Analitico.objects.update_or_create(
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera_id=carrera,
                 tipo_documento=tipo_documento,
                 defaults={
                     "anio_ingreso_uarg": (
-                        registro.fecha_ingreso_carrera.year
-                        if registro.fecha_ingreso_carrera else None
+                        graduado.anio_ingreso_universidad
                     ),
                     "id_usuario": (
                         usuario if usuario and getattr(
@@ -1405,7 +1413,7 @@ def titulo_en_tramite(request):
 
             destino = f"{url}?" + urlencode({
                 "modo": "preview",
-                "legajo": legajo,
+                "dni": dni,
                 "carrera": carrera,
             })
 
@@ -1442,7 +1450,7 @@ def titulo_en_tramite(request):
         analitico_existe = (
             Analitico.objects
             .filter(
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera=(
                     registro.codigo_carrera if registro else None
                 ),
@@ -1455,7 +1463,7 @@ def titulo_en_tramite(request):
         if graduado is None or registro is None:
             messages.error(
                 request,
-                "No hay un graduado con ese legajo en esa carrera.",
+                "No hay un graduado con ese DNI en esa carrera.",
             )
 
             return redirect(url)
@@ -1634,7 +1642,7 @@ def _post_sin_accion(request, tipo_documento):
         preview = _preview_con_session(
             request,
             tipo_documento,
-            _limpiar(request.POST.get("legajo")),
+            _limpiar(request.POST.get("dni")),
             _limpiar(request.POST.get("carrera")),
         )
 
@@ -1659,7 +1667,6 @@ CAMPOS_REQUERIDOS_ETIQUETAS = (
     ("nombre", "Nombre"),
     ("apellido", "Apellido"),
     ("dni", "DNI"),
-    ("legajo", "Legajo"),
     ("anio_ingreso_uarg", "Año de ingreso a UARG"),
     ("anio_ingreso_carrera", "Año de ingreso a la carrera"),
     ("fecha_egreso_carrera", "Fecha de egreso de la carrera"),
@@ -1972,7 +1979,7 @@ def _continuar(request, tipo_documento):
 
     else:
         graduado_db = Graduado.objects.filter(
-            legajo_graduado=datos["legajo"]
+            pk=datos["dni"]
         ).first()
 
         if graduado_db:
@@ -2020,13 +2027,13 @@ def _continuar(request, tipo_documento):
 
     # --- Promedios: se calculan desde los exámenes del trámite.
     graduado = Graduado.objects.filter(
-        legajo_graduado=datos["legajo"]
+        pk=datos["dni"]
     ).first()
 
     registro = (
         GraduadoCarrera.objects
         .filter(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera_id=datos["carrera"],
         )
         .first()
@@ -2043,7 +2050,7 @@ def _continuar(request, tipo_documento):
     request.session[CLAVE_SESION_PREVIEW] = {
         "tipo_documento": tipo_documento.value,
         "usuario_id": getattr(usuario, "id_usuario", None),
-        "legajo": datos["legajo"],
+        "dni": datos["dni"],
         "carrera": datos["carrera"],
         "advertencias": advertencias,
         "promedios_calculados": {
@@ -2081,7 +2088,7 @@ def _continuar(request, tipo_documento):
     request.session.pop(CLAVE_SESION_BORRADOR, None)
 
     destino = (
-        f"{url}?{urlencode({'modo': 'preview', 'legajo': datos['legajo'], 'carrera': datos['carrera']})}"
+        f"{url}?{urlencode({'modo': 'preview', 'dni': datos['dni'], 'carrera': datos['carrera']})}"
     )
 
     # Si el graduado ya está guardado en el sistema, preguntar
@@ -2095,10 +2102,10 @@ def _continuar(request, tipo_documento):
                 "vista": "elegir",
                 "graduado": graduado,
                 "registro": registro,
-                "legajo": datos["legajo"],
+                "dni": datos["dni"],
                 "carrera": datos["carrera"],
                 "analitico_previo": Analitico.objects.filter(
-                    legajo_graduado=graduado,
+                    dni_graduado=graduado,
                     codigo_carrera_id=datos["carrera"],
                     tipo_documento=tipo_documento,
                 ).exists(),
@@ -2476,44 +2483,15 @@ def _validar(request, tipo_documento):
 
     carrera = carrera_obj
 
-    # El DNI no puede pertenecer a otro legajo: se avisa antes de
-    # intentar guardar (evita un IntegrityError).
-    dni_en_uso = (
-        Graduado.objects
-        .filter(dni=datos["dni"])
-        .exclude(legajo_graduado=datos["legajo"])
-        .exists()
-    )
-
-    if dni_en_uso:
-        messages.error(
-            request,
-            "El DNI ya está asociado a otro graduado.",
-        )
-
-        contexto = _contexto_preview(
-            request,
-            tipo_documento,
-            datos,
-            filas,
-            materias,
-            validado=False,
-            modo_db=False,
-        )
-        contexto["errores_revalidar"] = True
-
-        return render(
-            request,
-            "academico/generacion_analiticos.html",
-            contexto,
-        )
+    # El DNI es la clave primaria: si ya existe, se actualiza ese
+    # mismo graduado. No hay conflicto con otro registro posible.
 
     calculado = promedios_desde_filas(filas, carrera)
 
     registro_actual = (
         GraduadoCarrera.objects
         .filter(
-            legajo_graduado_id=datos["legajo"],
+            dni_graduado_id=datos["dni"],
             codigo_carrera=carrera,
         )
         .first()
@@ -2531,9 +2509,8 @@ def _validar(request, tipo_documento):
         fecha_egreso = datos["fecha_egreso"]
 
         graduado, _ = Graduado.objects.update_or_create(
-            legajo_graduado=datos["legajo"],
+            pk=datos["dni"],
             defaults={
-                "dni": datos["dni"],
                 "nombre": datos["nombre"],
                 "apellido": datos["apellido"],
                 "anio_ingreso_universidad": datos["anio_ingreso_uarg"],
@@ -2541,7 +2518,7 @@ def _validar(request, tipo_documento):
         )
 
         registro, _ = GraduadoCarrera.objects.update_or_create(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=carrera,
             defaults={
                 "fecha_ingreso_carrera": date(
@@ -2581,7 +2558,7 @@ def _validar(request, tipo_documento):
         )
 
         DatosNacimiento.objects.update_or_create(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             defaults={
                 "fecha_nacimiento": datos["fecha_nacimiento"],
                 "id_provincia": provincia_nac,
@@ -2590,7 +2567,7 @@ def _validar(request, tipo_documento):
         )
 
         Secundario.objects.update_or_create(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             defaults={
                 "nombre_secundario": datos["nombre_secundario"],
                 "id_provincia": provincia_sec,
@@ -2629,7 +2606,7 @@ def _validar(request, tipo_documento):
         # --- Exámenes: reemplazar los del graduado para
         # esta carrera (no tocar las otras carreras).
         GraduadoExamen.objects.filter(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=carrera,
         ).delete()
 
@@ -2671,7 +2648,7 @@ def _validar(request, tipo_documento):
 
             GraduadoExamen.objects.update_or_create(
                 id_examen=examen,
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera=carrera,
                 defaults={
                     "nota": fila["nota"],
@@ -2685,7 +2662,7 @@ def _validar(request, tipo_documento):
             )
 
         Analitico.objects.update_or_create(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=carrera,
             tipo_documento=tipo_documento,
             defaults={
@@ -2698,7 +2675,7 @@ def _validar(request, tipo_documento):
             usuario,
             "analitico_validado",
             entidad="Analitico",
-            entidad_id=f"{datos['legajo']}|{datos['carrera']}",
+            entidad_id=f"{datos['dni']}|{datos['carrera']}",
             detalle={
                 "tipo_documento": tipo_documento.value,
                 "promedio_sin_aplazo": promedios[
@@ -2724,7 +2701,7 @@ def _validar(request, tipo_documento):
                 usuario,
                 "promedio_override",
                 entidad="GraduadoCarrera",
-                entidad_id=f"{datos['legajo']}|{datos['carrera']}",
+                entidad_id=f"{datos['dni']}|{datos['carrera']}",
                 detalle=override,
             )
 
@@ -2733,7 +2710,7 @@ def _validar(request, tipo_documento):
                 usuario,
                 "promedio_materia_duplicada",
                 entidad="GraduadoCarrera",
-                entidad_id=f"{datos['legajo']}|{datos['carrera']}",
+                entidad_id=f"{datos['dni']}|{datos['carrera']}",
                 detalle=duplicado,
             )
 
@@ -2748,7 +2725,7 @@ def _validar(request, tipo_documento):
     messages.success(request, "Analítico validado y guardado.")
 
     destino = (
-        f"{url}?{urlencode({'modo': 'preview', 'legajo': datos['legajo'], 'carrera': datos['carrera']})}"
+        f"{url}?{urlencode({'modo': 'preview', 'dni': datos['dni'], 'carrera': datos['carrera']})}"
     )
 
     return redirect(destino)
@@ -2766,7 +2743,6 @@ def _faltantes_para_descarga(contexto):
         ("Nombre", getattr(graduado, "nombre", None)),
         ("Apellido", getattr(graduado, "apellido", None)),
         ("DNI", getattr(graduado, "dni", None)),
-        ("Legajo", getattr(graduado, "legajo_graduado", None)),
         (
             "Año de ingreso a la carrera",
             contexto.get("anio_ingreso_carrera"),
@@ -2801,20 +2777,20 @@ def _faltantes_para_descarga(contexto):
 
 
 def _descargar(request, tipo_documento):
-    legajo = _limpiar(request.POST.get("legajo"))
+    dni = _limpiar(request.POST.get("dni"))
     carrera_codigo = _limpiar(request.POST.get("carrera"))
 
     destino = (
         f"{_url_analitico(tipo_documento)}?"
         + urlencode({
             "modo": "preview",
-            "legajo": legajo,
+            "dni": dni,
             "carrera": carrera_codigo,
         })
     )
 
     graduado = Graduado.objects.filter(
-        legajo_graduado=legajo
+        pk=dni
     ).first()
     carrera = Carrera.objects.filter(
         codigo_carrera=carrera_codigo
@@ -2829,7 +2805,7 @@ def _descargar(request, tipo_documento):
         return redirect(destino)
 
     if not Analitico.objects.filter(
-        legajo_graduado=graduado,
+        dni_graduado=graduado,
         codigo_carrera=carrera,
         tipo_documento=tipo_documento,
     ).exists():
@@ -2846,7 +2822,7 @@ def _descargar(request, tipo_documento):
 
     if (
         pendiente.get("tipo_documento") == tipo_documento.value
-        and pendiente.get("legajo") == legajo
+        and pendiente.get("dni") == dni
         and pendiente.get("carrera") == carrera_codigo
     ):
         messages.error(
@@ -2886,7 +2862,7 @@ def _descargar(request, tipo_documento):
 
     nombre = (
         f"Analitico_{_slug(graduado.apellido)}_"
-        f"{_slug(graduado.nombre)}_{graduado.legajo_graduado}.docx"
+        f"{_slug(graduado.nombre)}_{graduado.dni}.docx"
     )
 
     respuesta = HttpResponse(

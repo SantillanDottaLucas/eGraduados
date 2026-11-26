@@ -108,9 +108,9 @@ def _clave_fecha(examen):
         return 0
 
 
-def calcular_promedios(legajo, carrera, examenes=None):
+def calcular_promedios(dni, carrera, examenes=None):
     """
-    Calcula los promedios de ``legajo`` en ``carrera``.
+    Calcula los promedios de ``dni`` en ``carrera``.
 
     ``examenes`` permite calcular a partir de una lista de filas aún
     no persistidas (preview). Cada fila debe tener ``nota``,
@@ -136,7 +136,7 @@ def calcular_promedios(legajo, carrera, examenes=None):
             for fila in (
                 GraduadoExamen.objects
                 .filter(
-                    legajo_graduado=legajo,
+                    dni_graduado=dni,
                     codigo_carrera=carrera,
                 )
                 .select_related("id_examen", "id_examen__codigo_materia")

@@ -2,7 +2,7 @@
 Vista de carga manual de graduados (datos mínimos).
 
 El alta directa no pisa información existente sin confirmación:
-si el legajo, el DNI o la relación con la carrera ya están
+si el DNI o la relación con la carrera ya están
 cargados, se muestra qué se sobrescribiría y se pide confirmar.
 """
 

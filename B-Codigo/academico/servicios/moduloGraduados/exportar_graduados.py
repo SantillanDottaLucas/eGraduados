@@ -31,8 +31,8 @@ def _celda_segura(valor):
 
 def _encabezados():
     return [
-        "Legajo",
         "DNI",
+        "Legajo",
         "Nombre",
         "Apellido",
         "Año de ingreso a la UARG",
@@ -65,8 +65,8 @@ def _formatear_libro(libro, hoja):
         for indice in (9, 10):
             fila[indice - 1].number_format = "0.00"
 
-    # Ancho de columnas
-    anchos = [22, 14, 22, 22, 20, 42, 24, 24, 20, 20]
+    # Ancho de columnas (DNI, legajo derivado, nombre, apellido, ...)
+    anchos = [14, 22, 22, 22, 20, 42, 24, 24, 20, 20]
 
     for indice, ancho in enumerate(anchos, start=1):
         hoja.column_dimensions[get_column_letter(indice)].width = ancho
@@ -114,11 +114,11 @@ def generar_excel_filas(filas):
     hoja.append(_encabezados())
 
     for fila in filas.iterator(chunk_size=500):
-        graduado = fila.legajo_graduado
+        graduado = fila.dni_graduado
 
         hoja.append([
-            _celda_segura(graduado.legajo_graduado),
-            _celda_segura(graduado.dni),
+            _celda_segura(graduado.pk),
+            _celda_segura(graduado.legajo or ""),
             _celda_segura(graduado.nombre),
             _celda_segura(graduado.apellido),
             graduado.anio_ingreso_universidad,
@@ -152,8 +152,8 @@ def generar_excel_graduados(graduados):
 
         for graduado_carrera in carreras:
             hoja.append([
-                _celda_segura(graduado.legajo_graduado),
-                _celda_segura(graduado.dni),
+                _celda_segura(graduado.pk),
+                _celda_segura(graduado.legajo or ""),
                 _celda_segura(graduado.nombre),
                 _celda_segura(graduado.apellido),
                 graduado.anio_ingreso_universidad,

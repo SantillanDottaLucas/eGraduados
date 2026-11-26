@@ -16,10 +16,13 @@ class CargaDatos:
     """
     Servicio encargado de validar e importar datos académicos
     desde un archivo Excel a la base de datos.
+
+    El DNI identifica al graduado. El legajo no se importa: se
+    deriva del DNI y del año de ingreso a la UARG, que es opcional
+    en esta carga (en blanco significa «sin legajo»).
     """
 
     COLUMNAS_REQUERIDAS = [
-        "legajo",
         "dni",
         "nombre",
         "apellido",
@@ -62,15 +65,30 @@ class CargaDatos:
 
         # Normalizar los espacios de los encabezados.
         datos.columns = [
-            str(columna).strip()
+            str(columna).strip().lower()
             for columna in datos.columns
         ]
 
-        # Verificar encabezados y orden.
-        if list(datos.columns) != cls.COLUMNAS_REQUERIDAS:
+        # Verificar encabezados y orden. Las planillas históricas
+        # pueden traer «legajo» en primer lugar: se ignora porque el
+        # DNI es la identidad del graduado.
+        columnas = list(datos.columns)
+
+        if columnas and columnas[0] == "legajo":
+            datos = datos.drop(columns=["legajo"])
+            columnas = list(datos.columns)
+
+        # El año de ingreso a la UARG es opcional: si falta la
+        # columna, se toma como vacío para todas las filas.
+        if "fecha_ingreso_universidad" not in columnas:
+            datos["fecha_ingreso_universidad"] = None
+            columnas = list(datos.columns)
+
+        if columnas != cls.COLUMNAS_REQUERIDAS:
             raise ValueError(
                 "La estructura del Excel es incorrecta. "
-                "Verificá los nombres y el orden de las diez columnas."
+                "Verificá los nombres y el orden de las columnas "
+                "requeridas, con el DNI en primer lugar."
             )
 
         # Ignorar filas completamente vacías.
@@ -83,7 +101,7 @@ class CargaDatos:
 
         registros = []
         errores = []
-        legajos_archivo = {}
+        dnis_archivo = {}
         relaciones_archivo = set()
 
         # ==========================================
@@ -95,13 +113,7 @@ class CargaDatos:
             numero_fila = indice + 2
 
             try:
-                legajo = cls._texto(
-                    fila["legajo"], "legajo"
-                )
-
-                dni = cls._texto(
-                    fila["dni"], "dni"
-                )
+                dni = cls._texto(fila["dni"], "dni")
 
                 nombre = cls._texto(
                     fila["nombre"], "nombre"
@@ -126,8 +138,9 @@ class CargaDatos:
                 )
 
                 # La planilla histórica trae una fecha, pero sólo
-                # interesa el año. También se acepta un año suelto.
-                anio_ingreso_universidad = anio_desde_valor(
+                # interesa el año. También se acepta un año suelto;
+                # una celda vacía significa «sin año de ingreso».
+                anio_ingreso_universidad = cls._anio_opcional(
                     fila["fecha_ingreso_universidad"],
                     "fecha_ingreso_universidad"
                 )
@@ -142,10 +155,9 @@ class CargaDatos:
                     "fecha_egreso_carrera"
                 )
 
-                # Reglas de negocio compartidas: DNI, legajo, años
-                # y cronología de las fechas.
+                # Reglas de negocio compartidas: DNI, año y
+                # cronología de las fechas. El legajo se deriva acá.
                 normalizados, errores_fila = validar_datos_graduado({
-                    "legajo": legajo,
                     "dni": dni,
                     "anio_ingreso_universidad": (
                         anio_ingreso_universidad
@@ -161,12 +173,15 @@ class CargaDatos:
                 if errores_fila:
                     raise ValueError(" ".join(errores_fila))
 
-                legajo = normalizados["legajo"]
                 dni = normalizados["dni"]
+                anio_ingreso_universidad = (
+                    normalizados["anio_ingreso_universidad"]
+                )
+                legajo = normalizados["legajo"]
 
                 # No admitir dos registros para la misma carrera
-                # del mismo graduado dentro del archivo.
-                clave_relacion = (legajo, codigo_carrera)
+                # del mismo DNI dentro del archivo.
+                clave_relacion = (dni, codigo_carrera)
 
                 if clave_relacion in relaciones_archivo:
                     raise ValueError(
@@ -176,7 +191,7 @@ class CargaDatos:
 
                 relaciones_archivo.add(clave_relacion)
 
-                # Un mismo legajo debe identificar a una persona.
+                # Un mismo DNI debe identificar a una persona.
                 persona = {
                     "dni": dni,
                     "nombre": nombre,
@@ -185,18 +200,19 @@ class CargaDatos:
                         anio_ingreso_universidad,
                 }
 
-                if legajo in legajos_archivo:
-                    if legajos_archivo[legajo] != persona:
+                if dni in dnis_archivo:
+                    if dnis_archivo[dni] != persona:
                         raise ValueError(
-                            "El mismo legajo aparece con datos "
+                            "El mismo DNI aparece con datos "
                             "personales diferentes."
                         )
                 else:
-                    legajos_archivo[legajo] = persona
+                    dnis_archivo[dni] = persona
 
                 registros.append({
-                    "legajo": legajo,
                     "dni": dni,
+                    # Informativo: no se guarda como dato de entrada.
+                    "legajo": legajo,
                     "nombre": nombre,
                     "apellido": apellido,
                     "anio_ingreso_universidad":
@@ -257,45 +273,14 @@ class CargaDatos:
 
         with transaction.atomic():
 
-            # Validar que ningún DNI pertenezca a otro legajo.
-            dni_por_legajo = {
-                legajo: persona["dni"]
-                for legajo, persona in legajos_archivo.items()
-            }
-
-            for legajo, dni in dni_por_legajo.items():
-                graduado_por_legajo = Graduado.objects.filter(
-                    legajo_graduado=legajo
-                ).first()
-
-                graduado_por_dni = Graduado.objects.filter(
-                    dni=dni
-                ).first()
-
-                if (
-                    graduado_por_dni is not None
-                    and graduado_por_dni.legajo_graduado != legajo
-                ):
-                    raise ValueError(
-                        f"El DNI {dni} ya está asociado a otro legajo."
-                    )
-
-                if (
-                    graduado_por_legajo is not None
-                    and graduado_por_legajo.dni != dni
-                ):
-                    raise ValueError(
-                        f"El legajo {legajo} ya está registrado "
-                        "con otro DNI."
-                    )
-
-            # Crear o actualizar los graduados.
-            for legajo, persona in legajos_archivo.items():
+            # El DNI es la clave primaria: no puede haber dos
+            # graduados con el mismo DNI. Los que ya existen se
+            # actualizan; Graduado.save() recalcula el legajo.
+            for dni, persona in dnis_archivo.items():
 
                 graduado, creado = Graduado.objects.update_or_create(
-                    legajo_graduado=legajo,
+                    pk=dni,
                     defaults={
-                        "dni": persona["dni"],
                         "nombre": persona["nombre"],
                         "apellido": persona["apellido"],
                         "anio_ingreso_universidad":
@@ -312,7 +297,7 @@ class CargaDatos:
             for registro in registros:
 
                 graduado = Graduado.objects.get(
-                    legajo_graduado=registro["legajo"]
+                    pk=registro["dni"]
                 )
 
                 carrera = Carrera.objects.get(
@@ -320,7 +305,7 @@ class CargaDatos:
                 )
 
                 _, creado = GraduadoCarrera.objects.update_or_create(
-                    legajo_graduado=graduado,
+                    dni_graduado=graduado,
                     codigo_carrera=carrera,
                     defaults={
                         "fecha_ingreso_carrera":
@@ -369,6 +354,29 @@ class CargaDatos:
             )
 
         return texto
+
+    @staticmethod
+    def _anio_opcional(valor, campo):
+        """
+        Normaliza el año de ingreso a la UARG, aceptando celda vacía.
+
+        Un año vacío se guarda como None: el graduado queda sin
+        legajo derivado hasta que se informe el año.
+        """
+
+        if valor is None:
+            return None
+
+        try:
+            if pd.isna(valor):
+                return None
+        except (TypeError, ValueError):
+            pass
+
+        if isinstance(valor, str) and not valor.strip():
+            return None
+
+        return anio_desde_valor(valor, campo)
 
     @staticmethod
     def _promedio(valor, campo):

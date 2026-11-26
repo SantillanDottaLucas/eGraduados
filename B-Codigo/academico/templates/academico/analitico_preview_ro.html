@@ -68,7 +68,7 @@
             </div>
             <div>
                 <div class="ro-label">Legajo</div>
-                <div class="ro-valor">{{ datos.legajo }}</div>
+                <div class="ro-valor">{{ datos.legajo|default:"—" }}</div>
             </div>
             <div>
                 <div class="ro-label">Año ingr. UARG</div>
@@ -183,7 +183,7 @@
 
         <form method="post" action="{% url 'titulo_en_tramite' %}" style="display:inline;">
             {% csrf_token %}
-            <input type="hidden" name="legajo" value="{{ datos.legajo }}">
+            <input type="hidden" name="dni" value="{{ datos.dni }}">
             <input type="hidden" name="carrera" value="{{ datos.carrera }}">
             {% if validado %}
                 <button type="submit" name="accion" value="descargar"

@@ -15,8 +15,10 @@ Reglas:
 
 Uso:
     python manage.py recalcular_promedios
-    python manage.py recalcular_promedios --legajo 1234
+    python manage.py recalcular_promedios --dni 12345678
     python manage.py recalcular_promedios --carrera 12 --dry-run
+
+``--legajo`` se acepta como alias obsoleto de ``--dni``.
 """
 
 from django.core.management.base import BaseCommand
@@ -37,8 +39,14 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
+            "--dni",
+            dest="dni",
+            help="Limita el recálculo al graduado con ese DNI.",
+        )
+        parser.add_argument(
             "--legajo",
-            help="Limita el recálculo a un legajo.",
+            dest="dni_legado",
+            help="Alias obsoleto de --dni.",
         )
         parser.add_argument(
             "--carrera",
@@ -60,14 +68,21 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         filas = GraduadoCarrera.objects.select_related(
-            "legajo_graduado",
+            "dni_graduado",
             "codigo_carrera",
-        ).order_by("legajo_graduado_id", "codigo_carrera_id")
+        ).order_by("dni_graduado_id", "codigo_carrera_id")
 
-        legajo = (options.get("legajo") or "").strip()
+        dni = (options.get("dni") or "").strip()
+        dni_legado = (options.get("dni_legado") or "").strip()
 
-        if legajo:
-            filas = filas.filter(legajo_graduado_id=legajo)
+        if dni_legado and not dni:
+            dni = dni_legado
+            self.stderr.write(
+                "Advertencia: --legajo está obsoleto; usá --dni."
+            )
+
+        if dni:
+            filas = filas.filter(dni_graduado_id=dni)
 
         carrera = (options.get("carrera") or "").strip()
 
@@ -96,7 +111,7 @@ class Command(BaseCommand):
                 continue
 
             calculado = calcular_promedios(
-                fila.legajo_graduado_id,
+                fila.dni_graduado_id,
                 fila.codigo_carrera_id,
             )
 
@@ -148,7 +163,7 @@ class Command(BaseCommand):
                 continue
 
             self.stdout.write(
-                f"Legajo {fila.legajo_graduado_id} / "
+                f"DNI {fila.dni_graduado_id} / "
                 f"carrera {fila.codigo_carrera_id}: "
                 f"sin aplazo {fila.promedio_sin_aplazo} -> "
                 f"{nuevos.get('promedio_sin_aplazo', fila.promedio_sin_aplazo)}; "
@@ -174,7 +189,7 @@ class Command(BaseCommand):
                 "promedios_recalculados",
                 entidad="GraduadoCarrera",
                 entidad_id=(
-                    f"{fila.legajo_graduado_id}|{fila.codigo_carrera_id}"
+                    f"{fila.dni_graduado_id}|{fila.codigo_carrera_id}"
                 ),
                 detalle={
                     "campos": {

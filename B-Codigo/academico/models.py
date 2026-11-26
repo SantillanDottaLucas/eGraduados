@@ -45,20 +45,43 @@ class TipoPlanEstudios(models.TextChoices):
 # ==========================================================
 
 class Graduado(models.Model):
-    legajo_graduado = models.CharField(
+    # El DNI es la clave primaria. El legajo es un dato derivado,
+    # opcional y nunca ingresado por el usuario.
+    dni = models.CharField(max_length=20, primary_key=True)
+    legajo = models.CharField(
         max_length=50,
-        primary_key=True
+        null=True,
+        blank=True,
+        editable=False,
     )
-    dni = models.CharField(max_length=20, unique=True)
 
     # Sólo interesa el año de ingreso a la UARG: el día y el mes
     # no se registran (antes se guardaba una fecha completa).
-    anio_ingreso_universidad = models.IntegerField()
+    # Es opcional para los graduados cargados a mano; el analítico
+    # sí lo exige porque la plantilla del documento lo necesita.
+    anio_ingreso_universidad = models.IntegerField(null=True, blank=True)
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
 
     class Meta:
         db_table = "GRADUADO"
+
+    def save(self, *args, **kwargs):
+        from academico.servicios.legajo import generar_legajo
+
+        self.legajo = generar_legajo(
+            self.dni,
+            self.anio_ingreso_universidad,
+        )
+
+        # ``update_or_create`` llama a save() con ``update_fields``.
+        # Sin esto, el legajo recalculado quedaría desactualizado en
+        # la base cuando cambia el año de ingreso.
+        actualizados = kwargs.get("update_fields")
+        if actualizados:
+            kwargs["update_fields"] = set(actualizados) | {"legajo"}
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.apellido}, {self.nombre}"
@@ -313,10 +336,10 @@ class DatosNacimiento(models.Model):
     id_datos = models.AutoField(primary_key=True)
     fecha_nacimiento = models.DateField(null=True, blank=True)
 
-    legajo_graduado = models.ForeignKey(
+    dni_graduado = models.ForeignKey(
         Graduado,
         on_delete=models.CASCADE,
-        db_column="legajo_graduado",
+        db_column="dni_graduado",
         related_name="datos_nacimiento"
     )
 
@@ -340,7 +363,7 @@ class DatosNacimiento(models.Model):
         db_table = "DATOS_NACIMIENTO"
         constraints = [
             models.UniqueConstraint(
-                fields=["legajo_graduado"],
+                fields=["dni_graduado"],
                 name="uniq_datos_nacimiento_por_graduado",
             ),
         ]
@@ -365,10 +388,10 @@ class Secundario(models.Model):
         blank=True,
     )
 
-    legajo_graduado = models.ForeignKey(
+    dni_graduado = models.ForeignKey(
         Graduado,
         on_delete=models.PROTECT,
-        db_column="legajo_graduado",
+        db_column="dni_graduado",
         related_name="secundarios"
     )
 
@@ -392,7 +415,7 @@ class Secundario(models.Model):
         db_table = "SECUNDARIO"
         constraints = [
             models.UniqueConstraint(
-                fields=["legajo_graduado"],
+                fields=["dni_graduado"],
                 name="uniq_secundario_por_graduado",
             ),
         ]
@@ -480,10 +503,10 @@ class Resolucion(models.Model):
 # ==========================================================
 
 class GraduadoCarrera(models.Model):
-    legajo_graduado = models.ForeignKey(
+    dni_graduado = models.ForeignKey(
         Graduado,
         on_delete=models.CASCADE,
-        db_column="legajo_graduado",
+        db_column="dni_graduado",
         related_name="carreras_cursadas"
     )
 
@@ -513,7 +536,7 @@ class GraduadoCarrera(models.Model):
     )
 
     pk = models.CompositePrimaryKey(
-        "legajo_graduado",
+        "dni_graduado",
         "codigo_carrera"
     )
 
@@ -536,10 +559,10 @@ class GraduadoExamen(models.Model):
         related_name="resultados_graduados"
     )
 
-    legajo_graduado = models.ForeignKey(
+    dni_graduado = models.ForeignKey(
         Graduado,
         on_delete=models.CASCADE,
-        db_column="legajo_graduado",
+        db_column="dni_graduado",
         related_name="examenes"
     )
 
@@ -572,7 +595,7 @@ class GraduadoExamen(models.Model):
         db_table = "GRADUADO_EXAMEN"
         constraints = [
             models.UniqueConstraint(
-                fields=["id_examen", "legajo_graduado", "codigo_carrera"],
+                fields=["id_examen", "dni_graduado", "codigo_carrera"],
                 name="uniq_graduado_examen",
             ),
         ]
@@ -729,10 +752,10 @@ class CarreraResolucion(models.Model):
 class Analitico(models.Model):
     id_analitico = models.AutoField(primary_key=True)
 
-    legajo_graduado = models.ForeignKey(
+    dni_graduado = models.ForeignKey(
         Graduado,
         on_delete=models.CASCADE,
-        db_column="legajo_graduado",
+        db_column="dni_graduado",
         related_name="analiticos",
     )
 
@@ -765,14 +788,14 @@ class Analitico(models.Model):
         db_table = "ANALITICO"
         constraints = [
             models.UniqueConstraint(
-                fields=["legajo_graduado", "codigo_carrera", "tipo_documento"],
+                fields=["dni_graduado", "codigo_carrera", "tipo_documento"],
                 name="uniq_analitico_por_documento",
             ),
         ]
 
     def __str__(self):
         return (
-            f"{self.legajo_graduado_id} - {self.codigo_carrera_id}"
+            f"{self.dni_graduado_id} - {self.codigo_carrera_id}"
             f" ({self.get_tipo_documento_display()})"
         )
 

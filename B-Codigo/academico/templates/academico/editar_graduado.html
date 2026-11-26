@@ -15,7 +15,10 @@
 
         <div class="editar-meta">
             <span class="editar-chip">
-                Legajo: {{ graduado.legajo_graduado }}
+                DNI: {{ graduado.dni }}
+            </span>
+            <span class="editar-chip">
+                Legajo: {{ graduado.legajo|default:"—" }}
             </span>
             <span class="editar-chip">
                 Carrera: {{ registro.codigo_carrera.nombre_carrera }}
@@ -61,11 +64,12 @@
                     {% if form.dni.errors %}
                         <div class="text-danger small mt-1">{{ form.dni.errors.0 }}</div>
                     {% endif %}
+                    <div class="form-text">El DNI es la clave del graduado y no se puede modificar.</div>
                 </div>
 
                 <div class="col-12 col-md-6">
                     <label for="id_anio_ingreso_universidad" class="form-label fw-semibold">
-                        Año de ingreso a la UARG
+                        Año de ingreso a la UARG (opcional)
                     </label>
                     {{ form.anio_ingreso_universidad }}
                     {% if form.anio_ingreso_universidad.errors %}

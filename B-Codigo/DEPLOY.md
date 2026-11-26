@@ -114,13 +114,20 @@ source venv/bin/activate
 python manage.py check --deploy
 python manage.py migrate
 python manage.py collectstatic --noinput
-python manage.py crear_usuario_admin --email admin@gmail.com --nombre "Administrador"
+python manage.py crear_usuario_admin
 python manage.py recalcular_promedios
 ```
 
+> También podés pasar `--email` y `--nombre` explícitamente. Sin esos
+> argumentos, el comando toma `EGRADUADOS_ADMIN_EMAIL` y
+> `EGRADUADOS_ADMIN_NOMBRE` del entorno (o del `.env`). Usá
+> `createsuperuser` **sólo** para el admin de Django: no crea el usuario de la
+> aplicación, que vive en la tabla `USUARIO` y es necesario para iniciar sesión.
+>
 > `crear_usuario_admin` muestra el código de acceso de 6 caracteres **una sola
-> vez** por consola: copialo, porque no se envía por correo. El email debe ser
-> una cuenta `@gmail.com` (es una restricción del modelo de usuarios).
+> vez** por consola: copialo, porque no se envía por correo y se guarda hasheado.
+> El email debe ser una cuenta `@gmail.com` (es una restricción del modelo de
+> usuarios).
 
 `recalcular_promedios` se ejecuta **una sola vez** después de migrar: completa
 los promedios que estaban importados del Excel. Respeta los promedios manuales;

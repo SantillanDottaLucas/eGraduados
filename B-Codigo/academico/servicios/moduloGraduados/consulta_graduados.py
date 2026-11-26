@@ -12,12 +12,20 @@ SITUACIONES_BUSQUEDA = ("todas", "sin_carrera", "con_carrera")
 
 ORDENES_BUSQUEDA = (
     "inconsistencias",
+    "dni",
+    # «legajo» se conserva como valor heredado: ordena por DNI.
     "legajo",
     "apellido",
     "ingreso_uarg_asc",
     "ingreso_uarg_desc",
     "menos_carreras",
 )
+
+
+def _dni_parametro(parametros):
+    """DNI buscado; acepta el parámetro «legajo» por compatibilidad."""
+
+    return _valor(parametros, "dni") or _valor(parametros, "legajo")
 
 
 def obtener_graduados_filtrados(parametros):
@@ -33,20 +41,18 @@ def obtener_graduados_filtrados(parametros):
                 | Q(apellido__icontains=palabra)
             )
 
-    # 2. Buscar por legajo completo o parcial.
-    legajo = parametros.get("legajo", "").strip()
+    # 2. Buscar por DNI completo o parcial.
+    dni = _dni_parametro(parametros)
 
-    if legajo:
-        graduados = graduados.filter(
-            legajo_graduado__icontains=legajo
-        )
+    if dni:
+        graduados = graduados.filter(dni__icontains=dni)
 
     # 3. Filtrar por carrera.
     carrera = parametros.get("carrera", "").strip()
 
     if carrera:
         graduados_por_carrera = GraduadoCarrera.objects.filter(
-            legajo_graduado_id=OuterRef("pk"),
+            dni_graduado_id=OuterRef("pk"),
             codigo_carrera_id=carrera
         )
 
@@ -59,7 +65,7 @@ def obtener_graduados_filtrados(parametros):
 
     if escuela:
         graduados_por_escuela = GraduadoCarrera.objects.filter(
-            legajo_graduado_id=OuterRef("pk"),
+            dni_graduado_id=OuterRef("pk"),
             codigo_carrera__id_escuela_id=escuela
         )
 
@@ -88,7 +94,7 @@ def obtener_graduados_filtrados(parametros):
 
     if fecha_desde or fecha_hasta:
         egresos = GraduadoCarrera.objects.filter(
-            legajo_graduado_id=OuterRef("pk")
+            dni_graduado_id=OuterRef("pk")
         )
 
         if fecha_desde:
@@ -103,8 +109,8 @@ def obtener_graduados_filtrados(parametros):
 
         graduados = graduados.filter(Exists(egresos))
 
-    # Devolver graduados sin duplicados, ordenados por legajo.
-    return graduados.order_by("legajo_graduado")
+    # Devolver graduados sin duplicados, ordenados por DNI.
+    return graduados.order_by("dni")
 
 
 def _fechas(parametros):
@@ -131,7 +137,7 @@ def _fechas(parametros):
 def obtener_filas_filtradas(parametros):
     """
     Filas de GRADUADO_CARRERA que cumplen TODOS los filtros del
-    listado (nombre, legajo, carrera, escuela y período de egreso).
+    listado (nombre, DNI, carrera, escuela y período de egreso).
 
     A diferencia de ``obtener_graduados_filtrados``, no se pierde
     el filtro de carrera/escuela al volver a consultar la tabla
@@ -142,7 +148,7 @@ def obtener_filas_filtradas(parametros):
     """
 
     filas = GraduadoCarrera.objects.select_related(
-        "legajo_graduado",
+        "dni_graduado",
         "codigo_carrera",
         "codigo_carrera__id_escuela",
     )
@@ -152,16 +158,14 @@ def obtener_filas_filtradas(parametros):
     if nombre:
         for palabra in nombre.split():
             filas = filas.filter(
-                Q(legajo_graduado__nombre__icontains=palabra)
-                | Q(legajo_graduado__apellido__icontains=palabra)
+                Q(dni_graduado__nombre__icontains=palabra)
+                | Q(dni_graduado__apellido__icontains=palabra)
             )
 
-    legajo = parametros.get("legajo", "").strip()
+    dni = _dni_parametro(parametros)
 
-    if legajo:
-        filas = filas.filter(
-            legajo_graduado__legajo_graduado__icontains=legajo
-        )
+    if dni:
+        filas = filas.filter(dni_graduado_id__icontains=dni)
 
     carrera = parametros.get("carrera", "").strip()
 
@@ -181,7 +185,7 @@ def obtener_filas_filtradas(parametros):
     if fecha_hasta:
         filas = filas.filter(fecha_egreso_carrera__lte=fecha_hasta)
 
-    return filas.order_by("legajo_graduado_id", "codigo_carrera_id")
+    return filas.order_by("dni_graduado_id", "codigo_carrera_id")
 
 
 @dataclass
@@ -191,7 +195,7 @@ class FilaBusquedaGraduado:
 
     Si el graduado no tiene carrera, ``carrera`` es ``None`` y las
     propiedades dependientes de carrera devuelven valores vacíos.
-    Los atributos con nombre ``legajo_graduado_id``,
+    Los atributos con nombre ``dni_graduado_id``,
     ``codigo_carrera_id``, etc. se conservan para que la plantilla
     y el marcado de analíticos sigan usando la misma interfaz.
     """
@@ -204,12 +208,30 @@ class FilaBusquedaGraduado:
     analitico_tramite: bool = False
 
     @property
-    def legajo_graduado_id(self):
+    def dni(self):
+        return self.dni_graduado_id
+
+    @property
+    def dni_graduado_id(self):
         return self.graduado.pk
+
+    @property
+    def dni_graduado(self):
+        return self.graduado
+
+    # Nombres heredados, mantenidos para plantillas y viejos
+    # llamadores. Todos se basan en el DNI, no en el legajo derivado.
+    @property
+    def legajo_graduado_id(self):
+        return self.dni_graduado_id
 
     @property
     def legajo_graduado(self):
         return self.graduado
+
+    @property
+    def legajo(self):
+        return self.dni_graduado_id
 
     @property
     def anio_ingreso_universidad(self):
@@ -265,33 +287,34 @@ def _relacion_coincide(relacion, carrera, escuela, fecha_desde, fecha_hasta):
 
 def _ordenar_filas_busqueda(filas, orden):
     def clave(fila):
-        legajo = fila.legajo_graduado_id or ""
+        dni = fila.dni_graduado_id or ""
         codigo = fila.codigo_carrera_id or ""
         apellido = (fila.graduado.apellido or "").lower()
         nombre = (fila.graduado.nombre or "").lower()
-        anio = fila.graduado.anio_ingreso_universidad or 0
+        anio = fila.graduado.anio_ingreso_universidad
 
-        if orden == "legajo":
-            return legajo, codigo
+        if orden in ("dni", "legajo"):
+            return dni, codigo
 
         if orden == "apellido":
-            return apellido, nombre, legajo, codigo
+            return apellido, nombre, dni, codigo
 
         if orden == "ingreso_uarg_asc":
-            return anio, legajo, codigo
+            # Los años ausentes van al final sin romper la comparación.
+            return anio is None, anio or 0, dni, codigo
 
         if orden == "ingreso_uarg_desc":
-            return -anio, legajo, codigo
+            return anio is None, -(anio or 0), dni, codigo
 
         if orden == "menos_carreras":
-            return fila.cantidad_carreras, legajo, codigo
+            return fila.cantidad_carreras, dni, codigo
 
         # «inconsistencias» es el orden por defecto: primero los
         # graduados sin carrera, luego quienes tienen menos carreras.
         return (
             0 if fila.sin_carrera else 1,
             fila.cantidad_carreras,
-            legajo,
+            dni,
             codigo,
         )
 
@@ -311,7 +334,7 @@ def obtener_filas_busqueda(parametros):
     ``situacion`` permite aislar a los graduados sin carrera o a
     los que tienen alguna. Cuando se elige «sin_carrera», ese
     filtro prevalece sobre carrera/escuela/fechas, que no tienen
-    sentido para esos legajos.
+    sentido para esos DNI.
     """
 
     graduados = Graduado.objects.all()
@@ -324,9 +347,9 @@ def obtener_filas_busqueda(parametros):
                 | Q(apellido__icontains=palabra)
             )
 
-    legajo = _valor(parametros, "legajo")
-    if legajo:
-        graduados = graduados.filter(legajo_graduado__icontains=legajo)
+    dni = _dni_parametro(parametros)
+    if dni:
+        graduados = graduados.filter(dni__icontains=dni)
 
     situacion = _valor(parametros, "situacion") or "todas"
     if situacion not in SITUACIONES_BUSQUEDA:
@@ -345,29 +368,29 @@ def obtener_filas_busqueda(parametros):
     )
 
     graduados = list(graduados)
-    legajos = [graduado.pk for graduado in graduados]
+    dnis = [graduado.pk for graduado in graduados]
 
-    carreras_por_legajo = defaultdict(list)
+    carreras_por_dni = defaultdict(list)
 
     # Se cargan todas las carreras de los graduados candidatos para
     # conocer la cantidad real: incluso con «sin_carrera» hay que
     # distinguir quién no tiene ninguna de quién tiene aunque haya
     # que ignorar los filtros de carrera/escuela/fecha.
-    if legajos:
+    if dnis:
         relaciones = GraduadoCarrera.objects.filter(
-            legajo_graduado_id__in=legajos
+            dni_graduado_id__in=dnis
         ).select_related(
             "codigo_carrera",
             "codigo_carrera__id_escuela",
         )
 
         for relacion in relaciones:
-            carreras_por_legajo[relacion.legajo_graduado_id].append(relacion)
+            carreras_por_dni[relacion.dni_graduado_id].append(relacion)
 
     filas = []
 
     for graduado in graduados:
-        todas = carreras_por_legajo.get(graduado.pk, [])
+        todas = carreras_por_dni.get(graduado.pk, [])
         cantidad_carreras = len(todas)
 
         if situacion == "sin_carrera" and cantidad_carreras:

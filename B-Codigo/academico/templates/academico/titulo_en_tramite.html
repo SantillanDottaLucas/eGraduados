@@ -12,9 +12,9 @@
         <div class="tramite-eyebrow">Secretaría Académica · UNPA UARG</div>
         <h1>Título en trámite</h1>
         <p>
-            Buscá un graduado ya cargado para generar el certificado de
-            título en trámite. No permite cargar graduados nuevos:
-            eso se hace desde «Generar analítico».
+            Buscá un graduado ya cargado por DNI y carrera para generar el
+            certificado de título en trámite. No permite cargar graduados
+            nuevos: eso se hace desde «Generar analítico».
         </p>
     </header>
 
@@ -24,9 +24,10 @@
             <input type="hidden" name="accion" value="buscar">
 
             <div class="mb-3">
-                <label for="legajo" class="form-label">Legajo <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="legajo" name="legajo"
-                       placeholder="UARG-24827" required autocomplete="off">
+                <label for="dni" class="form-label">DNI <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="dni" name="dni"
+                       placeholder="41734713" inputmode="numeric" required autocomplete="off">
+                <div class="form-text">Ingresá el DNI del graduado y elegí la carrera.</div>
             </div>
 
             <div class="mb-4">

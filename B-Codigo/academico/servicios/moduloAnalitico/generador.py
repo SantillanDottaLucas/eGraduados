@@ -39,6 +39,20 @@ from academico.servicios.moduloAnalitico.utilidades_texto import (
 )
 
 
+def _resolver_graduado(dni):
+    """
+    Devuelve el Graduado a partir de su DNI.
+
+    Se acepta también una instancia de Graduado para no romper a
+    los llamadores que ya tenían el objeto cargado.
+    """
+
+    if isinstance(dni, Graduado):
+        return dni
+
+    return Graduado.objects.get(pk=dni)
+
+
 def _resoluciones_de_carrera(carrera):
     """Resoluciones asociadas a la carrera, agrupadas por tipo."""
 
@@ -124,9 +138,12 @@ def texto_resoluciones(agrupadas):
     )
 
 
-def examenes_ordenados(graduado, carrera):
+def examenes_ordenados(dni, carrera):
     """
     Exámenes en el orden y con el año guardados al validar.
+
+    ``dni`` puede ser el DNI del graduado o una instancia de
+    Graduado (por compatibilidad con llamadores existentes).
 
     El usuario puede cambiar las posiciones y el año en la
     previsualización; ``_validar`` persiste ambos en ``GraduadoExamen``.
@@ -137,7 +154,7 @@ def examenes_ordenados(graduado, carrera):
     examenes = (
         GraduadoExamen.objects
         .filter(
-            legajo_graduado=graduado,
+            dni_graduado=dni,
             codigo_carrera=carrera,
         )
         .select_related(
@@ -216,16 +233,21 @@ def examenes_ordenados(graduado, carrera):
     return filas
 
 
-def contexto_analitico(graduado, carrera, tipo_documento):
+def contexto_analitico(dni, carrera, tipo_documento):
     """
     Contexto completo para renderizar el analítico (preview o
     documento) desde la base de datos.
+
+    ``dni`` identifica al graduado. Se acepta también una instancia
+    de Graduado para conservar la interfaz anterior.
     """
+
+    graduado = _resolver_graduado(dni)
 
     registro = (
         GraduadoCarrera.objects
         .filter(
-            legajo_graduado=graduado,
+            dni_graduado=dni,
             codigo_carrera=carrera,
         )
         .first()
@@ -233,14 +255,14 @@ def contexto_analitico(graduado, carrera, tipo_documento):
 
     datos_nacimiento = (
         DatosNacimiento.objects
-        .filter(legajo_graduado=graduado)
+        .filter(dni_graduado=dni)
         .select_related("id_ciudad", "id_provincia")
         .first()
     )
 
     secundario = (
         Secundario.objects
-        .filter(legajo_graduado=graduado)
+        .filter(dni_graduado=dni)
         .select_related("id_ciudad", "id_provincia")
         .first()
     )
@@ -263,7 +285,7 @@ def contexto_analitico(graduado, carrera, tipo_documento):
         registro.promedio_sin_aplazo if registro else None
     )
 
-    filas = examenes_ordenados(graduado, carrera)
+    filas = examenes_ordenados(dni, carrera)
 
     anio_ingreso_universidad = graduado.anio_ingreso_universidad
 
@@ -282,6 +304,12 @@ def contexto_analitico(graduado, carrera, tipo_documento):
         "anio_ingreso_universidad": (
             anio_ingreso_universidad
             if anio_ingreso_universidad else ""
+        ),
+        # La plantilla lee «anio_ingreso_uarg»: se expone
+        # explícitamente, en blanco cuando el año no está cargado.
+        "anio_ingreso_uarg": (
+            anio_ingreso_universidad
+            if anio_ingreso_universidad is not None else ""
         ),
         "anio_ingreso_carrera": (
             registro.fecha_ingreso_carrera.year if registro else ""
@@ -411,7 +439,7 @@ def render_docx(contexto):
             and contexto["secundario"].anio_egreso_secundario
             else ""
         ),
-        "anio_ingreso_uarg": contexto.get("anio_ingreso_universidad", ""),
+        "anio_ingreso_uarg": contexto.get("anio_ingreso_uarg", ""),
         "anio_ingreso_carrera": contexto.get("anio_ingreso_carrera", ""),
         "carrera": contexto["carrera"].nombre_carrera,
         "resoluciones_institucionales": contexto[

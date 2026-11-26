@@ -54,6 +54,7 @@ from .servicios.moduloAnalitico.promedios import mismo_promedio
 # Filtros de la lista de graduados que se preservan al volver.
 FILTROS_LISTA = {
     "nombre",
+    "dni",
     "legajo",
     "escuela",
     "carrera",
@@ -152,7 +153,7 @@ def _entero(valor):
 # ==================================================
 
 @requiere_sesion
-def editar_graduado(request, legajo, carrera):
+def editar_graduado(request, dni, carrera):
     """
     Edita los datos personales de un graduado y su relación
     con una carrera (fila del listado de graduados).
@@ -160,14 +161,14 @@ def editar_graduado(request, legajo, carrera):
 
     graduado = get_object_or_404(
         Graduado,
-        legajo_graduado=legajo,
+        pk=dni,
     )
 
     registro = get_object_or_404(
         GraduadoCarrera.objects.select_related(
             "codigo_carrera"
         ),
-        legajo_graduado=graduado,
+        dni_graduado=graduado,
         codigo_carrera_id=carrera,
     )
 
@@ -176,7 +177,10 @@ def editar_graduado(request, legajo, carrera):
     if request.method == "POST":
         volver = request.POST.get("volver", "")
 
-        form = EdicionGraduadoForm(request.POST, legajo=legajo)
+        form = EdicionGraduadoForm(
+            request.POST,
+            initial={"dni": dni},
+        )
 
         if form.is_valid():
             datos = form.cleaned_data
@@ -185,9 +189,9 @@ def editar_graduado(request, legajo, carrera):
                 carrera_nueva.codigo_carrera != registro.codigo_carrera_id
             )
 
-            # No puede duplicar la fila (legajo, nueva carrera).
+            # No puede duplicar la fila (DNI, nueva carrera).
             if cambio_carrera and GraduadoCarrera.objects.filter(
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera=carrera_nueva,
             ).exists():
                 form.add_error(
@@ -195,8 +199,8 @@ def editar_graduado(request, legajo, carrera):
                     "El graduado ya tiene datos cargados para esa carrera.",
                 )
 
-            # El DNI no puede pertenecer a otro legajo.
-            elif not validar_dni_unico(datos["dni"], legajo):
+            # El DNI es inmutable, pero se verifica por si acaso.
+            elif not validar_dni_unico(datos["dni"], dni):
                 form.add_error(
                     "dni",
                     "El DNI ya está asociado a otro graduado.",
@@ -223,18 +227,17 @@ def editar_graduado(request, legajo, carrera):
                 with transaction.atomic():
                     graduado.nombre = datos["nombre"]
                     graduado.apellido = datos["apellido"]
-                    graduado.dni = datos["dni"]
                     graduado.anio_ingreso_universidad = (
                         datos["anio_ingreso_universidad"]
                     )
                     graduado.save()
 
                     # Un cambio de carrera modifica la clave
-                    # primaria compuesta (legajo, carrera).
+                    # primaria compuesta (DNI, carrera).
                     # Se migra la fila dentro de la transacción.
                     if cambio_carrera:
                         GraduadoCarrera.objects.create(
-                            legajo_graduado=graduado,
+                            dni_graduado=graduado,
                             codigo_carrera=carrera_nueva,
                             fecha_ingreso_carrera=(
                                 datos["fecha_ingreso_carrera"]
@@ -287,7 +290,7 @@ def editar_graduado(request, legajo, carrera):
 
                         nacimiento = (
                             DatosNacimiento.objects
-                            .filter(legajo_graduado=graduado)
+                            .filter(dni_graduado=graduado)
                             .first()
                         )
 
@@ -298,7 +301,7 @@ def editar_graduado(request, legajo, carrera):
                             nacimiento.save()
                         else:
                             DatosNacimiento.objects.create(
-                                legajo_graduado=graduado,
+                                dni_graduado=graduado,
                                 fecha_nacimiento=fecha_nac,
                                 id_provincia=provincia_obj,
                                 id_ciudad=ciudad_obj,
@@ -339,12 +342,12 @@ def editar_graduado(request, legajo, carrera):
                         # actualiza el existente o se crea uno nuevo.
                         existente = (
                             Secundario.objects
-                            .filter(legajo_graduado=graduado)
+                            .filter(dni_graduado=graduado)
                             .first()
                         )
 
                         Secundario.objects.update_or_create(
-                            legajo_graduado=graduado,
+                            dni_graduado=graduado,
                             defaults={
                                 "nombre_secundario": (
                                     nombre_sec
@@ -373,19 +376,18 @@ def editar_graduado(request, legajo, carrera):
     else:
         nacimiento = (
             DatosNacimiento.objects
-            .filter(legajo_graduado=graduado)
+            .filter(dni_graduado=graduado)
             .select_related("id_ciudad", "id_provincia")
             .first()
         )
         secundario = (
             Secundario.objects
-            .filter(legajo_graduado=graduado)
+            .filter(dni_graduado=graduado)
             .select_related("id_ciudad", "id_provincia")
             .first()
         )
 
         form = EdicionGraduadoForm(
-            legajo=legajo,
             initial={
                 "codigo_carrera": registro.codigo_carrera_id,
                 "nombre": graduado.nombre,

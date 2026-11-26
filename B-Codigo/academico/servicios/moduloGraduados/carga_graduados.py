@@ -4,9 +4,14 @@ Carga manual de graduados con los datos mínimos.
 Separa tres responsabilidades:
 
 1. convertir el formulario en un dict serializable en sesión;
-2. detectar conflictos (legajo, DNI o carrera ya cargada) para
-   pedir confirmación antes de sobrescribir;
+2. detectar conflictos (DNI o carrera ya cargada) para pedir
+   confirmación antes de sobrescribir;
 3. guardar en una transacción y registrar la auditoría.
+
+El DNI es la clave del graduado. El legajo es un dato derivado,
+calculado a partir del DNI y del año de ingreso a la UARG, y nunca
+se ingresa: en el payload viaja sólo para mostrarlo en la
+confirmación.
 
 El payload a confirmar viaja en la sesión con un token, no en
 campos ocultos del formulario.
@@ -19,9 +24,16 @@ from django.db import transaction
 
 from academico.models import Carrera, Graduado, GraduadoCarrera, OrigenPromedio
 from academico.servicios.auditoria import registrar_auditoria
+from academico.servicios.legajo import generar_legajo
 
 
 CLAVE_PENDIENTE = "carga_graduados_pendiente"
+
+
+def _legajo_derivado(dni, anio):
+    """Legajo calculado; ``None`` si falta el DNI o el año de ingreso."""
+
+    return generar_legajo(dni, anio)
 
 
 def datos_desde_form(form):
@@ -33,14 +45,17 @@ def datos_desde_form(form):
     """
 
     datos = form.cleaned_data
+    dni = datos["dni"]
+    anio = datos["anio_ingreso_universidad"]
 
     return {
-        "legajo": datos["legajo"],
-        "dni": datos["dni"],
+        "dni": dni,
+        # Sólo para mostrar en la confirmación; no es un input.
+        "legajo": _legajo_derivado(dni, anio),
         "nombre": datos["nombre"],
         "apellido": datos["apellido"],
         "codigo_carrera": datos["codigo_carrera"].codigo_carrera,
-        "anio_ingreso_universidad": datos["anio_ingreso_universidad"],
+        "anio_ingreso_universidad": anio,
         "fecha_ingreso_carrera": datos["fecha_ingreso_carrera"],
         "fecha_egreso_carrera": datos["fecha_egreso_carrera"],
         "promedio_sin_aplazo": datos["promedio_sin_aplazo"],
@@ -65,11 +80,24 @@ def datos_desde_sesion(sesion):
 
     try:
         datos["promedio_sin_aplazo"] = float(datos["promedio_sin_aplazo"])
-        datos["anio_ingreso_universidad"] = int(
-            datos["anio_ingreso_universidad"]
-        )
     except (KeyError, TypeError, ValueError):
         return None, None
+
+    valor_anio = datos.get("anio_ingreso_universidad")
+
+    if valor_anio in (None, ""):
+        datos["anio_ingreso_universidad"] = None
+    else:
+        try:
+            datos["anio_ingreso_universidad"] = int(valor_anio)
+        except (TypeError, ValueError):
+            return None, None
+
+    # El legajo se recalcula: la sesión puede venir de una versión
+    # anterior o el año pudo cambiar mientras se confirmaba.
+    datos["legajo"] = _legajo_derivado(
+        datos.get("dni"), datos["anio_ingreso_universidad"]
+    )
 
     return datos, pendiente["token"]
 
@@ -125,42 +153,27 @@ def detectar_conflictos(datos):
 
     Cada ítem tiene ``entidad``, ``clave``, ``actual`` y ``nuevo``
     ya formateados para mostrar en la pantalla de confirmación.
+    La identidad del graduado es el DNI (su clave primaria); el
+    legajo derivado nunca se usa para detectar conflictos.
     """
 
     conflictos = []
-    legajo = datos["legajo"]
+    dni = datos["dni"]
 
     nuevo = _descripcion_persona_simple(datos)
 
-    por_legajo = Graduado.objects.filter(
-        legajo_graduado=legajo
-    ).first()
-
-    if por_legajo is not None:
-        conflictos.append({
-            "entidad": "Datos personales del legajo",
-            "clave": legajo,
-            "actual": _descripcion_persona(por_legajo),
-            "nuevo": nuevo,
-        })
-
-    por_dni = Graduado.objects.filter(
-        dni=datos["dni"]
-    ).exclude(legajo_graduado=legajo).first()
+    por_dni = Graduado.objects.filter(pk=dni).first()
 
     if por_dni is not None:
         conflictos.append({
-            "entidad": "DNI ya registrado en otro legajo",
-            "clave": datos["dni"],
-            "actual": (
-                f"{por_dni.legajo_graduado} · "
-                f"{_descripcion_persona(por_dni)}"
-            ),
-            "nuevo": f"{legajo} · {nuevo}",
+            "entidad": "Datos personales del DNI",
+            "clave": dni,
+            "actual": _descripcion_persona(por_dni),
+            "nuevo": nuevo,
         })
 
     relacion = GraduadoCarrera.objects.filter(
-        legajo_graduado_id=legajo,
+        dni_graduado_id=dni,
         codigo_carrera_id=datos["codigo_carrera"],
     ).first()
 
@@ -195,6 +208,9 @@ def guardar(datos, usuario=None, sobrescribiendo=False):
     """
     Crea o actualiza al graduado y su relación con la carrera.
 
+    El DNI identifica al graduado. El legajo se calcula solo en
+    ``Graduado.save()`` con el DNI y el año de ingreso a la UARG.
+
     El promedio con aplazo no se informa en esta pantalla: se
     conserva el valor que ya estuviera cargado.
     """
@@ -204,9 +220,8 @@ def guardar(datos, usuario=None, sobrescribiendo=False):
     )
 
     graduado, _ = Graduado.objects.update_or_create(
-        legajo_graduado=datos["legajo"],
+        pk=datos["dni"],
         defaults={
-            "dni": datos["dni"],
             "nombre": datos["nombre"],
             "apellido": datos["apellido"],
             "anio_ingreso_universidad": (
@@ -216,7 +231,7 @@ def guardar(datos, usuario=None, sobrescribiendo=False):
     )
 
     relacion, _ = GraduadoCarrera.objects.update_or_create(
-        legajo_graduado=graduado,
+        dni_graduado=graduado,
         codigo_carrera=carrera,
         defaults={
             "fecha_ingreso_carrera": datos["fecha_ingreso_carrera"],
@@ -230,7 +245,7 @@ def guardar(datos, usuario=None, sobrescribiendo=False):
         usuario,
         "graduado_cargado_manualmente",
         entidad="Graduado",
-        entidad_id=graduado.legajo_graduado,
+        entidad_id=graduado.pk,
         detalle={
             "codigo_carrera": carrera.codigo_carrera,
             "anio_ingreso_universidad": (

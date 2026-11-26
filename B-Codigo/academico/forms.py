@@ -139,13 +139,9 @@ class EdicionGraduadoForm(forms.Form):
     y de su relación con una carrera (incluye la posibilidad de
     cambiar la carrera asociada).
 
-    ``legajo`` es el valor original: se usa para validar su
-    coherencia con el DNI y el año de ingreso informados.
+    El DNI es la clave primaria y no se puede editar: se muestra
+    deshabilitado y se toma del valor inicial del formulario.
     """
-
-    def __init__(self, *args, legajo=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.legajo = legajo
 
     codigo_carrera = CarreraModelChoiceField(
         queryset=Carrera.objects.select_related("id_escuela").order_by(
@@ -171,11 +167,15 @@ class EdicionGraduadoForm(forms.Form):
     dni = forms.CharField(
         max_length=20,
         label="DNI",
-        widget=forms.TextInput(attrs={"class": "form-control"}),
+        disabled=True,
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "readonly": "readonly"}
+        ),
     )
 
     anio_ingreso_universidad = forms.IntegerField(
-        label="Año de ingreso a la UARG",
+        label="Año de ingreso a la UARG (opcional)",
+        required=False,
         min_value=1900,
         max_value=2100,
         widget=forms.NumberInput(
@@ -297,7 +297,6 @@ class EdicionGraduadoForm(forms.Form):
         fecha_carrera = datos.get("fecha_ingreso_carrera")
 
         normalizados, errores = validar_datos_graduado({
-            "legajo": self.legajo,
             "dni": datos.get("dni"),
             "anio_ingreso_universidad": (
                 datos.get("anio_ingreso_universidad")
@@ -332,17 +331,6 @@ class CargaGraduadoForm(forms.Form):
     aplazo: esos datos se completan en otras pantallas.
     """
 
-    legajo = forms.CharField(
-        max_length=50,
-        label="Legajo",
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Ejemplo: 1-46189053/24",
-            }
-        ),
-    )
-
     dni = forms.CharField(
         max_length=20,
         label="DNI",
@@ -373,7 +361,8 @@ class CargaGraduadoForm(forms.Form):
     )
 
     anio_ingreso_universidad = forms.IntegerField(
-        label="Año de ingreso a la UARG",
+        label="Año de ingreso a la UARG (opcional)",
+        required=False,
         min_value=1900,
         max_value=2100,
         widget=forms.NumberInput(
@@ -428,7 +417,6 @@ class CargaGraduadoForm(forms.Form):
         fecha_carrera = datos.get("fecha_ingreso_carrera")
 
         normalizados, errores = validar_datos_graduado({
-            "legajo": datos.get("legajo"),
             "dni": datos.get("dni"),
             "anio_ingreso_universidad": (
                 datos.get("anio_ingreso_universidad")
@@ -443,7 +431,10 @@ class CargaGraduadoForm(forms.Form):
         for error in errores:
             self.add_error(None, error)
 
-        datos["legajo"] = normalizados["legajo"] or datos.get("legajo")
+        datos["legajo"] = normalizados["legajo"]
+        datos["anio_ingreso_universidad"] = (
+            normalizados["anio_ingreso_universidad"]
+        )
         datos["dni"] = normalizados["dni"] or datos.get("dni")
 
         promedio = datos.get("promedio_sin_aplazo")

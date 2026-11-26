@@ -46,8 +46,9 @@ from .servicios.validaciones import (
     validar_cronologia_fechas,
     validar_datos_graduado,
     validar_dni,
-    validar_legajo,
+    validar_dni_unico,
 )
+from .servicios.legajo import generar_legajo, normalizar_dni
 from .servicios.provincias import provincias_sugeridas
 from .servicios.moduloCarga.carga_datos import CargaDatos
 from .servicios.moduloGraduados.eliminacion import CONFIRMACION_BORRADO
@@ -169,14 +170,13 @@ class EdicionGraduadoTest(BasePrueba):
             id_escuela=cls.escuela,
         )
         cls.graduado = Graduado.objects.create(
-            legajo_graduado="1-12345678/15",
             dni="12345678",
             anio_ingreso_universidad=2015,
             nombre="Ana",
             apellido="Perez",
         )
         cls.registro = GraduadoCarrera.objects.create(
-            legajo_graduado=cls.graduado,
+            dni_graduado=cls.graduado,
             codigo_carrera=cls.carrera,
             fecha_ingreso_carrera=date(2016, 3, 1),
             fecha_egreso_carrera=date(2020, 12, 15),
@@ -188,7 +188,7 @@ class EdicionGraduadoTest(BasePrueba):
         self.iniciar_sesion(self.titulos)
 
         respuesta = self.client.post(
-            reverse("editar_graduado", args=["1-12345678/15", "CAR1"]),
+            reverse("editar_graduado", args=["12345678", "CAR1"]),
             {
                 "codigo_carrera": "CAR1",
                 "nombre": "Ana Maria",
@@ -212,7 +212,7 @@ class EdicionGraduadoTest(BasePrueba):
         self.iniciar_sesion(self.titulos)
 
         respuesta = self.client.post(
-            reverse("editar_graduado", args=["1-12345678/15", "CAR1"]),
+            reverse("editar_graduado", args=["12345678", "CAR1"]),
             {
                 "codigo_carrera": "CAR1",
                 "nombre": "Ana",
@@ -229,19 +229,13 @@ class EdicionGraduadoTest(BasePrueba):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "egreso")
 
-    def test_dni_duplicado_rechazado(self):
-        Graduado.objects.create(
-            legajo_graduado="1-99999999/14",
-            dni="99999999",
-            anio_ingreso_universidad=2014,
-            nombre="Otro",
-            apellido="Alumno",
-        )
+    def test_dni_no_se_puede_cambiar_desde_el_formulario(self):
+        """El DNI es la PK: un POST manipulado no la modifica."""
 
         self.iniciar_sesion(self.titulos)
 
         respuesta = self.client.post(
-            reverse("editar_graduado", args=["1-12345678/15", "CAR1"]),
+            reverse("editar_graduado", args=["12345678", "CAR1"]),
             {
                 "codigo_carrera": "CAR1",
                 "nombre": "Ana",
@@ -255,12 +249,14 @@ class EdicionGraduadoTest(BasePrueba):
             },
         )
 
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "DNI")
+        self.assertEqual(respuesta.status_code, 302)
+        graduado = Graduado.objects.get(pk="12345678")
+        self.assertEqual(graduado.dni, "12345678")
+        self.assertFalse(Graduado.objects.filter(pk="99999999").exists())
 
     def test_editar_legacy_con_nulls(self):
         registro = GraduadoCarrera.objects.get(
-            legajo_graduado=self.graduado,
+            dni_graduado=self.graduado,
             codigo_carrera=self.carrera,
         )
         registro.promedio_sin_aplazo = None
@@ -270,7 +266,7 @@ class EdicionGraduadoTest(BasePrueba):
         self.iniciar_sesion(self.titulos)
 
         respuesta = self.client.get(
-            reverse("editar_graduado", args=["1-12345678/15", "CAR1"]),
+            reverse("editar_graduado", args=["12345678", "CAR1"]),
         )
 
         self.assertEqual(respuesta.status_code, 200)
@@ -278,7 +274,7 @@ class EdicionGraduadoTest(BasePrueba):
         self.assertContains(respuesta, "Estudios secundarios")
 
         respuesta = self.client.post(
-            reverse("editar_graduado", args=["1-12345678/15", "CAR1"]),
+            reverse("editar_graduado", args=["12345678", "CAR1"]),
             {
                 "codigo_carrera": "CAR1",
                 "nombre": "Ana",
@@ -307,12 +303,12 @@ class EdicionGraduadoTest(BasePrueba):
         from academico.models import DatosNacimiento, Secundario
 
         nacimiento = DatosNacimiento.objects.get(
-            legajo_graduado=self.graduado
+            dni_graduado=self.graduado
         )
         self.assertEqual(str(nacimiento.fecha_nacimiento), "1990-04-06")
 
         secundario = Secundario.objects.get(
-            legajo_graduado=self.graduado
+            dni_graduado=self.graduado
         )
         self.assertEqual(
             secundario.titulo_secundario,
@@ -329,7 +325,7 @@ class EdicionGraduadoTest(BasePrueba):
         self.iniciar_sesion(self.titulos)
 
         respuesta = self.client.post(
-            reverse("editar_graduado", args=["1-12345678/15", "CAR1"]),
+            reverse("editar_graduado", args=["12345678", "CAR1"]),
             {
                 "codigo_carrera": "CAR2",
                 "nombre": "Ana",
@@ -346,19 +342,19 @@ class EdicionGraduadoTest(BasePrueba):
         self.assertEqual(respuesta.status_code, 302)
         self.assertFalse(
             GraduadoCarrera.objects.filter(
-                legajo_graduado=self.graduado,
+                dni_graduado=self.graduado,
                 codigo_carrera="CAR1",
             ).exists()
         )
         registro = GraduadoCarrera.objects.get(
-            legajo_graduado=self.graduado,
+            dni_graduado=self.graduado,
             codigo_carrera=nueva_carrera,
         )
         self.assertEqual(registro.promedio_sin_aplazo, 8.5)
 
     def test_cambio_de_carrera_duplicada_rechazado(self):
         GraduadoCarrera.objects.create(
-            legajo_graduado=self.graduado,
+            dni_graduado=self.graduado,
             codigo_carrera=Carrera.objects.create(
                 codigo_carrera="CAR2",
                 nombre_carrera="Otra carrera",
@@ -373,7 +369,7 @@ class EdicionGraduadoTest(BasePrueba):
         self.iniciar_sesion(self.titulos)
 
         respuesta = self.client.post(
-            reverse("editar_graduado", args=["1-12345678/15", "CAR1"]),
+            reverse("editar_graduado", args=["12345678", "CAR1"]),
             {
                 "codigo_carrera": "CAR2",
                 "nombre": "Ana",
@@ -395,13 +391,13 @@ class EdicionGraduadoTest(BasePrueba):
         # El registro original queda intacto.
         self.assertTrue(
             GraduadoCarrera.objects.filter(
-                legajo_graduado=self.graduado,
+                dni_graduado=self.graduado,
                 codigo_carrera="CAR1",
             ).exists()
         )
         self.assertEqual(
             GraduadoCarrera.objects.filter(
-                legajo_graduado=self.graduado,
+                dni_graduado=self.graduado,
             ).count(),
             2,
         )
@@ -410,7 +406,6 @@ class EdicionGraduadoTest(BasePrueba):
 class CargaGraduadosTest(BasePrueba):
     """Carga manual de un graduado con datos mínimos."""
 
-    LEGAJO = "1-41734713/17"
     DNI = "41734713"
 
     @classmethod
@@ -428,7 +423,6 @@ class CargaGraduadosTest(BasePrueba):
 
     def datos(self, **cambios):
         datos = {
-            "legajo": self.LEGAJO,
             "dni": self.DNI,
             "nombre": "Ana",
             "apellido": "Perez",
@@ -445,16 +439,15 @@ class CargaGraduadosTest(BasePrueba):
     def enviar(self, datos):
         return self.client.post(reverse("carga_graduados"), datos)
 
-    def crear_duplicado(self, dni="11111111"):
+    def crear_duplicado(self, dni=None):
         graduado = Graduado.objects.create(
-            legajo_graduado=self.LEGAJO,
-            dni=dni,
+            dni=dni or self.DNI,
             anio_ingreso_universidad=2016,
             nombre="Viejo",
             apellido="Datos",
         )
         registro = GraduadoCarrera.objects.create(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=self.carrera,
             fecha_ingreso_carrera=date(2018, 3, 1),
             fecha_egreso_carrera=date(2023, 1, 10),
@@ -490,12 +483,12 @@ class CargaGraduadosTest(BasePrueba):
 
         self.assertRedirects(respuesta, reverse("carga_graduados"))
 
-        graduado = Graduado.objects.get(pk=self.LEGAJO)
+        graduado = Graduado.objects.get(pk=self.DNI)
         self.assertEqual(graduado.dni, self.DNI)
         self.assertEqual(graduado.anio_ingreso_universidad, 2017)
 
         registro = GraduadoCarrera.objects.get(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=self.carrera,
         )
         self.assertEqual(registro.promedio_sin_aplazo, 8.5)
@@ -507,7 +500,7 @@ class CargaGraduadosTest(BasePrueba):
         auditoria = Auditoria.objects.get(
             accion="graduado_cargado_manualmente"
         )
-        self.assertEqual(auditoria.entidad_id, self.LEGAJO)
+        self.assertEqual(auditoria.entidad_id, self.DNI)
         self.assertEqual(auditoria.id_usuario, self.titulos)
         self.assertFalse(auditoria.detalle["sobrescribiendo"])
 
@@ -601,18 +594,25 @@ class CargaGraduadosTest(BasePrueba):
         self.assertFalse(Auditoria.objects.exists())
 
     def test_conflicto_nuevo_vuelve_a_pedir_confirmacion(self):
-        self.crear_duplicado()
+        # El DNI es la PK: no puede haber dos graduados con el mismo
+        # DNI. El conflicto nuevo puede aparecer en la carrera.
+        Graduado.objects.create(
+            dni=self.DNI,
+            anio_ingreso_universidad=2016,
+            nombre="Viejo",
+            apellido="Datos",
+        )
         self.iniciar_sesion(self.titulos)
         self.enviar(self.datos())
         token = self.client.session[CLAVE_PENDIENTE]["token"]
 
-        # Otro legajo adoptó el DNI mientras se esperaba la confirmación.
-        Graduado.objects.create(
-            legajo_graduado="1-99999999/19",
-            dni=self.DNI,
-            anio_ingreso_universidad=2019,
-            nombre="Otro",
-            apellido="Alumno",
+        # Mientras se esperaba la confirmación se cargó la carrera.
+        GraduadoCarrera.objects.create(
+            dni_graduado_id=self.DNI,
+            codigo_carrera=self.carrera,
+            fecha_ingreso_carrera=date(2018, 3, 1),
+            fecha_egreso_carrera=date(2023, 1, 10),
+            promedio_sin_aplazo=7.0,
         )
 
         respuesta = self.client.post(
@@ -621,12 +621,10 @@ class CargaGraduadosTest(BasePrueba):
         )
 
         self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "DNI ya registrado en otro legajo")
-        self.assertFalse(
-            Graduado.objects.filter(legajo_graduado=self.LEGAJO)
-            .exclude(nombre="Viejo")
-            .exists()
-        )
+        self.assertContains(respuesta, "Datos personales del DNI")
+        self.assertContains(respuesta, "Datos de la carrera")
+        graduado = Graduado.objects.get(pk=self.DNI)
+        self.assertEqual(graduado.nombre, "Viejo")
         self.assertFalse(Auditoria.objects.exists())
 
 
@@ -675,14 +673,13 @@ class EstadisticaPorAnioTest(BasePrueba):
 
         for i, anio in enumerate([2020, 2020, 2021], start=1):
             g = Graduado.objects.create(
-                legajo_graduado=f"L{i}",
                 dni=f"1000000{i}",
                 anio_ingreso_universidad=2015,
                 nombre="N",
                 apellido="A",
             )
             GraduadoCarrera.objects.create(
-                legajo_graduado=g,
+                dni_graduado=g,
                 codigo_carrera=carrera,
                 fecha_ingreso_carrera=date(2016, 1, 1),
                 fecha_egreso_carrera=date(anio, 12, 1),
@@ -1073,7 +1070,7 @@ def _lincoln_xlsx_fixture_equivalencia():
     wb = Workbook()
     ws = wb.active
     headers = [
-        "unidad_academica", "carrera", "legajo", "nombre_alumno",
+        "unidad_academica", "carrera", "dni", "nombre_alumno",
         "desc_abreviada", "nro_documento", "nro_inscripcion",
         "nombre_materia", "fecha_regularidad", "fecha_examen",
         "escala_notas", "acta_promocion", "nombre", "materia",
@@ -1091,8 +1088,8 @@ def _lincoln_xlsx_fixture_equivalencia():
         ("9003", "Materia Tres"),
     ]:
         ws.append([
-            "UARG", "72", "1-00000000/00", "PEREZ, JUAN", "DNI",
-            "1-00000000/00", "1-41734713/17", nombre,
+            "UARG", "72", "41734713", "PEREZ, JUAN", "DNI",
+            "1-00000000/00", "41734713", nombre,
             "", "13/03/2024",
             "", "", "Carrera Test", codigo, "RIO GALLEGOS", "Argentina",
             "", "", "", "", 9, "Nueve",
@@ -1112,7 +1109,7 @@ def _lincoln_xlsx_fixture():
     wb = Workbook()
     ws = wb.active
     headers = [
-        "unidad_academica", "carrera", "legajo", "nombre_alumno",
+        "unidad_academica", "carrera", "dni", "nombre_alumno",
         "desc_abreviada", "nro_documento", "nro_inscripcion",
         "nombre_materia", "fecha_regularidad", "fecha_examen",
         "escala_notas", "acta_promocion", "nombre", "materia",
@@ -1129,8 +1126,8 @@ def _lincoln_xlsx_fixture():
         ("9002", "Materia Dos", 10, "Diez", "16/12/2021", "RG00000002"),
     ]:
         ws.append([
-            "UARG", "72", "1-00000000/00", "PEREZ, JUAN", "DNI",
-            "1-00000000/00", "1-41734713/17", nombre, "", fecha,
+            "UARG", "72", "41734713", "PEREZ, JUAN", "DNI",
+            "1-00000000/00", "41734713", nombre, "", fecha,
             "", "", "Carrera Test", codigo, "RIO GALLEGOS", "Argentina",
             "", "", "", "", nota, descr, acta, "", "", "",
             "Final", "QUIEN CORRESPONDA", "", "", "", "2021", "Anual", "",
@@ -1149,7 +1146,7 @@ def _lincoln_xlsx_fixture_discrepancias():
     wb = Workbook()
     ws = wb.active
     headers = [
-        "unidad_academica", "carrera", "legajo", "nombre_alumno",
+        "unidad_academica", "carrera", "dni", "nombre_alumno",
         "desc_abreviada", "nro_documento", "nro_inscripcion",
         "nombre_materia", "fecha_regularidad", "fecha_examen",
         "escala_notas", "acta_promocion", "nombre", "materia",
@@ -1166,8 +1163,8 @@ def _lincoln_xlsx_fixture_discrepancias():
         ("9999", "Materia Fuera", "RG00000012"),
     ]:
         ws.append([
-            "UARG", "72", "1-00000000/00", "PEREZ, JUAN", "DNI",
-            "1-00000000/00", "1-41734713/17", nombre, "", "01/03/2023",
+            "UARG", "72", "41734713", "PEREZ, JUAN", "DNI",
+            "1-00000000/00", "41734713", nombre, "", "01/03/2023",
             "", "", "Carrera Test", codigo, "RIO GALLEGOS", "Argentina",
             "", "", "", "", 7, "Siete", acta, "", "", "",
             "Final", "QUIEN CORRESPONDA", "", "", "", "2021", "Anual", "",
@@ -1240,7 +1237,6 @@ class GeneracionAnaliticosTest(BasePrueba):
             "nombre": "Juan",
             "apellido": "Perez",
             "dni": "41734713",
-            "legajo": "1-41734713/17",
             "anio_ingreso_uarg": "2017",
             "carrera": "PR1",
             "anio_ingreso_carrera": "2018",
@@ -1362,14 +1358,13 @@ class GeneracionAnaliticosTest(BasePrueba):
         )
 
         graduado = Graduado.objects.create(
-            legajo_graduado="1-42000000/17",
             dni="42000000",
             anio_ingreso_universidad=2017,
             nombre="Juan",
             apellido="Perez",
         )
         GraduadoCarrera.objects.create(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=self.carrera,
             fecha_ingreso_carrera=date(2018, 3, 1),
             fecha_egreso_carrera=date(2024, 4, 24),
@@ -1377,7 +1372,7 @@ class GeneracionAnaliticosTest(BasePrueba):
             promedio_con_aplazo=6.5,
         )
         GraduadoCarrera.objects.create(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=alt,
             fecha_ingreso_carrera=date(2018, 3, 1),
             fecha_egreso_carrera=date(2024, 4, 24),
@@ -1402,7 +1397,6 @@ class GeneracionAnaliticosTest(BasePrueba):
 
         payload = dict(self._form_base())
         payload["accion"] = "continuar"
-        payload["legajo"] = "1-42000000/17"
         payload["dni"] = "42000000"
         payload["archivo_notas"] = archivo
 
@@ -1411,7 +1405,6 @@ class GeneracionAnaliticosTest(BasePrueba):
         # Validar contra PR1: las notas se guardan para PR1.
         payload = dict(self._form_base())
         payload["accion"] = "validar"
-        payload["legajo"] = "1-42000000/17"
         payload["dni"] = "42000000"
         payload["fila_indice"] = ["01", "02"]
         payload["fila_anio"] = ["1", "2"]
@@ -1427,7 +1420,7 @@ class GeneracionAnaliticosTest(BasePrueba):
 
         self.assertEqual(
             GraduadoExamen.objects.filter(
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera=self.carrera,
             ).count(),
             2,
@@ -1436,7 +1429,7 @@ class GeneracionAnaliticosTest(BasePrueba):
         # PRA (la otra carrera del mismo graduado) no tiene notas.
         self.assertEqual(
             GraduadoExamen.objects.filter(
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera=alt,
             ).count(),
             0,
@@ -1493,25 +1486,25 @@ class GeneracionAnaliticosTest(BasePrueba):
 
         self.assertEqual(respuesta.status_code, 302)
 
-        graduado = Graduado.objects.get(legajo_graduado="1-41734713/17")
+        graduado = Graduado.objects.get(pk="41734713")
 
         self.assertEqual(
             GraduadoExamen.objects.filter(
-                legajo_graduado=graduado
+                dni_graduado=graduado
             ).count(),
             2,
         )
 
         self.assertTrue(
             GraduadoCarrera.objects.filter(
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera=self.carrera,
             ).exists()
         )
 
         self.assertTrue(
             Analitico.objects.filter(
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera=self.carrera,
                 tipo_documento="titulo",
             ).exists()
@@ -1521,7 +1514,7 @@ class GeneracionAnaliticosTest(BasePrueba):
             url,
             {
                 "accion": "descargar",
-                "legajo": "1-41734713/17",
+                "dni": "41734713",
                 "carrera": "PR1",
             },
         )
@@ -1662,12 +1655,13 @@ class GeneracionAnaliticosTest(BasePrueba):
         mensajes = [str(m) for m in get_messages(respuesta.wsgi_request)]
         self.assertTrue(any("acción" in m.lower() for m in mensajes))
 
-    def test_datos_invalidos_conservan_dni_y_legajo(self):
+    def test_datos_invalidos_conservan_dni_y_no_derivan_legajo(self):
         self.iniciar_sesion(self.admin)
 
         payload = self._form_base()
         payload["accion"] = "continuar"
         payload["dni"] = "41.734.713"
+        # El legajo no se ingresa: una clave extra no altera el resultado.
         payload["legajo"] = "UARG-24827"
 
         respuesta = self.client.post(
@@ -1679,10 +1673,7 @@ class GeneracionAnaliticosTest(BasePrueba):
             respuesta.context["datos"]["dni"],
             "41.734.713",
         )
-        self.assertEqual(
-            respuesta.context["datos"]["legajo"],
-            "UARG-24827",
-        )
+        self.assertIsNone(respuesta.context["datos"]["legajo"])
 
     def test_formulario_no_deshabilita_el_boton_al_enviar(self):
         self.iniciar_sesion(self.admin)
@@ -1692,7 +1683,7 @@ class GeneracionAnaliticosTest(BasePrueba):
 
         self.assertIn('name="accion"', contenido)
         self.assertNotIn("boton.disabled = true", contenido)
-        self.assertIn("1-41734713/17", contenido)
+        self.assertIn('name="dni"', contenido)
 
     def test_borrador_sobrevive_a_la_recarga(self):
         self.iniciar_sesion(self.admin)
@@ -2002,7 +1993,7 @@ class GeneracionAnaliticosTest(BasePrueba):
         )
         self.assertEqual(
             GraduadoExamen.objects.filter(
-                legajo_graduado__legajo_graduado="1-41734713/17"
+                dni_graduado__dni="41734713"
             ).count(),
             3,
         )
@@ -2144,7 +2135,7 @@ class GeneracionAnaliticosTest(BasePrueba):
             url,
             {
                 "accion": "descargar",
-                "legajo": "1-41734713/17",
+                "dni": "41734713",
                 "carrera": "PR1",
             },
             follow=True,
@@ -2197,7 +2188,7 @@ class GeneracionAnaliticosTest(BasePrueba):
             url,
             {
                 "accion": "descargar",
-                "legajo": "1-41734713/17",
+                "dni": "41734713",
                 "carrera": "PR1",
             },
             follow=True,
@@ -2211,14 +2202,13 @@ class GeneracionAnaliticosTest(BasePrueba):
 
     def test_ya_existe_el_graduado_ofrece_opciones(self):
         graduado = Graduado.objects.create(
-            legajo_graduado="1-41734713/17",
             dni="41734713",
             anio_ingreso_universidad=2017,
             nombre="Juan",
             apellido="Perez",
         )
         GraduadoCarrera.objects.create(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=self.carrera,
             fecha_ingreso_carrera=date(2018, 3, 1),
             fecha_egreso_carrera=date(2024, 4, 24),
@@ -2230,7 +2220,7 @@ class GeneracionAnaliticosTest(BasePrueba):
 
         respuesta = self.client.get(
             reverse("generacion_analiticos")
-            + "?modo=elegir&legajo=1-41734713/17&carrera=PR1"
+            + "?modo=elegir&dni=41734713&carrera=PR1"
         )
 
         self.assertEqual(respuesta.status_code, 200)
@@ -2414,7 +2404,7 @@ class GeneracionAnaliticosTest(BasePrueba):
             url,
             {
                 "accion": "descargar",
-                "legajo": "1-41734713/17",
+                "dni": "41734713",
                 "carrera": "PR1",
             },
         )
@@ -2467,7 +2457,7 @@ class GeneracionAnaliticosTest(BasePrueba):
             url,
             {
                 "accion": "descargar",
-                "legajo": "1-41734713/17",
+                "dni": "41734713",
                 "carrera": "PR1",
             },
         )
@@ -2637,14 +2627,13 @@ class TituloEnTramiteTest(BasePrueba):
             id_escuela=self.escuela,
         )
         self.graduado = Graduado.objects.create(
-            legajo_graduado="1-41734713/17",
             dni="41734713",
             nombre="Juan",
             apellido="Perez",
             anio_ingreso_universidad=2017,
         )
         GraduadoCarrera.objects.create(
-            legajo_graduado=self.graduado,
+            dni_graduado=self.graduado,
             codigo_carrera=self.carrera,
             fecha_ingreso_carrera=date(2018, 3, 1),
             fecha_egreso_carrera=date(2024, 4, 24),
@@ -2657,7 +2646,6 @@ class TituloEnTramiteTest(BasePrueba):
             "apellido": "Perez",
             "nombre": "Juan",
             "dni": "41734713",
-            "legajo": "1-41734713/17",
             "carrera": "TR1",
             "anio_ingreso_uarg": "2017",
             "anio_ingreso_carrera": "2018",
@@ -2683,7 +2671,7 @@ class TituloEnTramiteTest(BasePrueba):
 
         respuesta = self.client.post(
             reverse("titulo_en_tramite"),
-            {"accion": "buscar", "legajo": "NOEXISTE", "carrera": "TR1"},
+            {"accion": "buscar", "dni": "NOEXISTE", "carrera": "TR1"},
         )
 
         self.assertEqual(respuesta.status_code, 302)
@@ -2694,7 +2682,7 @@ class TituloEnTramiteTest(BasePrueba):
 
         respuesta = self.client.post(
             reverse("titulo_en_tramite"),
-            {"accion": "buscar", "legajo": "1-41734713/17", "carrera": "TR1"},
+            {"accion": "buscar", "dni": "41734713", "carrera": "TR1"},
         )
 
         self.assertEqual(respuesta.status_code, 302)
@@ -2711,7 +2699,7 @@ class TituloEnTramiteTest(BasePrueba):
         # Buscar → preview sin validar
         respuesta = self.client.post(
             reverse("titulo_en_tramite"),
-            {"accion": "buscar", "legajo": "1-41734713/17", "carrera": "TR1"},
+            {"accion": "buscar", "dni": "41734713", "carrera": "TR1"},
         )
 
         self.assertEqual(respuesta.status_code, 302)
@@ -2721,7 +2709,7 @@ class TituloEnTramiteTest(BasePrueba):
             reverse("titulo_en_tramite"),
             {
                 "accion": "generar",
-                "legajo": "1-41734713/17",
+                "dni": "41734713",
                 "carrera": "TR1",
             },
         )
@@ -2733,7 +2721,7 @@ class TituloEnTramiteTest(BasePrueba):
             reverse("titulo_en_tramite"),
             {
                 "accion": "descargar",
-                "legajo": "1-41734713/17",
+                "dni": "41734713",
                 "carrera": "TR1",
             },
         )
@@ -2751,7 +2739,7 @@ class TituloEnTramiteTest(BasePrueba):
 
         self.assertTrue(
             Analitico.objects.filter(
-                legajo_graduado_id="1-41734713/17",
+                dni_graduado_id="41734713",
                 codigo_carrera=self.carrera,
                 tipo_documento="en_tramite",
             ).exists()
@@ -2763,14 +2751,14 @@ class TituloEnTramiteTest(BasePrueba):
 
         self.client.post(
             reverse("titulo_en_tramite"),
-            {"accion": "buscar", "legajo": "1-41734713/17", "carrera": "TR1"},
+            {"accion": "buscar", "dni": "41734713", "carrera": "TR1"},
         )
 
         respuesta = self.client.post(
             reverse("titulo_en_tramite"),
             {
                 "accion": "generar",
-                "legajo": "1-41734713/17",
+                "dni": "41734713",
                 "carrera": "TR1",
             },
         )
@@ -2781,7 +2769,7 @@ class TituloEnTramiteTest(BasePrueba):
 
         self.assertTrue(
             Analitico.objects.filter(
-                legajo_graduado=self.graduado,
+                dni_graduado=self.graduado,
                 codigo_carrera=self.carrera,
                 tipo_documento="en_tramite",
             ).exists()
@@ -2979,19 +2967,18 @@ class FiltrosListadoTest(BasePrueba):
             id_escuela=self.escuela_b,
         )
 
-        for legajo, carrera, nombre in (
-            ("F001", self.carrera_a, "Ana"),
-            ("F002", self.carrera_b, "Beto"),
+        for dni, carrera, nombre in (
+            ("42000001", self.carrera_a, "Ana"),
+            ("42000002", self.carrera_b, "Beto"),
         ):
             graduado = Graduado.objects.create(
-                legajo_graduado=legajo,
-                dni=f"42{legajo[-3:]}",
+                dni=dni,
                 anio_ingreso_universidad=2015,
                 nombre=nombre,
                 apellido="Apellido",
             )
             GraduadoCarrera.objects.create(
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera=carrera,
                 fecha_ingreso_carrera=date(2016, 3, 1),
                 fecha_egreso_carrera=date(2020, 12, 1),
@@ -2999,34 +2986,33 @@ class FiltrosListadoTest(BasePrueba):
 
     def _crear_graduado_sin_carrera(self):
         return Graduado.objects.create(
-            legajo_graduado="F003",
-            dni="42333",
+            dni="42000003",
             anio_ingreso_universidad=2013,
             nombre="Carlos",
             apellido="SinCarrera",
         )
 
     def test_listado_devuelve_una_fila_por_carrera(self):
-        graduado = Graduado.objects.get(pk="F001")
+        graduado = Graduado.objects.get(pk="42000001")
         GraduadoCarrera.objects.create(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=self.carrera_b,
             fecha_ingreso_carrera=date(2017, 3, 1),
             fecha_egreso_carrera=date(2021, 12, 1),
         )
 
         filas = obtener_filas_busqueda({})
-        mismo_legajo = [
-            fila for fila in filas if fila.legajo_graduado_id == "F001"
+        mismo_dni = [
+            fila for fila in filas if fila.dni_graduado_id == "42000001"
         ]
 
-        self.assertEqual(len(mismo_legajo), 2)
+        self.assertEqual(len(mismo_dni), 2)
         self.assertEqual(
-            {fila.codigo_carrera_id for fila in mismo_legajo},
+            {fila.codigo_carrera_id for fila in mismo_dni},
             {"FA1", "FB1"},
         )
         self.assertTrue(
-            all(fila.cantidad_carreras == 2 for fila in mismo_legajo)
+            all(fila.cantidad_carreras == 2 for fila in mismo_dni)
         )
 
     def test_graduado_sin_carrera_aparece_con_vacio_en_el_listado(self):
@@ -3034,7 +3020,7 @@ class FiltrosListadoTest(BasePrueba):
 
         filas = obtener_filas_busqueda({})
         fila = next(
-            fila for fila in filas if fila.legajo_graduado_id == "F003"
+            fila for fila in filas if fila.dni_graduado_id == "42000003"
         )
 
         self.assertTrue(fila.sin_carrera)
@@ -3045,13 +3031,13 @@ class FiltrosListadoTest(BasePrueba):
         self.iniciar_sesion(self.titulos)
         respuesta = self.client.get(reverse("lista_graduados"))
 
-        self.assertContains(respuesta, "F003")
+        self.assertContains(respuesta, "42000003")
         self.assertContains(respuesta, "Sin carrera")
         self.assertContains(respuesta, "Vacio")
         self.assertContains(respuesta, "2013")
         self.assertNotContains(
             respuesta,
-            reverse("editar_graduado", args=["F003", "FA1"]),
+            reverse("editar_graduado", args=["42000003", "FA1"]),
         )
 
     def test_filtro_situacion_y_orden_por_inconsistencias(self):
@@ -3059,24 +3045,24 @@ class FiltrosListadoTest(BasePrueba):
 
         filas = obtener_filas_busqueda({"situacion": "sin_carrera"})
         self.assertEqual(
-            [fila.legajo_graduado_id for fila in filas],
-            ["F003"],
+            [fila.dni_graduado_id for fila in filas],
+            ["42000003"],
         )
 
         filas = obtener_filas_busqueda({"situacion": "con_carrera"})
         self.assertEqual(
-            {fila.legajo_graduado_id for fila in filas},
-            {"F001", "F002"},
+            {fila.dni_graduado_id for fila in filas},
+            {"42000001", "42000002"},
         )
 
         # El orden por defecto pone la inconsistencia al principio.
         filas = obtener_filas_busqueda({})
-        self.assertEqual(filas[0].legajo_graduado_id, "F003")
+        self.assertEqual(filas[0].dni_graduado_id, "42000003")
         self.assertTrue(filas[0].sin_carrera)
 
-        # Con otro orden, vuelve a mandar el legajo.
+        # Con otro orden, vuelve a ordenar por DNI.
         filas = obtener_filas_busqueda({"orden": "legajo"})
-        self.assertEqual(filas[0].legajo_graduado_id, "F001")
+        self.assertEqual(filas[0].dni_graduado_id, "42000001")
 
     def test_filtro_de_carrera_excluye_a_quien_no_tiene_carrera(self):
         self._crear_graduado_sin_carrera()
@@ -3084,8 +3070,8 @@ class FiltrosListadoTest(BasePrueba):
         filas = obtener_filas_busqueda({"carrera": "FA1"})
 
         self.assertEqual(
-            [fila.legajo_graduado_id for fila in filas],
-            ["F001"],
+            [fila.dni_graduado_id for fila in filas],
+            ["42000001"],
         )
 
     def test_excel_ignora_los_controles_nuevos_del_buscador(self):
@@ -3098,13 +3084,13 @@ class FiltrosListadoTest(BasePrueba):
             reverse("exportar_graduados") + "?situacion=sin_carrera&orden=legajo"
         )
         libro = load_workbook(BytesIO(respuesta.content))
-        legajos = [
+        dnis = [
             fila[0]
             for fila in libro.active.iter_rows(min_row=2, values_only=True)
         ]
 
-        self.assertIn("F001", legajos)
-        self.assertNotIn("F003", legajos)
+        self.assertIn("42000001", dnis)
+        self.assertNotIn("42000003", dnis)
 
         lista = self.client.get(
             reverse("lista_graduados") + "?situacion=sin_carrera"
@@ -3116,8 +3102,8 @@ class FiltrosListadoTest(BasePrueba):
 
         self.assertEqual(filas.count(), 1)
         self.assertEqual(
-            filas.first().legajo_graduado_id,
-            "F001",
+            filas.first().dni_graduado_id,
+            "42000001",
         )
 
     def test_filtro_por_escuela(self):
@@ -3125,8 +3111,8 @@ class FiltrosListadoTest(BasePrueba):
 
         self.assertEqual(filas.count(), 1)
         self.assertEqual(
-            filas.first().legajo_graduado_id,
-            "F002",
+            filas.first().dni_graduado_id,
+            "42000002",
         )
 
     def test_exportacion_respeta_el_filtro(self):
@@ -3159,7 +3145,7 @@ class FiltrosListadoTest(BasePrueba):
         fila = next(
             fila
             for fila in hoja.iter_rows(min_row=2, values_only=True)
-            if fila[0] == "F001"
+            if fila[0] == "42000001"
         )
         self.assertEqual(fila[4], 2015)
 
@@ -3232,7 +3218,7 @@ class AnaliticoPromediosTest(GeneracionAnaliticosTest):
         self.assertEqual(respuesta.status_code, 302)
 
         registro = GraduadoCarrera.objects.get(
-            legajo_graduado_id="1-41734713/17",
+            dni_graduado_id="41734713",
             codigo_carrera=self.carrera,
         )
 
@@ -3262,7 +3248,7 @@ class AnaliticoPromediosTest(GeneracionAnaliticosTest):
         self.assertEqual(respuesta.status_code, 302)
 
         registro = GraduadoCarrera.objects.get(
-            legajo_graduado_id="1-41734713/17",
+            dni_graduado_id="41734713",
             codigo_carrera=self.carrera,
         )
 
@@ -3311,13 +3297,13 @@ class AnaliticoPromediosTest(GeneracionAnaliticosTest):
 
         self.assertEqual(
             Secundario.objects.filter(
-                legajo_graduado_id="1-41734713/17"
+                dni_graduado_id="41734713"
             ).count(),
             1,
         )
         self.assertEqual(
             Secundario.objects.get(
-                legajo_graduado_id="1-41734713/17"
+                dni_graduado_id="41734713"
             ).nombre_secundario,
             "Otro Secundario",
         )
@@ -3336,14 +3322,13 @@ class ListaGraduadosTest(BasePrueba):
 
         for indice in range(30):
             graduado = Graduado.objects.create(
-                legajo_graduado=f"LI{indice:03d}",
                 dni=f"4100000{indice:02d}",
                 anio_ingreso_universidad=2015,
                 nombre=f"Nombre{indice}",
                 apellido=f"Apellido{indice}",
             )
             GraduadoCarrera.objects.create(
-                legajo_graduado=graduado,
+                dni_graduado=graduado,
                 codigo_carrera=self.carrera,
                 fecha_ingreso_carrera=date(2016, 3, 1),
                 fecha_egreso_carrera=date(2020, 12, 1),
@@ -3453,29 +3438,59 @@ class ValidacionesNegocioTest(TestCase):
                 with self.assertRaises(ValueError):
                     validar_dni(invalido)
 
-    def test_legajo_formato_dni_y_anio(self):
-        validar_legajo("1-41734713/17", dni="41734713", anio_ingreso=2017)
+    def test_legajo_derivado_de_dni_y_anio(self):
+        self.assertEqual(
+            generar_legajo("41734713", 2017), "1-41734713/17"
+        )
 
-        for invalido in (
-            "UARG-41734713/17",
-            "5-41734713/17",
-            "1-41734713/2017",
-            "1-41734713/18",
-        ):
-            with self.subTest(legajo=invalido):
-                with self.assertRaises(ValueError):
-                    validar_legajo(
-                        invalido,
-                        dni="41734713",
-                        anio_ingreso=2017,
-                    )
+    def test_legajo_derivado_acepta_anio_como_texto(self):
+        self.assertEqual(
+            generar_legajo("41734713", "2017"), "1-41734713/17"
+        )
 
-        with self.assertRaises(ValueError):
-            validar_legajo(
-                "1-41734713/17",
-                dni="42000000",
-                anio_ingreso=2017,
-            )
+    def test_legajo_derivado_sin_dni_o_anio_es_none(self):
+        self.assertIsNone(generar_legajo("41734713", None))
+        self.assertIsNone(generar_legajo("", 2017))
+        self.assertIsNone(generar_legajo(None, None))
+
+    def test_legajo_se_actualiza_al_cambiar_el_anio(self):
+        graduado = Graduado.objects.create(
+            dni="41734713",
+            anio_ingreso_universidad=2017,
+            nombre="Ana",
+            apellido="Perez",
+        )
+        self.assertEqual(graduado.legajo, "1-41734713/17")
+
+        Graduado.objects.update_or_create(
+            pk="41734713",
+            defaults={
+                "nombre": "Ana",
+                "apellido": "Perez",
+                "anio_ingreso_universidad": 2020,
+            },
+        )
+
+        graduado.refresh_from_db()
+        self.assertEqual(graduado.legajo, "1-41734713/20")
+
+    def test_normalizar_dni_quita_espacios(self):
+        self.assertEqual(normalizar_dni(" 41734713 "), "41734713")
+        self.assertEqual(normalizar_dni(None), "")
+
+    def test_dni_unico_considera_la_clave_actual(self):
+        Graduado.objects.create(
+            dni="41734713",
+            anio_ingreso_universidad=2017,
+            nombre="Ana",
+            apellido="Perez",
+        )
+
+        self.assertFalse(validar_dni_unico("41734713"))
+        self.assertTrue(
+            validar_dni_unico("41734713", dni_actual="41734713")
+        )
+        self.assertTrue(validar_dni_unico("99999999"))
 
     def test_anios_nacimiento_uarg_y_carrera(self):
         validar_anios(date(1999, 1, 1), 2017, 2018)
@@ -3509,7 +3524,8 @@ class ValidacionesNegocioTest(TestCase):
         )
 
     def test_fachada_devuelve_todos_los_errores(self):
-        _, errores = validar_datos_graduado({
+        normalizados, errores = validar_datos_graduado({
+            # El legajo no es un dato de entrada: se ignora.
             "legajo": "UARG-MAL/2017",
             "dni": "41.734.713",
             "anio_ingreso_universidad": 2019,
@@ -3521,8 +3537,10 @@ class ValidacionesNegocioTest(TestCase):
 
         self.assertGreaterEqual(len(errores), 4)
         self.assertTrue(any("DNI" in error for error in errores))
-        self.assertTrue(any("legajo" in error for error in errores))
+        self.assertFalse(any("legajo" in error for error in errores))
         self.assertTrue(any("año" in error for error in errores))
+        # Sin DNI válido no hay legajo derivado.
+        self.assertIsNone(normalizados["legajo"])
 
 
 # ==========================================================
@@ -3530,7 +3548,7 @@ class ValidacionesNegocioTest(TestCase):
 # ==========================================================
 
 class EliminacionGraduadoTest(BasePrueba):
-    LEGAJO = "1-12345678/15"
+    DNI = "12345678"
 
     @classmethod
     def setUpTestData(cls):
@@ -3548,8 +3566,7 @@ class EliminacionGraduadoTest(BasePrueba):
             id_escuela=cls.escuela,
         )
         cls.graduado = Graduado.objects.create(
-            legajo_graduado=cls.LEGAJO,
-            dni="12345678",
+            dni=cls.DNI,
             anio_ingreso_universidad=2015,
             nombre="Ana",
             apellido="Perez",
@@ -3557,7 +3574,7 @@ class EliminacionGraduadoTest(BasePrueba):
 
         for carrera in (cls.cara, cls.carb):
             GraduadoCarrera.objects.create(
-                legajo_graduado=cls.graduado,
+                dni_graduado=cls.graduado,
                 codigo_carrera=carrera,
                 fecha_ingreso_carrera=date(2016, 3, 1),
                 fecha_egreso_carrera=date(2020, 12, 15),
@@ -3574,23 +3591,23 @@ class EliminacionGraduadoTest(BasePrueba):
         )
         GraduadoExamen.objects.create(
             id_examen=cls.examen,
-            legajo_graduado=cls.graduado,
+            dni_graduado=cls.graduado,
             codigo_carrera=cls.cara,
             nota=8,
             resultado="Aprobado",
         )
         Analitico.objects.create(
-            legajo_graduado=cls.graduado,
+            dni_graduado=cls.graduado,
             codigo_carrera=cls.cara,
             tipo_documento="titulo",
             id_usuario=cls.admin,
         )
         Secundario.objects.create(
-            legajo_graduado=cls.graduado,
+            dni_graduado=cls.graduado,
             nombre_secundario="CPES 25",
         )
         DatosNacimiento.objects.create(
-            legajo_graduado=cls.graduado,
+            dni_graduado=cls.graduado,
             fecha_nacimiento=date(1990, 4, 6),
         )
 
@@ -3598,20 +3615,20 @@ class EliminacionGraduadoTest(BasePrueba):
         self.iniciar_sesion(self.titulos)
 
         respuesta = self.client.post(
-            reverse("eliminar_graduado", args=[self.LEGAJO]),
+            reverse("eliminar_graduado", args=[self.DNI]),
             {"accion": "graduado"},
         )
 
         self.assertEqual(respuesta.status_code, 403)
         self.assertTrue(
-            Graduado.objects.filter(pk=self.LEGAJO).exists()
+            Graduado.objects.filter(pk=self.DNI).exists()
         )
 
     def test_quitar_carrera_conserva_al_graduado(self):
         self.iniciar_sesion(self.admin)
 
         respuesta = self.client.post(
-            reverse("eliminar_graduado", args=[self.LEGAJO]),
+            reverse("eliminar_graduado", args=[self.DNI]),
             {
                 "accion": "carrera",
                 "carrera": "CA1",
@@ -3622,42 +3639,42 @@ class EliminacionGraduadoTest(BasePrueba):
         self.assertEqual(respuesta.status_code, 302)
         self.assertFalse(
             GraduadoCarrera.objects.filter(
-                legajo_graduado=self.graduado,
+                dni_graduado=self.graduado,
                 codigo_carrera="CA1",
             ).exists()
         )
         self.assertTrue(
             GraduadoCarrera.objects.filter(
-                legajo_graduado=self.graduado,
+                dni_graduado=self.graduado,
                 codigo_carrera="CA2",
             ).exists()
         )
         self.assertEqual(
             GraduadoExamen.objects.filter(
-                legajo_graduado=self.graduado
+                dni_graduado=self.graduado
             ).count(),
             0,
         )
         self.assertEqual(
             Analitico.objects.filter(
-                legajo_graduado=self.graduado
+                dni_graduado=self.graduado
             ).count(),
             0,
         )
         self.assertTrue(
             Auditoria.objects.filter(
                 accion="eliminar_carrera_graduado",
-                entidad_id=f"{self.LEGAJO}|CA1",
+                entidad_id=f"{self.DNI}|CA1",
             ).exists()
         )
 
     def test_eliminar_graduado_exige_doble_confirmacion(self):
         self.iniciar_sesion(self.admin)
-        url = reverse("eliminar_graduado", args=[self.LEGAJO])
+        url = reverse("eliminar_graduado", args=[self.DNI])
 
         respuesta = self.client.post(url, {"accion": "graduado"})
         self.assertEqual(respuesta.status_code, 302)
-        self.assertTrue(Graduado.objects.filter(pk=self.LEGAJO).exists())
+        self.assertTrue(Graduado.objects.filter(pk=self.DNI).exists())
 
         respuesta = self.client.post(
             url,
@@ -3668,14 +3685,14 @@ class EliminacionGraduadoTest(BasePrueba):
         )
 
         self.assertEqual(respuesta.status_code, 302)
-        self.assertFalse(Graduado.objects.filter(pk=self.LEGAJO).exists())
+        self.assertFalse(Graduado.objects.filter(pk=self.DNI).exists())
         self.assertEqual(Secundario.objects.count(), 0)
         self.assertEqual(DatosNacimiento.objects.count(), 0)
         self.assertEqual(Analitico.objects.count(), 0)
         self.assertTrue(
             Auditoria.objects.filter(
                 accion="eliminar_graduado",
-                entidad_id=self.LEGAJO,
+                entidad_id=self.DNI,
             ).exists()
         )
 
@@ -3683,7 +3700,7 @@ class EliminacionGraduadoTest(BasePrueba):
         self.iniciar_sesion(self.admin)
 
         respuesta = self.client.post(
-            reverse("eliminar_graduado", args=[self.LEGAJO]),
+            reverse("eliminar_graduado", args=[self.DNI]),
             {
                 "accion": "graduado",
                 "confirmacion": CONFIRMACION_BORRADO,
@@ -3800,7 +3817,7 @@ class ResolucionesMultiplesTest(GeneracionAnaliticosTest):
         # desbordar la plantilla.
         descarga = self.client.post(url, {
             "accion": "descargar",
-            "legajo": "1-41734713/17",
+            "dni": "41734713",
             "carrera": "PR1",
         })
         self.assertEqual(descarga.status_code, 200)
@@ -3851,14 +3868,13 @@ class ProvinciasSugeridasTest(BasePrueba):
             id_escuela=escuela,
         )
         graduado = Graduado.objects.create(
-            legajo_graduado="1-12345678/15",
             dni="12345678",
             anio_ingreso_universidad=2015,
             nombre="Ana",
             apellido="Perez",
         )
         GraduadoCarrera.objects.create(
-            legajo_graduado=graduado,
+            dni_graduado=graduado,
             codigo_carrera=carrera,
             fecha_ingreso_carrera=date(2016, 3, 1),
             fecha_egreso_carrera=date(2020, 12, 15),
@@ -3888,14 +3904,15 @@ class CargaDatosValidacionesTest(BasePrueba):
             id_escuela=self.escuela,
         )
 
-    def _archivo(self, legajo, dni, ingreso_uarg, ingreso_carrera, egreso):
+    def _archivo(self, dni, ingreso_uarg, ingreso_carrera, egreso):
+        """El DNI identifica al graduado; el legajo se deriva después."""
+
         from openpyxl import Workbook
 
         libro = Workbook()
         hoja = libro.active
         hoja.append(CargaDatos.COLUMNAS_REQUERIDAS)
         hoja.append([
-            legajo,
             dni,
             "Ana",
             "Perez",
@@ -3922,7 +3939,6 @@ class CargaDatosValidacionesTest(BasePrueba):
     def test_acepta_datos_coherentes(self):
         resultado = CargaDatos.cargar_excel(
             self._archivo(
-                "1-41734713/17",
                 41734713,
                 "01/03/2017",
                 "01/03/2018",
@@ -3931,14 +3947,12 @@ class CargaDatosValidacionesTest(BasePrueba):
         )
 
         self.assertEqual(resultado["filas_procesadas"], 1)
-        self.assertTrue(
-            Graduado.objects.filter(pk="1-41734713/17").exists()
-        )
+        graduado = Graduado.objects.get(pk="41734713")
+        self.assertEqual(graduado.legajo, "1-41734713/17")
 
     def test_acepta_anio_suelto_en_excel(self):
         resultado = CargaDatos.cargar_excel(
             self._archivo(
-                "1-41734713/17",
                 41734713,
                 2017,
                 "01/03/2018",
@@ -3947,13 +3961,12 @@ class CargaDatosValidacionesTest(BasePrueba):
         )
 
         self.assertEqual(resultado["filas_procesadas"], 1)
-        graduado = Graduado.objects.get(pk="1-41734713/17")
+        graduado = Graduado.objects.get(pk="41734713")
         self.assertEqual(graduado.anio_ingreso_universidad, 2017)
 
     def test_acepta_fecha_y_conserva_solo_el_anio(self):
         resultado = CargaDatos.cargar_excel(
             self._archivo(
-                "1-41734713/17",
                 41734713,
                 date(2017, 5, 10),
                 "01/03/2018",
@@ -3962,14 +3975,28 @@ class CargaDatosValidacionesTest(BasePrueba):
         )
 
         self.assertEqual(resultado["filas_procesadas"], 1)
-        graduado = Graduado.objects.get(pk="1-41734713/17")
+        graduado = Graduado.objects.get(pk="41734713")
         self.assertEqual(graduado.anio_ingreso_universidad, 2017)
 
-    def test_rechaza_dni_y_legajo_invalidos(self):
+    def test_acepta_ingreso_uarg_vacio_sin_legajo(self):
+        resultado = CargaDatos.cargar_excel(
+            self._archivo(
+                "41734713",
+                None,
+                "01/03/2018",
+                "24/04/2024",
+            )
+        )
+
+        self.assertEqual(resultado["filas_procesadas"], 1)
+        graduado = Graduado.objects.get(pk="41734713")
+        self.assertIsNone(graduado.anio_ingreso_universidad)
+        self.assertIsNone(graduado.legajo)
+
+    def test_rechaza_dni_invalido(self):
         with self.assertRaises(ValueError) as contexto:
             CargaDatos.cargar_excel(
                 self._archivo(
-                    "1-41.734.713/17",
                     "41.734.713",
                     "01/03/2017",
                     "01/03/2018",
@@ -3979,13 +4006,12 @@ class CargaDatosValidacionesTest(BasePrueba):
 
         mensaje = str(contexto.exception)
         self.assertIn("DNI", mensaje)
-        self.assertIn("legajo", mensaje)
+        self.assertNotIn("legajo", mensaje)
 
     def test_rechaza_anios_invertidos_y_egreso_anterior(self):
         with self.assertRaises(ValueError) as contexto:
             CargaDatos.cargar_excel(
                 self._archivo(
-                    "1-41734713/19",
                     "41734713",
                     "01/03/2019",
                     "01/03/2018",

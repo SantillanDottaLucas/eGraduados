@@ -926,8 +926,11 @@ el archivo (ver sección 9).
 - `requirements.txt` tiene las dependencias directas y transitivas fijadas con
   `==`. Se eliminaron `opencv-python`, `pymupdf`, `pypdf`,
   `rapidocr-onnxruntime`, `pillow` y `colorama` porque ya no se usan.
-- `crear_usuario_admin` muestra el código de acceso una sola vez y exige email
-  `@gmail.com`.
+- `crear_usuario_admin` crea los roles base y el usuario administrador de la
+  aplicación (tabla `USUARIO`). Lee `EGRADUADOS_ADMIN_EMAIL` y
+  `EGRADUADOS_ADMIN_NOMBRE` del entorno si no se pasan `--email` / `--nombre`,
+  exige email `@gmail.com`, guarda el código hasheado y lo muestra una sola vez.
+  `createsuperuser` de Django no reemplaza este paso.
 - No existe un comando `cargar_datos_reales`. Los datos se cargan ejecutando el
   archivo `.sql` con tu cliente de base de datos, como se explica en los pasos
   5.5, 6.5 y 7.5. El nombre del archivo lo define quien lo cree; se espera que

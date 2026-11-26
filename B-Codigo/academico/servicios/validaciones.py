@@ -15,6 +15,7 @@ import re
 from datetime import date, datetime
 
 from academico.models import Graduado
+from academico.servicios.legajo import generar_legajo
 
 
 # ==================================================
@@ -23,10 +24,6 @@ from academico.models import Graduado
 
 DNI_MIN_DIGITOS = 7
 DNI_MAX_DIGITOS = 8
-
-# Legajo institucional: <prefijo 1..4>-<DNI>/<últimos 2 dígitos del año>.
-# Ejemplo: 1-46189053/24
-RE_LEGAJO = re.compile(r"^([1-4])-(\d{7,8})/(\d{2})$")
 
 ANIO_MIN = 1900
 ANIO_MAX = 2100
@@ -55,62 +52,17 @@ def validar_dni(dni):
     return texto
 
 
-def validar_dni_unico(dni, legajo):
+def validar_dni_unico(dni, dni_actual=None):
     """
-    Comprueba que el DNI no pertenezca a otro legajo.
+    Comprueba que el DNI no pertenezca a otro graduado.
 
+    ``dni_actual`` es la clave del registro que se está editando.
     Devuelve True si no hay conflicto.
     """
 
     return not Graduado.objects.exclude(
-        legajo_graduado=legajo
-    ).filter(dni=dni).exists()
-
-
-# ==================================================
-# LEGAJO
-# ==================================================
-
-def validar_legajo(legajo, dni=None, anio_ingreso=None):
-    """
-    Valida el formato del legajo y su coherencia con el DNI y
-    con el año de ingreso a la universidad.
-
-    Formato: ``<1 a 4>-<DNI>/<YY>``. Ejemplo: ``1-46189053/24``.
-    """
-
-    texto = str(legajo or "").strip()
-    coincide = RE_LEGAJO.fullmatch(texto)
-
-    if coincide is None:
-        raise ValueError(
-            "El legajo debe tener el formato 1-46189053/24 "
-            "(prefijo del 1 al 4, DNI y los últimos dos dígitos "
-            "del año de ingreso)."
-        )
-
-    _, dni_legajo, sufijo_anio = coincide.groups()
-
-    dni_normalizado = str(dni or "").strip()
-
-    if dni_normalizado and dni_legajo != dni_normalizado:
-        raise ValueError(
-            "El DNI del legajo no coincide con el DNI informado."
-        )
-
-    if anio_ingreso is not None:
-        try:
-            anio = int(anio_ingreso)
-        except (TypeError, ValueError):
-            anio = None
-
-        if anio is not None and int(sufijo_anio) != anio % 100:
-            raise ValueError(
-                "Los dos dígitos del legajo no coinciden con el "
-                "año de ingreso a la universidad."
-            )
-
-    return texto
+        pk=dni_actual
+    ).filter(pk=dni).exists()
 
 
 # ==================================================
@@ -319,45 +271,54 @@ def validar_promedio(valor, campo):
 # FACHADA
 # ==================================================
 
-def validar_datos_graduado(datos):
+def validar_datos_graduado(datos, exigir_anio_uarg=False):
     """
     Aplica todas las reglas de negocio sobre un graduado.
 
-    ``datos`` puede contener:``dni``, ``legajo``,
-    ``anio_ingreso_universidad``, ``anio_ingreso_carrera``,
-    ``fecha_nacimiento``, ``fecha_ingreso_carrera`` y
-    ``fecha_egreso_carrera``.
+    ``datos`` puede contener ``dni``, ``anio_ingreso_universidad``,
+    ``anio_ingreso_carrera``, ``fecha_nacimiento``,
+    ``fecha_ingreso_carrera`` y ``fecha_egreso_carrera``.
 
-    Devuelve ``(normalizados, errores)``. ``normalizados`` trae
-    el DNI, el legajo y el año de ingreso a la UARG listos para
-    persistir.
+    El año de ingreso a la UARG es opcional por defecto. Los
+    analíticos lo exigen (``exigir_anio_uarg=True``) porque la
+    plantilla del documento necesita ``anio_ingreso_uarg``.
+
+    Devuelve ``(normalizados, errores)``. ``normalizados`` trae el
+    DNI, el año y el legajo derivado listos para persistir. El
+    legajo es ``None`` si no hay DNI o año.
     """
 
     errores = []
     normalizados = {
         "dni": "",
-        "legajo": "",
+        "legajo": None,
         "anio_ingreso_universidad": None,
     }
 
     dni = datos.get("dni")
-    legajo = datos.get("legajo")
+    anio_uarg = None
 
-    try:
-        anio_uarg = validar_anio(
-            datos.get("anio_ingreso_universidad"),
-            "anio_ingreso_universidad",
-        )
-        normalizados["anio_ingreso_universidad"] = anio_uarg
-    except ValueError as error:
-        anio_uarg = None
-        errores.append(str(error))
+    valor_anio = datos.get("anio_ingreso_universidad")
+
+    if valor_anio in (None, "") and exigir_anio_uarg:
+        errores.append("El campo «anio_ingreso_universidad» es obligatorio.")
+    elif valor_anio not in (None, ""):
+        try:
+            anio_uarg = validar_anio(
+                valor_anio,
+                "anio_ingreso_universidad",
+            )
+            normalizados["anio_ingreso_universidad"] = anio_uarg
+        except ValueError as error:
+            errores.append(str(error))
 
     try:
         anio_carrera = datos.get("anio_ingreso_carrera")
 
-        if anio_carrera is not None:
+        if anio_carrera not in (None, ""):
             anio_carrera = validar_anio(anio_carrera, "anio_ingreso_carrera")
+        else:
+            anio_carrera = None
     except ValueError as error:
         anio_carrera = None
         errores.append(str(error))
@@ -367,14 +328,10 @@ def validar_datos_graduado(datos):
     except ValueError as error:
         errores.append(str(error))
 
-    try:
-        normalizados["legajo"] = validar_legajo(
-            legajo,
-            dni=normalizados["dni"] or dni,
-            anio_ingreso=anio_uarg,
-        )
-    except ValueError as error:
-        errores.append(str(error))
+    normalizados["legajo"] = generar_legajo(
+        normalizados["dni"],
+        anio_uarg,
+    )
 
     try:
         validar_anios(

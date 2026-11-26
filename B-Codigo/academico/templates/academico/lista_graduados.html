@@ -7,7 +7,7 @@
 
 <div class="pagina">
 
-    {% include "academico/componentes/page_header.html" with titulo="Listado de graduados" descripcion="Buscá por datos personales, carrera, escuela o egreso. El listado incluye graduados sin carrera y permite ordenar para detectar inconsistencias. El Excel mantiene el criterio anterior." %}
+    {% include "academico/componentes/page_header.html" with titulo="Listado de graduados" descripcion="Buscá por nombre, DNI, carrera, escuela o egreso. El listado incluye graduados sin carrera y permite ordenar para detectar inconsistencias. El Excel mantiene el criterio anterior." %}
 
     <section class="panel">
         <h2>Filtros de búsqueda</h2>
@@ -30,14 +30,14 @@
                 </div>
 
                 <div class="col-12 col-md-6">
-                    <label for="legajo" class="form-label">Legajo</label>
+                    <label for="dni" class="form-label">DNI</label>
                     <input
                         type="text"
-                        id="legajo"
-                        name="legajo"
+                        id="dni"
+                        name="dni"
                         class="form-control"
-                        placeholder="Legajo completo o parcial"
-                        value="{{ request.GET.legajo|default:'' }}"
+                        placeholder="DNI completo o parcial"
+                        value="{{ request.GET.dni|default:'' }}"
                     >
                 </div>
 
@@ -85,7 +85,7 @@
                         </option>
                     </select>
                     <div class="form-text">
-                        «Sin carrera» muestra esos legajos con Vacio en los datos de carrera.
+                        «Sin carrera» muestra esos graduados con Vacio en los datos de carrera.
                     </div>
                 </div>
 
@@ -96,7 +96,7 @@
                             Inconsistencias primero (recomendado)
                         </option>
                         <option value="legajo" {% if orden == "legajo" %}selected{% endif %}>
-                            Legajo
+                            DNI
                         </option>
                         <option value="apellido" {% if orden == "apellido" %}selected{% endif %}>
                             Apellido
@@ -199,10 +199,10 @@
             <table class="table table-hover tabla">
                 <thead>
                     <tr>
-                        <th>Legajo</th>
+                        <th>DNI</th>
                         <th>Nombre</th>
                         <th>Apellido</th>
-                        <th>DNI</th>
+                        <th>Legajo</th>
                         <th>Ingreso UARG</th>
                         <th>Carrera</th>
                         <th>Escuela</th>
@@ -218,7 +218,7 @@
                     {% for registro in filas %}
                         <tr>
                             <td class="legajo">
-                                {{ registro.legajo_graduado_id }}
+                                {{ registro.dni_graduado_id }}
                                 {% if registro.sin_carrera %}
                                     <span class="badge-analitico app-badge-alerta">Sin carrera</span>
                                 {% endif %}
@@ -226,7 +226,7 @@
 
                             <td>{{ registro.graduado.nombre }}</td>
                             <td>{{ registro.graduado.apellido }}</td>
-                            <td>{{ registro.graduado.dni }}</td>
+                            <td>{{ registro.graduado.legajo|default:"" }}</td>
                             <td>{{ registro.anio_ingreso_universidad }}</td>
 
                             <td>
@@ -253,20 +253,20 @@
                             <td>
                                 <div class="acciones-fila">
                                     {% if not registro.sin_carrera %}
-                                        <a href="{% url 'editar_graduado' registro.legajo_graduado_id registro.codigo_carrera_id %}?volver={{ request.GET.urlencode|urlencode }}"
+                                        <a href="{% url 'editar_graduado' registro.dni_graduado_id registro.codigo_carrera_id %}?volver={{ request.GET.urlencode|urlencode }}"
                                            class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-pencil" aria-hidden="true"></i>
                                             Editar
                                         </a>
 
-                                        <a href="{% url 'generacion_analiticos' %}?modo=preview&legajo={{ registro.legajo_graduado_id|urlencode }}&carrera={{ registro.codigo_carrera_id|urlencode }}"
+                                        <a href="{% url 'generacion_analiticos' %}?modo=preview&dni={{ registro.dni_graduado_id|urlencode }}&carrera={{ registro.codigo_carrera_id|urlencode }}"
                                            class="btn btn-outline-info btn-sm"
                                            title="Generar, ver o descargar el analítico">
                                             <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
                                             Analítico
                                         </a>
 
-                                        <a href="{% url 'titulo_en_tramite' %}?modo=preview&legajo={{ registro.legajo_graduado_id|urlencode }}&carrera={{ registro.codigo_carrera_id|urlencode }}"
+                                        <a href="{% url 'titulo_en_tramite' %}?modo=preview&dni={{ registro.dni_graduado_id|urlencode }}&carrera={{ registro.codigo_carrera_id|urlencode }}"
                                            class="btn btn-outline-secondary btn-sm"
                                            title="Generar, ver o descargar el título en trámite">
                                             <i class="bi bi-patch-check" aria-hidden="true"></i>
@@ -314,7 +314,7 @@
                                             <div class="modal-dialog modal-dialog-centered">
                                                 <div class="modal-content">
                                                     <form method="post"
-                                                          action="{% url 'eliminar_graduado' registro.legajo_graduado_id %}">
+                                                          action="{% url 'eliminar_graduado' registro.dni_graduado_id %}">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="accion" value="carrera">
                                                         <input type="hidden" name="carrera" value="{{ registro.codigo_carrera_id }}">
@@ -332,8 +332,8 @@
                                                             <p class="mb-2">
                                                                 ¿Quitar la carrera
                                                                 <strong>{{ registro.codigo_carrera.nombre_carrera }}</strong>
-                                                                del legajo
-                                                                <strong>{{ registro.legajo_graduado_id }}</strong>?
+                                                                del DNI
+                                                                <strong>{{ registro.dni_graduado_id }}</strong>?
                                                             </p>
                                                             <p class="text-muted small mb-3">
                                                                 Se borrarán los exámenes y analíticos de esa carrera.
@@ -368,7 +368,7 @@
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <form method="post"
-                                                      action="{% url 'eliminar_graduado' registro.legajo_graduado_id %}">
+                                                      action="{% url 'eliminar_graduado' registro.dni_graduado_id %}">
                                                     {% csrf_token %}
                                                     <input type="hidden" name="accion" value="graduado">
                                                     <input type="hidden" name="filtros_qs" value="{{ filtros_qs }}">
@@ -384,10 +384,10 @@
                                                     <div class="modal-body">
                                                         <p class="mb-2">
                                                             ¿Eliminar por completo a
-                                                            <strong>{{ registro.legajo_graduado.apellido }},
-                                                            {{ registro.legajo_graduado.nombre }}</strong>
-                                                            (legajo
-                                                            <strong>{{ registro.legajo_graduado_id }}</strong>)?
+                                                            <strong>{{ registro.graduado.apellido }},
+                                                            {{ registro.graduado.nombre }}</strong>
+                                                            (DNI
+                                                            <strong>{{ registro.dni_graduado_id }}</strong>)?
                                                         </p>
                                                         <p class="text-muted small mb-3">
                                                             Se borrarán todas sus carreras, exámenes, datos de
@@ -395,7 +395,7 @@
                                                             se puede deshacer.
                                                         </p>
 
-                                                        {% if registro.legajo_graduado_id in legajos_con_analiticos %}
+                                                        {% if registro.dni_graduado_id in legajos_con_analiticos %}
                                                             <div class="alert alert-danger small">
                                                                 El graduado tiene analíticos validados.
                                                                 Doble confirmación: escribí <strong>ELIMINAR</strong>.

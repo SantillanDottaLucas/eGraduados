@@ -208,7 +208,7 @@ def consultar_total(
 
         total = (
             registros
-            .values("legajo_graduado_id")
+            .values("dni_graduado_id")
             .distinct()
             .count()
         )
@@ -221,7 +221,7 @@ def consultar_total(
             )
             .annotate(
                 total_escuela=Count(
-                    "legajo_graduado_id",
+                    "dni_graduado_id",
                     distinct=True,
                 )
             )
@@ -280,7 +280,7 @@ def consultar_total(
 
         total_escuela = (
             registros_escuela
-            .values("legajo_graduado_id")
+            .values("dni_graduado_id")
             .distinct()
             .count()
         )
@@ -293,7 +293,7 @@ def consultar_total(
             )
             .annotate(
                 total_carrera=Count(
-                    "legajo_graduado_id",
+                    "dni_graduado_id",
                     distinct=True,
                 )
             )
@@ -350,7 +350,7 @@ def consultar_total(
 
         total = (
             registros_carrera
-            .values("legajo_graduado_id")
+            .values("dni_graduado_id")
             .distinct()
             .count()
         )
@@ -403,11 +403,11 @@ def consultar_tiempos(
     )
 
     registros = registros.select_related(
-        "legajo_graduado",
+        "dni_graduado",
         "codigo_carrera"
     ).order_by(
         "codigo_carrera__nombre_carrera",
-        "legajo_graduado_id"
+        "dni_graduado_id"
     )
 
     tiempos_por_carrera = defaultdict(list)
@@ -497,7 +497,7 @@ def consultar_graduados_por_anio(
         registros
         .values(anio=F("fecha_egreso_carrera__year"))
         .annotate(
-            total_anio=Count("legajo_graduado_id", distinct=True)
+            total_anio=Count("dni_graduado_id", distinct=True)
         )
         .order_by("anio")
     )

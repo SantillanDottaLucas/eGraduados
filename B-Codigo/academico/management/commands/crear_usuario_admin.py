@@ -5,10 +5,17 @@ opcionalmente, un usuario administrador inicial.
 Uso:
     python manage.py crear_usuario_admin --email admin@gmail.com --nombre "Nombre"
 
-Si no se indica un email, sólo se crean o actualizan los roles.
-Cuando se crea el usuario, el código de acceso de 6 caracteres
-se imprime una única vez por consola.
+Los valores también pueden definirse en el entorno (o en .env):
+
+    EGRADUADOS_ADMIN_EMAIL=admin@gmail.com
+    EGRADUADOS_ADMIN_NOMBRE=Administrador
+
+Los argumentos de línea de comandos tienen prioridad. Si no hay
+email, sólo se crean o actualizan los roles. El código aleatorio
+de 6 caracteres se guarda hasheado y se imprime una única vez.
 """
+
+import os
 
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand, CommandError
@@ -34,12 +41,22 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "--email",
-            help="Email de Gmail del usuario administrador.",
+            default=os.environ.get("EGRADUADOS_ADMIN_EMAIL", "").strip(),
+            help=(
+                "Email de Gmail del administrador. Por defecto:"
+                " EGRADUADOS_ADMIN_EMAIL."
+            ),
         )
         parser.add_argument(
             "--nombre",
-            default="Administrador",
-            help="Nombre visible del usuario.",
+            default=(
+                os.environ.get("EGRADUADOS_ADMIN_NOMBRE", "").strip()
+                or "Administrador"
+            ),
+            help=(
+                "Nombre visible del usuario. Por defecto:"
+                " EGRADUADOS_ADMIN_NOMBRE o 'Administrador'."
+            ),
         )
 
     def handle(self, *args, **options):

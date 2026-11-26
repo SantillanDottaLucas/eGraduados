@@ -5,7 +5,6 @@
     <input type="hidden" name="accion" value="">
     {# La JS completa este valor con la fila del botón pulsado. #}
     <input type="hidden" name="fila_a_quitar" value="">
-    <input type="hidden" name="legajo" value="{{ datos.legajo }}">
     <input type="hidden" name="carrera" value="{{ datos.carrera }}">
 
     {% if validado %}
@@ -109,6 +108,13 @@
             {% endif %}
             — {{ datos.carrera }}
         </h3>
+
+        {% if datos.legajo %}
+            <p class="small text-muted mb-2">
+                Legajo: <strong>{{ datos.legajo }}</strong>
+                (derivado del DNI y del año de ingreso).
+            </p>
+        {% endif %}
 
         <div class="row g-2">
             <div class="col-6 col-md-3">
@@ -397,7 +403,7 @@
     </section>
 
     <div class="analitico-actions">
-        <a href="?modo=carga&legajo={{ datos.legajo }}&carrera={{ datos.carrera }}"
+        <a href="?modo=carga&dni={{ datos.dni }}&carrera={{ datos.carrera }}"
            class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left" aria-hidden="true"></i>
             Volver

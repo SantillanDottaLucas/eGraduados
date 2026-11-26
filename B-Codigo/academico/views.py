@@ -376,7 +376,7 @@ def lista_graduados(request):
     from .models import Analitico
 
     filas = obtener_filas_busqueda(request.GET)
-    legajos = {fila.legajo_graduado_id for fila in filas}
+    dnis = {fila.dni_graduado_id for fila in filas}
 
     situacion = (request.GET.get("situacion") or "todas").strip()
     if situacion not in SITUACIONES_BUSQUEDA:
@@ -392,22 +392,22 @@ def lista_graduados(request):
 
     analiticos_titulo = set(
         Analitico.objects.filter(
-            legajo_graduado_id__in=legajos,
+            dni_graduado_id__in=dnis,
             tipo_documento="titulo",
-        ).values_list("legajo_graduado_id", "codigo_carrera_id")
+        ).values_list("dni_graduado_id", "codigo_carrera_id")
     )
 
     analiticos_tramite = set(
         Analitico.objects.filter(
-            legajo_graduado_id__in=legajos,
+            dni_graduado_id__in=dnis,
             tipo_documento="en_tramite",
-        ).values_list("legajo_graduado_id", "codigo_carrera_id")
+        ).values_list("dni_graduado_id", "codigo_carrera_id")
     )
 
-    legajos_con_analiticos = set(
+    dnis_con_analiticos = set(
         Analitico.objects.filter(
-            legajo_graduado_id__in=legajos,
-        ).values_list("legajo_graduado_id", flat=True)
+            dni_graduado_id__in=dnis,
+        ).values_list("dni_graduado_id", flat=True)
     )
 
     # Querystring sin «pagina» para los enlaces de paginado.
@@ -420,7 +420,7 @@ def lista_graduados(request):
     excel_parametros = {}
     for clave in (
         "nombre",
-        "legajo",
+        "dni",
         "escuela",
         "carrera",
         "fecha_desde",
@@ -434,7 +434,7 @@ def lista_graduados(request):
 
     # Marcar las filas que tienen analíticos validados.
     for fila in filas_pagina.object_list:
-        clave = (fila.legajo_graduado_id, fila.codigo_carrera_id)
+        clave = (fila.dni_graduado_id, fila.codigo_carrera_id)
         fila.analitico_titulo = clave in analiticos_titulo
         fila.analitico_tramite = clave in analiticos_tramite
 
@@ -444,10 +444,11 @@ def lista_graduados(request):
         "page_obj": filas_pagina,
         "paginator": paginator,
         "total_filas": len(filas),
-        "total_graduados": len(legajos),
+        "total_graduados": len(dnis),
         "analiticos_titulo": analiticos_titulo,
         "analiticos_tramite": analiticos_tramite,
-        "legajos_con_analiticos": legajos_con_analiticos,
+        "dnis_con_analiticos": dnis_con_analiticos,
+        "legajos_con_analiticos": dnis_con_analiticos,
         "filtros_qs": filtros_qs,
         "excel_qs": excel_qs,
         "situacion": situacion,
@@ -467,7 +468,7 @@ def lista_graduados(request):
 
 @require_POST
 @requiere_administrador
-def eliminar_graduado(request, legajo):
+def eliminar_graduado(request, dni):
     """
     Elimina una fila de carrera o un graduado completo.
 
@@ -489,7 +490,7 @@ def eliminar_graduado(request, legajo):
             if not carrera:
                 raise ValueError("No se indicó la carrera a quitar.")
 
-            impacto = resumen_impacto(legajo, carrera)
+            impacto = resumen_impacto(dni, carrera)
 
             if (
                 impacto["analiticos"]
@@ -501,7 +502,7 @@ def eliminar_graduado(request, legajo):
                 )
 
             resultado = eliminar_carrera(
-                legajo,
+                dni,
                 carrera,
                 usuario=request.usuario_actual,
                 confirmacion=confirmacion,
@@ -510,7 +511,7 @@ def eliminar_graduado(request, legajo):
             messages.success(
                 request,
                 (
-                    f"Se quitó la carrera {carrera} del legajo {legajo}. "
+                    f"Se quitó la carrera {carrera} del graduado DNI {dni}. "
                     f"Se borraron {resultado['examenes']} examen(es) y "
                     f"{resultado['analiticos']} analítico(s)."
                 ),
@@ -520,14 +521,14 @@ def eliminar_graduado(request, legajo):
                 messages.warning(
                     request,
                     (
-                        f"El legajo {legajo} ya no tiene carreras "
+                        f"El graduado DNI {dni} ya no tiene carreras "
                         "asociadas. Podés eliminarlo por completo "
                         "desde el buscador."
                     ),
                 )
 
         elif accion == "graduado":
-            impacto = resumen_impacto(legajo)
+            impacto = resumen_impacto(dni)
 
             if (
                 impacto["analiticos"]
@@ -539,7 +540,7 @@ def eliminar_graduado(request, legajo):
                 )
 
             eliminar_graduado_servicio(
-                legajo,
+                dni,
                 usuario=request.usuario_actual,
                 confirmacion=confirmacion,
             )
@@ -547,7 +548,7 @@ def eliminar_graduado(request, legajo):
             messages.success(
                 request,
                 (
-                    f"Se eliminó el graduado {legajo} y toda su "
+                    f"Se eliminó el graduado DNI {dni} y toda su "
                     "información asociada."
                 ),
             )

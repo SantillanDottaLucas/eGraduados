@@ -6,7 +6,7 @@
 
 <div class="carga-contenedor">
 
-    {% include "academico/componentes/page_header.html" with titulo="Carga de graduados" descripcion="Ingresá sólo los datos mínimos que conforman a un graduado y a su carrera. Si el legajo, el DNI o la carrera ya existen, se te va a pedir confirmación antes de sobrescribirlos." volver=1 %}
+    {% include "academico/componentes/page_header.html" with titulo="Carga de graduados" descripcion="Ingresá sólo los datos mínimos que conforman a un graduado y a su carrera. Si el DNI o la carrera ya existen, se te va a pedir confirmación antes de sobrescribirlos." volver=1 %}
 
     <ol class="app-stepper" aria-label="Progreso de la carga">
         <li class="app-stepper-item actual" aria-current="step">
@@ -32,8 +32,9 @@
         <h2>Datos mínimos</h2>
 
         <p class="carga-descripcion">
-            Completá los nueve campos. El año de ingreso a la UARG
-            se registra sólo con el año (por ejemplo, 2017).
+            Completá los campos obligatorios. El DNI identifica al
+            graduado; el año de ingreso a la UARG es opcional y se
+            registra sólo con el año (por ejemplo, 2017).
         </p>
 
         <form method="post" id="formularioCargaGraduado">
@@ -51,19 +52,12 @@
             <div class="row g-3">
 
                 <div class="col-12 col-md-6">
-                    <label for="id_legajo" class="form-label fw-semibold">Legajo</label>
-                    {{ form.legajo }}
-                    {% if form.legajo.errors %}
-                        <div class="text-danger small mt-1">{{ form.legajo.errors.0 }}</div>
-                    {% endif %}
-                </div>
-
-                <div class="col-12 col-md-6">
                     <label for="id_dni" class="form-label fw-semibold">DNI</label>
                     {{ form.dni }}
                     {% if form.dni.errors %}
                         <div class="text-danger small mt-1">{{ form.dni.errors.0 }}</div>
                     {% endif %}
+                    <div class="form-text">El DNI identifica al graduado.</div>
                 </div>
 
                 <div class="col-12 col-md-6">
@@ -95,7 +89,7 @@
 
                 <div class="col-12 col-md-6">
                     <label for="id_anio_ingreso_universidad" class="form-label fw-semibold">
-                        Año de ingreso a la UARG
+                        Año de ingreso a la UARG (opcional)
                     </label>
                     {{ form.anio_ingreso_universidad }}
                     {% if form.anio_ingreso_universidad.errors %}
@@ -150,11 +144,13 @@
                 <div>
                     <strong>Formato de los datos</strong>
                     <p>
-                        El legajo debe tener el formato
-                        <code>1-46189053/24</code> (prefijo del 1 al 4,
-                        DNI y los dos últimos dígitos del año de ingreso).
-                        El promedio va entre 0 y 10 y la fecha de egreso
-                        debe ser posterior a la de ingreso a la carrera.
+                        El legajo no se ingresa: se genera automáticamente
+                        como <code>1-DNI/AA</code> (por ejemplo,
+                        <code>1-46189053/24</code>) cuando se carga el año
+                        de ingreso. Si el año queda vacío, el legajo queda
+                        vacío. El promedio va entre 0 y 10 y la fecha de
+                        egreso debe ser posterior a la de ingreso a la
+                        carrera.
                     </p>
                 </div>
             </div>

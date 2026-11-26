@@ -68,8 +68,8 @@
                 <strong>Resumen de la carga</strong>
                 <p>
                     {{ datos.apellido }}, {{ datos.nombre }} · DNI {{ datos.dni }}<br>
-                    Legajo {{ datos.legajo }} · ingreso UARG
-                    {{ datos.anio_ingreso_universidad }}<br>
+                    {% if datos.legajo %}Legajo {{ datos.legajo }} · {% endif %}ingreso UARG
+                    {{ datos.anio_ingreso_universidad|default:"—" }}<br>
                     Carrera {{ datos.codigo_carrera }} ·
                     ingreso {{ datos.fecha_ingreso_carrera }} ·
                     egreso {{ datos.fecha_egreso_carrera }} ·

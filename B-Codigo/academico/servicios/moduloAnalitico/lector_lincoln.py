@@ -5,8 +5,12 @@ formato .xls de Excel 2003 o .xlsx moderno).
 Formato esperado (encabezado en la primera fila): una fila por
 asignatura cursada, con campos como «nombre_materia», «tipo»,
 «nota_final», «descr_final», «acta_final», «fecha_examen»,
-«materia» (código numérico), «nro_inscripcion» (legajo) y
+«materia» (código numérico), «nro_inscripcion» (legajo heredado) y
 «nombre_alumno».
+
+El «nro_inscripcion» se devuelve sólo con fines informativos: el
+flujo principal identifica al graduado por DNI, que el certificado
+Lincoln no informa (por eso ``dni`` queda vacío).
 
 Sólo se toman los registros cuyo «tipo» empieza con «final»
 (Final / Final Libre / Equivalencia), porque el analítico lista
@@ -146,7 +150,8 @@ def leer_lincoln(archivo):
     Lee el certificado Lincoln y devuelve un dict con:
 
     {
-        "legajo": str,
+        "legajo": str,  # legajo heredado de «nro_inscripcion»
+        "dni": str,     # vacío: el certificado no trae DNI
         "alumno": str,
         "carrera": str,
         "total_registros": int,
@@ -261,6 +266,8 @@ def leer_lincoln(archivo):
 
     return {
         "legajo": legajo,
+        "nro_inscripcion": legajo,
+        "dni": "",
         "alumno": alumno,
         "carrera": carrera,
         "total_registros": len(datos),
