@@ -102,8 +102,12 @@ sudo chmod 640 .env
 > acepta comentarios al final de una línea. `.env` está ignorado por Git:
 > **nunca subirlo al repositorio**.
 
-Las variables inyectadas por systemd (`EnvironmentFile`) tienen prioridad
-sobre el archivo porque Django usa `load_dotenv(..., override=False)`.
+El `.env` es la única fuente de configuración: Django lo carga siempre con
+`load_dotenv(..., override=True)`, incluso en los tests. Por lo tanto, cualquier
+variable con el mismo nombre que venga de systemd (`EnvironmentFile`), Docker
+o la consola es **ignorada**. Si falta el archivo o una clave obligatoria, el
+proyecto no arranca. El motor de la base es MySQL fijo: no se admite SQLite ni
+la variable `DJANGO_DB_ENGINE`.
 
 ## 5. Migraciones y datos iniciales
 

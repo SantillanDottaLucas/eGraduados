@@ -2,12 +2,13 @@
 # Instalar: python -m pip install -r requirements.txt
 #
 # Directas: Django, python-dotenv, mysqlclient, pandas, openpyxl,
-# xlrd y docxtpl (python-docx también se usa directamente en las
-# plantillas y los tests). El resto son transitivas fijadas para
-# que la instalación sea reproducible.
-# Se eliminaron opencv-python, pymupdf, pypdf,
-# rapidocr-onnxruntime, pillow y colorama: no tienen ningún uso
-# desde que se retiró el antiguo flujo de extracción de PDF.
+# xlrd, docxtpl y pypdf (python-docx también se usa directamente en
+# las plantillas y los tests; pypdf cuenta las páginas del PDF que
+# produce LibreOffice al verificar los analíticos). El resto son
+# transitivas fijadas para que la instalación sea reproducible.
+# Se eliminaron opencv-python, pymupdf, rapidocr-onnxruntime,
+# pillow y colorama: no tienen ningún uso desde que se retiró el
+# antiguo flujo de extracción de PDF.
 #
 # En Ubuntu instalar antes los headers de MySQL:
 #   sudo apt install python3-dev default-libmysqlclient-dev build-essential pkg-config
@@ -26,6 +27,7 @@ mysqlclient==2.3.0
 numpy==2.5.3
 openpyxl==3.1.5
 pandas==3.0.5
+pypdf==7.1.1
 python-dateutil==2.9.0.post0
 python-docx==1.2.0
 python-dotenv==1.2.4

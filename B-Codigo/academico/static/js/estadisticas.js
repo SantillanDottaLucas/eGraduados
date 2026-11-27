@@ -136,10 +136,100 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ==========================================
-  // 3. CREACIÓN DE LOS GRÁFICOS
+  // 3. EXPORTACIÓN PNG (DEL LADO DEL CLIENTE)
+  // ==========================================
+
+  var graficos = {};
+
+  function botonesDe(canvas) {
+    if (!canvas) {
+      return [];
+    }
+    return Array.from(
+      document.querySelectorAll(
+        '[data-exportar-png="' + canvas.id + '"]'
+      )
+    );
+  }
+
+  function desactivarExportacion(canvas) {
+    botonesDe(canvas).forEach(function (boton) {
+      boton.disabled = true;
+    });
+  }
+
+  function nombreArchivo(nombre) {
+    var base = (nombre || "grafico")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    return (
+      "estadisticas-" +
+      (base || "grafico") +
+      "-" +
+      new Date().toISOString().slice(0, 10) +
+      ".png"
+    );
+  }
+
+  function exportarPNG(boton) {
+    var canvas = document.getElementById(boton.dataset.exportarPng);
+    var grafico = canvas ? graficos[canvas.id] : null;
+
+    if (!canvas || !grafico || canvas.hidden) {
+      return;
+    }
+
+    // Fondo blanco: el PNG no debe salir transparente ni con el
+    // color del tema. El canvas ya se dibuja a 2x (ver options).
+    var copia = document.createElement("canvas");
+    copia.width = canvas.width;
+    copia.height = canvas.height;
+
+    var contexto = copia.getContext("2d");
+    contexto.fillStyle = "#ffffff";
+    contexto.fillRect(0, 0, copia.width, copia.height);
+    contexto.drawImage(canvas, 0, 0);
+
+    copia.toBlob(function (blob) {
+      if (!blob) {
+        return;
+      }
+
+      var enlace = document.createElement("a");
+      var url = URL.createObjectURL(blob);
+
+      enlace.href = url;
+      enlace.download = nombreArchivo(boton.dataset.nombre);
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+
+      setTimeout(function () {
+        URL.revokeObjectURL(url);
+      }, 1000);
+    }, "image/png");
+  }
+
+  document.querySelectorAll("[data-exportar-png]").forEach(function (boton) {
+    boton.addEventListener("click", function () {
+      exportarPNG(boton);
+    });
+  });
+
+  // ==========================================
+  // 4. CREACIÓN DE LOS GRÁFICOS
   // ==========================================
 
   if (typeof Chart === "undefined") {
+    document
+      .querySelectorAll("[data-exportar-png]")
+      .forEach(function (boton) {
+        boton.disabled = true;
+      });
     return;
   }
 
@@ -161,6 +251,7 @@ document.addEventListener("DOMContentLoaded", function () {
       datos = JSON.parse(elementoDatos.textContent);
     } catch (error) {
       canvas.hidden = true;
+      desactivarExportacion(canvas);
       if (mensaje) {
         mensaje.hidden = false;
         mensaje.textContent =
@@ -176,6 +267,7 @@ document.addEventListener("DOMContentLoaded", function () {
       datos.etiquetas.length !== datos.valores.length
     ) {
       canvas.hidden = true;
+      desactivarExportacion(canvas);
       if (mensaje) {
         mensaje.hidden = false;
         mensaje.textContent =
@@ -194,6 +286,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!valores.some(function (valor) { return valor !== null; })) {
       canvas.hidden = true;
+      desactivarExportacion(canvas);
       if (mensaje) {
         mensaje.hidden = false;
         mensaje.textContent =
@@ -220,7 +313,7 @@ document.addEventListener("DOMContentLoaded", function () {
       graficoExistente.destroy();
     }
 
-    new Chart(canvas, {
+    var grafico = new Chart(canvas, {
       type: config.tipo,
       data: {
         labels: datos.etiquetas,
@@ -241,6 +334,11 @@ document.addEventListener("DOMContentLoaded", function () {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        // Doble resolución para que el PNG no se vea pixelado.
+        devicePixelRatio: Math.min(
+          3,
+          (window.devicePixelRatio || 1) * 2
+        ),
         interaction: {
           intersect: false,
           mode: "index",
@@ -298,5 +396,7 @@ document.addEventListener("DOMContentLoaded", function () {
         },
       },
     });
+
+    graficos[canvas.id] = grafico;
   });
 });

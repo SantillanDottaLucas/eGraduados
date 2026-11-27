@@ -87,8 +87,10 @@
     {% endif %}
 
     <div class="alert alert-secondary" role="alert">
-        Los promedios se calculan automáticamente a partir de los exámenes.
-        Si los editás a mano, el valor manual se conserva y queda auditado.
+        Los promedios se calculan desde los exámenes y se muestran acá para
+        validación. Si los modificás, <strong>se usa ese valor para el
+        analítico</strong> y la edición queda auditada. El valor que se
+        hubiera cargado en el formulario no se usa.
         <strong>Recalcular promedios</strong> vuelve al valor calculado.
         {% if promedios_calculados.sin_aplazo != None or promedios_calculados.con_aplazo != None %}
             <br>
@@ -143,12 +145,12 @@
                 <input type="date" class="form-control campo-documento campo-documento-ancho {% if not datos.fecha_egreso_carrera %}campo-faltante{% endif %}" name="fecha_egreso_carrera" value="{{ datos.fecha_egreso_carrera }}" required>
             </div>
             <div class="col-6 col-md-3">
-                <label class="form-label small">Pron. sin aplazos</label>
-                <input type="number" class="form-control campo-documento" name="promedio_sin_aplazo" step="0.01" min="0" max="10" value="{{ datos.promedio_sin_aplazo }}" required>
+                <label class="form-label small">Prom. sin aplazos</label>
+                <input type="number" class="form-control campo-documento" name="promedio_sin_aplazo" step="0.01" min="0" max="10" value="{{ datos.promedio_sin_aplazo|default_if_none:'' }}">
             </div>
             <div class="col-6 col-md-3">
-                <label class="form-label small">Pron. con aplazos</label>
-                <input type="number" class="form-control campo-documento" name="promedio_con_aplazo" step="0.01" min="0" max="10" value="{{ datos.promedio_con_aplazo }}" required>
+                <label class="form-label small">Prom. con aplazos</label>
+                <input type="number" class="form-control campo-documento" name="promedio_con_aplazo" step="0.01" min="0" max="10" value="{{ datos.promedio_con_aplazo|default_if_none:'' }}">
             </div>
 
             <div class="col-6 col-md-4">
@@ -207,9 +209,10 @@
 
         <p class="small text-muted mb-2">
             El plan de estudios <strong>sugiere</strong> el
-            <strong>Orden</strong> y el <strong>Año</strong>, pero ambos son
-            editables: si cambiás las posiciones o el año, eso es lo que se
-            guarda al validar y lo que lleva el documento. Cuando el código
+            <strong>Orden</strong> y el <strong>Año</strong>. Mové las materias
+            con las flechas <strong>↑</strong> y <strong>↓</strong> para cambiar
+            su posición; el año sigue siendo editable. Lo que ves acá es lo que
+            se guarda al validar y lo que lleva el documento. Cuando el código
             del Lincoln no coincide, se busca la materia por nombre para
             completar la sugerencia.
         </p>
@@ -219,7 +222,7 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th style="min-width: 60px;">Orden</th>
+                        <th class="text-center" style="min-width: 92px;">Orden</th>
                         <th>Año</th>
                         <th style="min-width: 220px;">Espacio curricular</th>
                         <th>Nota</th>
@@ -240,10 +243,30 @@
                                 <input type="hidden" name="fila_codigo_lincoln" value="{{ fila.codigo_lincoln }}">
                                 <input type="hidden" name="fila_nombre_lincoln" value="{{ fila.nombre_lincoln }}">
                             </td>
-                            <td>
-                                <input type="number" class="form-control campo-documento"
-                                       name="fila_orden" min="1" step="1"
-                                       value="{{ fila.orden_num }}">
+                            <td class="text-center">
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <span class="fw-semibold fila-orden">{{ fila.orden_num }}</span>
+                                    <input type="hidden" name="fila_orden" value="{{ fila.orden_num }}">
+                                    <div class="btn-group btn-group-sm" role="group"
+                                         aria-label="Mover {{ fila.espacio|default:'esta materia' }}">
+                                        <button type="button"
+                                                data-mover="arriba"
+                                                class="btn btn-outline-secondary px-2"
+                                                {% if forloop.first %}disabled{% endif %}
+                                                title="Subir una posición"
+                                                aria-label="Subir {{ fila.espacio|default:'esta materia' }}">
+                                            <i class="bi bi-arrow-up" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button"
+                                                data-mover="abajo"
+                                                class="btn btn-outline-secondary px-2"
+                                                {% if forloop.last %}disabled{% endif %}
+                                                title="Bajar una posición"
+                                                aria-label="Bajar {{ fila.espacio|default:'esta materia' }}">
+                                            <i class="bi bi-arrow-down" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 <input type="number" class="form-control campo-documento {% if not fila.anio %}campo-faltante{% endif %}"
@@ -358,11 +381,6 @@
                 <label class="form-label small mb-1" for="nueva_fecha">Fecha</label>
                 <input type="date" class="form-control form-control-sm campo-documento-alta"
                        id="nueva_fecha" name="nueva_fecha">
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label small mb-1" for="nuevo_orden">Orden</label>
-                <input type="number" class="form-control form-control-sm campo-documento-alta"
-                       id="nuevo_orden" name="nuevo_orden" min="1" step="1">
             </div>
             <div class="col-6 col-md-3">
                 <label class="form-label small mb-1" for="nuevo_tipo">Tipo</label>

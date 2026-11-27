@@ -22,7 +22,7 @@ from datetime import date
 
 from django.db import transaction
 
-from academico.models import Carrera, Graduado, GraduadoCarrera, OrigenPromedio
+from academico.models import Carrera, Graduado, GraduadoCarrera
 from academico.servicios.auditoria import registrar_auditoria
 from academico.servicios.legajo import generar_legajo
 
@@ -58,7 +58,6 @@ def datos_desde_form(form):
         "anio_ingreso_universidad": anio,
         "fecha_ingreso_carrera": datos["fecha_ingreso_carrera"],
         "fecha_egreso_carrera": datos["fecha_egreso_carrera"],
-        "promedio_sin_aplazo": datos["promedio_sin_aplazo"],
     }
 
 
@@ -77,11 +76,6 @@ def datos_desde_sesion(sesion):
             datos[campo] = date.fromisoformat(datos[campo])
         except (KeyError, TypeError, ValueError):
             return None, None
-
-    try:
-        datos["promedio_sin_aplazo"] = float(datos["promedio_sin_aplazo"])
-    except (KeyError, TypeError, ValueError):
-        return None, None
 
     valor_anio = datos.get("anio_ingreso_universidad")
 
@@ -183,13 +177,11 @@ def detectar_conflictos(datos):
             "clave": datos["codigo_carrera"],
             "actual": (
                 f"Ingreso {relacion.fecha_ingreso_carrera.isoformat()} · "
-                f"Egreso {relacion.fecha_egreso_carrera.isoformat()} · "
-                f"Promedio sin aplazo {relacion.promedio_sin_aplazo}"
+                f"Egreso {relacion.fecha_egreso_carrera.isoformat()}"
             ),
             "nuevo": (
                 f"Ingreso {datos['fecha_ingreso_carrera'].isoformat()} · "
-                f"Egreso {datos['fecha_egreso_carrera'].isoformat()} · "
-                f"Promedio sin aplazo {datos['promedio_sin_aplazo']}"
+                f"Egreso {datos['fecha_egreso_carrera'].isoformat()}"
             ),
         })
 
@@ -211,8 +203,8 @@ def guardar(datos, usuario=None, sobrescribiendo=False):
     El DNI identifica al graduado. El legajo se calcula solo en
     ``Graduado.save()`` con el DNI y el año de ingreso a la UARG.
 
-    El promedio con aplazo no se informa en esta pantalla: se
-    conserva el valor que ya estuviera cargado.
+    Los promedios no se informan en esta pantalla: se calculan en la
+    previsualización del analítico y se guardan al validar.
     """
 
     carrera = Carrera.objects.get(
@@ -236,8 +228,6 @@ def guardar(datos, usuario=None, sobrescribiendo=False):
         defaults={
             "fecha_ingreso_carrera": datos["fecha_ingreso_carrera"],
             "fecha_egreso_carrera": datos["fecha_egreso_carrera"],
-            "promedio_sin_aplazo": datos["promedio_sin_aplazo"],
-            "origen_promedio_sin_aplazo": OrigenPromedio.MANUAL,
         },
     )
 
@@ -251,7 +241,6 @@ def guardar(datos, usuario=None, sobrescribiendo=False):
             "anio_ingreso_universidad": (
                 graduado.anio_ingreso_universidad
             ),
-            "promedio_sin_aplazo": datos["promedio_sin_aplazo"],
             "sobrescribiendo": sobrescribiendo,
         },
     )

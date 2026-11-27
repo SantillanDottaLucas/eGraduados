@@ -40,14 +40,14 @@ eGraduados es una aplicación web: un programa que se ejecuta en una computadora
 y se usa desde un navegador (Chrome, Firefox, Edge). Está escrita en Python con
 el framework Django y guarda los datos en una base de datos.
 
-- **Windows:** desarrollo y pruebas en la propia computadora. Se usa SQLite y el
-  servidor que trae Django (`runserver`). No hace falta instalar MySQL.
+- **Windows:** desarrollo y pruebas en la propia computadora. Se usa MySQL
+  (también en desarrollo) y el servidor que trae Django (`runserver`).
 - **Xubuntu / Ubuntu de escritorio:** igual que Windows, pero en Linux. Sirve
   para desarrollar y para probar la aplicación en la red interna.
 - **Ubuntu Server en intranet:** la aplicación queda prendida en un servidor al
-  que acceden las personas de la organización. Se usa MySQL cuando la base la
-  comparten varios equipos. Cómo se mantenga prendida y si se pone delante un
-  Nginx son decisiones que se explican como opciones, no como obligaciones.
+  que acceden las personas de la organización. MySQL es la única base
+  soportada. Cómo se mantenga prendida y si se pone delante un Nginx son
+  decisiones que se explican como opciones, no como obligaciones.
 
 Necesitás la carpeta del proyecto ya descargada, conexión a Internet para
 descargar las librerías y permisos de administrador en Linux. No necesitás saber
@@ -67,11 +67,12 @@ Django ni administrar servidores para seguir los pasos.
   las librerías sólo para este proyecto. Evita mezclarlas con otros programas.
 - **`pip`:** instalador de librerías de Python. Lee `requirements.txt`.
 - **`.env`:** archivo de configuración con rutas y claves. Es secreto: nunca se
-  sube a Internet ni se comparte.
+  sube a Internet ni se comparte. Es la **única fuente** de configuración:
+  Django lo lee siempre y sobreescribe cualquier variable del entorno.
 - **`manage.py`:** archivo del proyecto que recibe los comandos de
   administración. Siempre se ejecuta desde la carpeta del proyecto.
-- **Base de datos:** donde se guardan graduados, exámenes y usuarios. SQLite es
-  un archivo; MySQL es un servicio aparte.
+- **Base de datos:** donde se guardan graduados, exámenes y usuarios. Se usa
+  MySQL en todos los entornos; el proyecto no soporta SQLite.
 - **Servidor web:** programa que entrega la página al navegador. Nginx es una
   opción, no la única.
 - **Servidor WSGI:** programa que ejecuta Django de forma estable. Gunicorn es
@@ -99,10 +100,9 @@ Usá estas versiones. Otras pueden traer errores difíciles de diagnosticar.
 - **Python:** 3.13 (probado con 3.13.15). Django 6.1.1 necesita 3.12 o superior,
   pero las librerías fijadas se probaron con 3.13. No usar 3.14/3.15 sin probar.
 - **Django:** 6.1.1, fijado en `requirements.txt`.
-- **Base de datos en desarrollo:** SQLite. No requiere instalar ni configurar
-  un servidor.
-- **Base de datos en intranet:** MySQL 8.0/8.4 o MariaDB 10.11+. Se instala si
-  varios equipos comparten la base.
+- **Base de datos:** MySQL 8.0/8.4 o MariaDB 10.11+ en desarrollo y en
+  intranet. El servicio debe estar corriendo antes de ejecutar cualquier
+  comando de Django. SQLite quedó fuera de soporte.
 - **Cliente MySQL de Python:** `mysqlclient` 2.3.0. En Windows ya viene
   compilado; en Ubuntu necesita paquetes de desarrollo (`default-libmysqlclient-dev`).
 - **Servidor WSGI (sugerencia):** Gunicorn 27.0.1, que se instala automáticamente
@@ -159,8 +159,11 @@ trae Python 3.13 y no necesita ese paso.
   ruta completa: la vas a necesitar en el `.env`. El nombre de la carpeta es
   libre; puede ser `egraduados`, `B-Codigo` o cualquier otro.
 
-- **El `.env` va al lado de `manage.py`.** El proyecto busca su configuración
-  dentro de su propia carpeta (`BASE_DIR / ".env"`). Copiá la plantilla:
+- **El `.env` va al lado de `manage.py` y es obligatorio.** Si falta, Django no
+  arranca. El proyecto busca su configuración dentro de su propia carpeta
+  (`BASE_DIR / ".env"`) y la carga con `override=True`: las variables que
+  hubiera en la terminal, en systemd o en Docker **no** pueden reemplazar lo
+  que diga el archivo. Copiá la plantilla:
 
   - Linux: `cp .env.example .env`
   - Windows: `Copy-Item .env.example .env`
@@ -242,30 +245,46 @@ Copy-Item .env.example .env
 notepad .env
 ```
 
-Borrá todo el contenido y dejá **este único bloque** (cambiá la ruta por la
-tuya):
+Borrá todo el contenido y dejá **este único bloque** (cambiá la ruta y los datos
+de MySQL por los tuyos):
 
 ```ini
 EGRADUADOS_DIR=C:/Users/Usuario/Documents/eGraduados/B-Codigo
 DJANGO_DEBUG=1
-DJANGO_DB_ENGINE=django.db.backends.sqlite3
-DJANGO_DB_NAME=C:/Users/Usuario/Documents/eGraduados/B-Codigo/db.sqlite3
+DJANGO_SECRET_KEY=<secret-generado-abajo>
 DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
 DJANGO_HABILITAR_ADMIN=1
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
-DJANGO_READ_DOTENV=1
+
+DJANGO_DB_NAME=egraduados
+DJANGO_DB_USER=root
+DJANGO_DB_PASSWORD=
+DJANGO_DB_HOST=127.0.0.1
+DJANGO_DB_PORT=3306
 ```
 
-Usá `/` en las rutas de Windows. `DJANGO_DB_NAME` debe ser absoluto: Django se
-lo pasa directo a SQLite y una ruta relativa dependería de desde dónde ejecutes
-el comando. Con `DJANGO_DEBUG=1` no hace falta definir un secreto: el código usa
-uno interno de desarrollo.
+Generá el secreto en la misma terminal:
 
-**No agregues debajo el bloque MySQL que viene en `.env.example`.** Si lo
-pegás, vas a tener dos `DJANGO_DB_NAME` y el sistema va a intentar conectarse a
-MySQL en vez de usar SQLite (ver sección 9).
+```powershell
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
 
-### Paso 5.4 — Crear las tablas
+Usá `/` en las rutas de Windows. El motor de base de datos **no se configura**:
+está fijo en MySQL dentro de `settings.py`. No escribas `DJANGO_DB_ENGINE` ni
+`DJANGO_READ_DOTENV`: se ignoran. Todas las claves del bloque son obligatorias;
+si falta el `.env` o alguna clave, Django no arranca. El `.env` gana siempre
+sobre las variables de la terminal: si tenés una variable con el mismo nombre,
+cerrá la terminal y abrila de nuevo.
+
+### Paso 5.4 — Crear la base y las tablas
+
+Instalá MySQL Server 8.x desde el sitio oficial y creá la base con:
+
+```sql
+CREATE DATABASE egraduados CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Después, en la carpeta del proyecto:
 
 ```powershell
 python manage.py migrate
@@ -278,11 +297,9 @@ Se puede ejecutar las veces que haga falta: no borra datos.
 Cuando el archivo de datos exista en `scripts/` (por ejemplo
 `scripts/<nombre-del-script>.sql`), hacé esto a mano:
 
-- Instalá DB Browser for SQLite si no lo tenés.
-- Abrí `db.sqlite3` con ese programa.
-- Menú *Execute SQL* → abrí el archivo `.sql` → *Run*.
-- Si el archivo empieza con `use egraduados;`, borrá esa línea: SQLite no
-  entiende `use`, esa instrucción es sólo de MySQL.
+- Abrí MySQL Workbench y conectate con el usuario del `.env`.
+- *File → Open SQL Script*, elegí el archivo y presioná *Execute*.
+- Si el `.sql` empieza con `use egraduados;`, funciona bien en MySQL.
 
 Si el `.sql` todavía no existe, saltate este paso y volvé cuando lo creen. No
 hay ningún comando especial de Django para hacerlo.
@@ -304,28 +321,9 @@ python manage.py runserver
 Abrí `http://127.0.0.1:8000` e ingresá con el email y el código. `Ctrl+C` en la
 terminal detiene el servidor.
 
-### Paso 5.8 — (Opcional) Usar MySQL en Windows
-
-Si preferís probar con MySQL, instalá MySQL Server 8.x desde el sitio oficial,
-creá la base con `utf8mb4` y un usuario, y **reemplazá** en el `.env` las dos
-líneas de base de datos por este bloque:
-
-```ini
-DJANGO_DB_ENGINE=django.db.backends.mysql
-DJANGO_DB_NAME=egraduados
-DJANGO_DB_USER=egraduados
-DJANGO_DB_PASSWORD=clave-segura
-DJANGO_DB_HOST=127.0.0.1
-DJANGO_DB_PORT=3306
-```
-
-Ojo: son **dos líneas menos y seis nuevas**, no seis líneas agregadas al final.
-Después ejecutá `python manage.py migrate` otra vez. No hay que instalar
-ningún conector extra: `mysqlclient` ya trae la parte compilada para Windows con
-Python 3.13.
-
-Para cargar el `.sql`, abrí MySQL Workbench, *File → Open SQL Script*, elegí el
-archivo y presioná *Execute*.
+> MySQL es obligatorio también en Windows: no hay modo SQLite. No hace falta
+> instalar un conector extra: `mysqlclient` ya trae la parte compilada para
+> Windows con Python 3.13.
 
 ---
 
@@ -379,40 +377,29 @@ cp .env.example .env
 nano .env
 ```
 
-Reemplazá todo por un único bloque (poné tu usuario y tu ruta real):
+Reemplazá todo por un único bloque (poné tu ruta, tu secreto y tus datos de
+MySQL):
 
 ```ini
 EGRADUADOS_DIR=/home/<usuario>/proyectos/egraduados
 DJANGO_DEBUG=1
-DJANGO_DB_ENGINE=django.db.backends.sqlite3
-DJANGO_DB_NAME=/home/<usuario>/proyectos/egraduados/db.sqlite3
+DJANGO_SECRET_KEY=<secret-generado-con-get_random_secret_key>
 DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
 DJANGO_HABILITAR_ADMIN=1
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
-DJANGO_READ_DOTENV=1
+
+DJANGO_DB_NAME=egraduados
+DJANGO_DB_USER=egraduados
+DJANGO_DB_PASSWORD=clave-segura
+DJANGO_DB_HOST=127.0.0.1
+DJANGO_DB_PORT=3306
 ```
 
 En `nano`: escribí con las flechas, guardá con `Ctrl+O` y `Enter`, salí con
-`Ctrl+X`. Otra vez: un solo bloque de base de datos, sin líneas MySQL debajo.
+`Ctrl+X`. El motor está fijo en MySQL: no escribas `DJANGO_DB_ENGINE` ni
+`DJANGO_READ_DOTENV`. El `.env` manda sobre cualquier variable de la terminal.
 
-### Paso 6.5 — Inicializar, cargar datos y probar
-
-```bash
-python manage.py migrate
-python manage.py crear_usuario_admin --email admin@gmail.com --nombre "Administrador"
-python manage.py test
-python manage.py runserver
-```
-
-La carga del `.sql` se hace a mano con DB Browser for SQLite (o el cliente que
-prefieras), igual que en el paso 5.5. `manage.py test` tarda un par de minutos y
-debe terminar con `OK`. Para detener el servidor, `Ctrl+C`.
-
-Con `DJANGO_DEBUG=1`, `runserver` sirve los estilos automáticamente y alcanza
-para probar desde otros equipos de la intranet si levantás el servidor con
-`python manage.py runserver 0.0.0.0:8000` y abrís `http://<ip-de-tu-equipo>:8000`.
-
-### Paso 6.6 — (Opcional) MySQL local
+### Paso 6.5 — MySQL, inicializar, cargar datos y probar
 
 ```bash
 sudo apt install -y mysql-server
@@ -429,9 +416,22 @@ FLUSH PRIVILEGES;
 exit
 ```
 
-Después **reemplazá** el bloque `DJANGO_DB_*` del `.env` por el bloque MySQL del
-paso 5.8 y ejecutá `migrate` de nuevo. Cargá el `.sql` con MySQL Workbench o con
-la línea de comandos de MySQL.
+Después, en la carpeta del proyecto:
+
+```bash
+python manage.py migrate
+python manage.py crear_usuario_admin --email admin@gmail.com --nombre "Administrador"
+python manage.py test
+python manage.py runserver
+```
+
+La carga del `.sql` se hace a mano con MySQL Workbench o el cliente de MySQL,
+igual que en el paso 5.5. `manage.py test` tarda un par de minutos y debe
+terminar con `OK`. Para detener el servidor, `Ctrl+C`.
+
+Con `DJANGO_DEBUG=1`, `runserver` sirve los estilos automáticamente y alcanza
+para probar desde otros equipos de la intranet si levantás el servidor con
+`python manage.py runserver 0.0.0.0:8000` y abrís `http://<ip-de-tu-equipo>:8000`.
 
 ---
 
@@ -507,8 +507,6 @@ DJANGO_SECRET_KEY=<pegar-la-clave-generada-arriba>
 DJANGO_ALLOWED_HOSTS=egraduados.interna,10.0.0.5
 DJANGO_CSRF_TRUSTED_ORIGINS=http://egraduados.interna
 DJANGO_HABILITAR_ADMIN=0
-DJANGO_READ_DOTENV=1
-DJANGO_DB_ENGINE=django.db.backends.mysql
 DJANGO_DB_NAME=egraduados
 DJANGO_DB_USER=egraduados
 DJANGO_DB_PASSWORD=clave-segura
@@ -531,8 +529,13 @@ Puntos clave:
 - Con `DJANGO_DEBUG=0`, el código fuerza HTTPS por defecto. Por eso se ponen
   `DJANGO_SECURE_SSL_REDIRECT=0` y `DJANGO_SECURE_HSTS_SECONDS=0`. Si no los
   ponés, la intranet va a redirigir a HTTPS y no va a abrir.
-- `DJANGO_SECRET_KEY` es obligatorio con `DEBUG=0`. La clave debe ser aleatoria
-  y de 50 o más caracteres.
+- `DJANGO_SECRET_KEY` es obligatorio siempre (también con `DEBUG=1`). La clave
+  debe ser aleatoria y de 50 o más caracteres.
+- El `.env` se carga con `override=True`: lo que diga el archivo gana sobre
+  `EnvironmentFile` de systemd, Docker o cualquier export de la terminal.
+  Si una clave no está en el archivo, Django no arranca.
+- No escribas `DJANGO_DB_ENGINE` ni `DJANGO_READ_DOTENV`: quedaron fuera de
+  soporte. El motor es MySQL fijo.
 - Nada de `export`, nada de espacios alrededor de `=`, nada de comentarios al
   final de una línea. Si un valor tiene espacios o `#`, citarlo con comillas
   dobles.
@@ -560,8 +563,7 @@ uses Nginx: los necesitás si más adelante ponés un servidor web o WhiteNoise.
 
 La carga del `.sql` es manual: abrí el archivo `scripts/<nombre-del-script>.sql`
 con tu cliente MySQL (Workbench u otro) y ejecutalo. Si el archivo incluye
-`use egraduados;`, funciona bien en MySQL. Si se usa SQLite en el servidor,
-borrá esa línea antes.
+`use egraduados;`, funciona bien en MySQL.
 
 No hay ningún paso de "recalcular" ni comando especial de carga: los datos
 entran con el `.sql` y ya están.
@@ -748,27 +750,23 @@ volvé a ejecutarlo.
 
 ## 9. Si algo no arranca
 
-- **Error `DisallowedHost: Invalid HTTP_HOST header: '127.0.0.1:8000'`:** aunque
-  el `.env` diga `DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost`, hay una variable de
-  entorno con ese mismo nombre que **pisa** el archivo (`load_dotenv` usa
-  `override=False`). En la misma terminal donde levantás el sistema, ejecutá:
+- **Error `DisallowedHost: Invalid HTTP_HOST header: '127.0.0.1:8000'`:** el
+  valor que manda es el del `.env`, no el de la terminal. Revisá que
+  `DJANGO_ALLOWED_HOSTS` esté una sola vez en el archivo y que incluya el host
+  con el que entrás. Si habías iniciado el servidor antes de editar el `.env`,
+  detenelo con `Ctrl+C` y volvé a arrancarlo: la configuración se lee al
+  iniciar.
 
-  ```powershell
-  echo $env:DJANGO_ALLOWED_HOSTS
-  Get-ChildItem Env:DJANGO_*
-  ```
+- **Error `Falta el archivo de configuración .../.env` o `La variable ... debe
+  estar definida en .env`:** el `.env` no está al lado de `manage.py` o le falta
+  alguna clave obligatoria. Copiá `.env.example`, completá **todas** las claves
+  del bloque y guardá sin comentarios al final de las líneas.
 
-  Si aparece otro dominio, un `*` o la variable está vacía, ahí está el
-  problema. Borrá la variable con `Remove-Item Env:DJANGO_ALLOWED_HOSTS` (no
-  sirve dejarla en `''`: una variable vacía también pisa el `.env` y deja la
-  lista de hosts sin ningún valor), cerrá y abrí la terminal, y volvé a correr
-  `runserver`. Fijate también que no hayas iniciado el servidor antes de editar
-  el `.env`.
-
-- **Después de eso aparece un error de MySQL (`Unknown database 'egraduados'` o
-  `Access denied for user 'root'`):** tu `.env` tiene dos `DJANGO_DB_NAME` y la
-  última línea activa el motor MySQL. Borrá el bloque MySQL y dejá un solo
-  bloque SQLite, o creá la base y el usuario y dejá un solo bloque MySQL.
+- **Error de MySQL (`Unknown database 'egraduados'` o `Access denied ...`):** el
+  `.env` es la única fuente: revisá `DJANGO_DB_NAME`, `DJANGO_DB_USER` y
+  `DJANGO_DB_PASSWORD` (si la clave está vacía, dejá `DJANGO_DB_PASSWORD=`). Después
+  creá la base con `utf8mb4` y otorgá permisos al usuario, como en los pasos 5.4
+  y 6.5. Ya no existe la alternativa SQLite.
 
 - **Escribo `python` y se abre Microsoft Store:** es el alias de Windows. Usá
   `py -3.13` o `.\venv\Scripts\python.exe`.
@@ -844,9 +842,6 @@ Si los estilos no cargan, volvé al punto de `staticfiles/` de la sección 9.
   No ejecutes de nuevo la carga del `.sql` salvo que quieras recargar los datos
   desde cero: los `INSERT` pueden duplicar registros.
 
-- **Respaldos con SQLite:** copiar `db.sqlite3` a otro disco con la aplicación
-  detenida.
-
 - **Respaldos con MySQL:**
 
   ```bash
@@ -874,24 +869,20 @@ Si los estilos no cargan, volvé al punto de `staticfiles/` de la sección 9.
 
 - `EGRADUADOS_DIR`: ruta absoluta de la carpeta. La usa el script opcional;
   Django no la lee enruntime.
-- `DJANGO_DEBUG`: modo desarrollo. En local `1`; en el servidor `0`. Con `0`,
-  el secreto y los hosts son obligatorios.
-- `DJANGO_SECRET_KEY`: clave criptográfica. Obligatoria con `DEBUG=0`, aleatoria
-  y de 50+ caracteres.
+- `DJANGO_DEBUG`: modo desarrollo. En local `1`; en el servidor `0`.
+- `DJANGO_SECRET_KEY`: clave criptográfica. **Obligatoria siempre**, aleatoria y
+  de 50+ caracteres. No hay valor de desarrollo incorporado en el código.
 - `DJANGO_ALLOWED_HOSTS`: nombres o IPs permitidos, separados por comas. Sin
   `http://` y sin comodines.
 - `DJANGO_CSRF_TRUSTED_ORIGINS`: orígenes permitidos para formularios. Lleva
   esquema: `http://...` en intranet sin TLS, `https://...` con TLS.
 - `DJANGO_HABILITAR_ADMIN`: habilita `/admin/`. En desarrollo `1`, en el
   servidor conviene `0`.
-- `DJANGO_READ_DOTENV`: permite desactivar la lectura del `.env`. Dejar en `1`
-  salvo tests automatizados.
-- `DJANGO_DB_ENGINE`: tipo de base. `django.db.backends.sqlite3` en desarrollo,
-  `django.db.backends.mysql` en el servidor.
-- `DJANGO_DB_NAME`: nombre de la base MySQL o ruta absoluta del archivo SQLite.
-  **Sólo una vez en el archivo.**
-- `DJANGO_DB_USER` / `DJANGO_DB_PASSWORD`: usuario y clave de MySQL. No se usan
-  con SQLite.
+- `DJANGO_DB_NAME`: nombre de la base MySQL. **Sólo una vez en el archivo.**
+- `DJANGO_DB_USER` / `DJANGO_DB_PASSWORD`: usuario y clave de MySQL. La clave
+  puede estar vacía (`DJANGO_DB_PASSWORD=`), pero la línea debe existir.
+  `DJANGO_DB_ENGINE` y `DJANGO_READ_DOTENV` ya no se usan: el motor es MySQL
+  fijo y el `.env` se lee siempre.
 - `DJANGO_DB_HOST` / `DJANGO_DB_PORT`: dónde escucha MySQL, normalmente
   `127.0.0.1` y `3306`.
 - `DJANGO_SESSION_COOKIE_AGE`: duración de la sesión en segundos (28800 = 8 h).
@@ -910,9 +901,9 @@ Si los estilos no cargan, volvé al punto de `staticfiles/` de la sección 9.
   datos del servidor SMTP. TLS y SSL son mutuamente excluyentes.
 - `DJANGO_DEFAULT_FROM_EMAIL`: remitente de los correos.
 
-Las variables definidas en el entorno del proceso ganan sobre las del `.env`.
-Por eso, si una queda seteada en la terminal, puede pisar lo que escribiste en
-el archivo (ver sección 9).
+El `.env` se carga con `override=True`: gana sobre las variables definidas en
+el entorno del proceso (terminal, systemd, Docker). Si falta el archivo o una
+clave obligatoria, Django no arranca (ver sección 9).
 
 ---
 
@@ -924,8 +915,9 @@ el archivo (ver sección 9).
   así que funcionan con `runserver` o con cualquier servidor WSGI sin importar
   desde dónde se arranque el proceso.
 - `requirements.txt` tiene las dependencias directas y transitivas fijadas con
-  `==`. Se eliminaron `opencv-python`, `pymupdf`, `pypdf`,
-  `rapidocr-onnxruntime`, `pillow` y `colorama` porque ya no se usan.
+  `==`. Se eliminaron `opencv-python`, `pymupdf`, `rapidocr-onnxruntime`,
+  `pillow` y `colorama` porque ya no se usan. `pypdf` sí se usa para contar
+  las páginas del PDF generado por LibreOffice al verificar analíticos.
 - `crear_usuario_admin` crea los roles base y el usuario administrador de la
   aplicación (tabla `USUARIO`). Lee `EGRADUADOS_ADMIN_EMAIL` y
   `EGRADUADOS_ADMIN_NOMBRE` del entorno si no se pasan `--email` / `--nombre`,

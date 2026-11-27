@@ -993,10 +993,13 @@ def _agregar_materia(request, tipo_documento):
 
     nota = _entero_o_none(_limpiar(request.POST.get("nueva_nota")))
     anio = _limpiar(request.POST.get("nuevo_anio"))
-    orden = _entero_o_none(_limpiar(request.POST.get("nuevo_orden")))
+
+    # La materia nueva siempre se agrega al final; el orden se ajusta
+    # después con las flechas de la previsualización.
+    orden = len(filas) + 1
 
     filas.append({
-        "indice": str(len(filas) + 1),
+        "indice": str(orden),
         "espacio": nombre,
         "materia_codigo": codigo,
         "codigo_lincoln": "",
@@ -2224,42 +2227,20 @@ def _promedio_para_preview(datos, calculado, registro):
     """
     Resuelve qué promedios mostrar en la previsualización.
 
-    * Un promedio manual ya guardado se conserva (no se pisa).
-    * Si hay promedio calculable, se muestra el calculado.
-    * Si no hay exámenes, se conserva el importado o el valor del
-      formulario.
+    El valor calculado desde los exámenes manda siempre. Los valores
+    que vinieran de un formulario o de una importación sólo se usan
+    como respaldo cuando no hay exámenes promediables.
     """
 
     resultado = {}
 
-    for campo, origen_campo, valor_calc in (
-        (
-            "promedio_sin_aplazo",
-            "origen_promedio_sin_aplazo",
-            calculado.promedio_sin_aplazo,
-        ),
-        (
-            "promedio_con_aplazo",
-            "origen_promedio_con_aplazo",
-            calculado.promedio_con_aplazo,
-        ),
+    for campo, valor_calc in (
+        ("promedio_sin_aplazo", calculado.promedio_sin_aplazo),
+        ("promedio_con_aplazo", calculado.promedio_con_aplazo),
     ):
         valor_actual = (
             getattr(registro, campo) if registro is not None else None
         )
-        origen_actual = (
-            getattr(registro, origen_campo)
-            if registro is not None
-            else OrigenPromedio.IMPORTADO
-        )
-
-        if (
-            registro is not None
-            and origen_actual == OrigenPromedio.MANUAL
-            and valor_actual is not None
-        ):
-            resultado[campo] = valor_actual
-            continue
 
         if valor_calc is not None:
             resultado[campo] = valor_calc
@@ -2275,8 +2256,10 @@ def _resolver_promedios_guardar(datos, calculado, registro):
     """
     Decide el valor y el origen de cada promedio al validar.
 
-    Devuelve un dict con valor y origen para ambos promedios, más
-    la lista de overrides manuales detectados (para auditar).
+    La fuente de verdad es la previsualización: el valor calculado
+    desde los exámenes, o el valor que el usuario editó ahí mismo.
+    Los promedios cargados por formulario/importación nunca ganan
+    sobre ese valor.
     """
 
     resolucion = {}
@@ -2306,65 +2289,31 @@ def _resolver_promedios_guardar(datos, calculado, registro):
         )
         valor_post = datos.get(campo)
 
-        if (
-            registro is not None
-            and origen_actual == OrigenPromedio.MANUAL
-            and valor_actual is not None
+        if valor_post is not None and valor_calc is not None and mismo_promedio(
+            valor_post, valor_calc
         ):
-            # Si el valor enviado coincide con el calculado, el
-            # usuario usó «Recalcular»: vuelve a origen calculado.
-            if (
-                valor_post is not None
-                and valor_calc is not None
-                and mismo_promedio(valor_post, valor_calc)
-            ):
-                resolucion[campo] = (
-                    valor_calc,
-                    OrigenPromedio.CALCULADO,
-                )
-            # El override manual se conserva salvo que el usuario
-            # lo cambie explícitamente en la previsualización.
-            elif valor_post is not None and not mismo_promedio(
-                valor_post, valor_actual
-            ):
-                overrides.append({
-                    "promedio": nombre,
-                    "anterior": valor_actual,
-                    "nuevo": valor_post,
-                    "calculado": valor_calc,
-                })
-                resolucion[campo] = (valor_post, OrigenPromedio.MANUAL)
-            else:
-                resolucion[campo] = (valor_actual, OrigenPromedio.MANUAL)
+            resolucion[campo] = (valor_calc, OrigenPromedio.CALCULADO)
+            continue
 
+        if valor_post is not None:
+            overrides.append({
+                "origen": "previsualizacion",
+                "promedio": nombre,
+                "anterior": (
+                    valor_calc if valor_calc is not None else valor_actual
+                ),
+                "nuevo": valor_post,
+                "calculado": valor_calc,
+            })
+            resolucion[campo] = (valor_post, OrigenPromedio.MANUAL)
             continue
 
         if valor_calc is not None:
-            if valor_post is None or mismo_promedio(valor_post, valor_calc):
-                resolucion[campo] = (
-                    valor_calc,
-                    OrigenPromedio.CALCULADO,
-                )
-            else:
-                overrides.append({
-                    "promedio": nombre,
-                    "anterior": valor_actual,
-                    "nuevo": valor_post,
-                    "calculado": valor_calc,
-                })
-                resolucion[campo] = (valor_post, OrigenPromedio.MANUAL)
-
+            resolucion[campo] = (valor_calc, OrigenPromedio.CALCULADO)
             continue
 
-        # No hay exámenes promediables: conservar lo importado.
-        if valor_post is None:
-            resolucion[campo] = (valor_actual, origen_actual)
-        elif valor_actual is not None and mismo_promedio(
-            valor_post, valor_actual
-        ):
-            resolucion[campo] = (valor_actual, origen_actual)
-        else:
-            resolucion[campo] = (valor_post, OrigenPromedio.MANUAL)
+        # Sin exámenes promediables: conservar lo que ya hubiera.
+        resolucion[campo] = (valor_actual, origen_actual)
 
     return resolucion, overrides
 

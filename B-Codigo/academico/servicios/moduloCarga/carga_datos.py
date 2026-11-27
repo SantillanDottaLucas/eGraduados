@@ -20,8 +20,31 @@ class CargaDatos:
     El DNI identifica al graduado. El legajo no se importa: se
     deriva del DNI y del año de ingreso a la UARG, que es opcional
     en esta carga (en blanco significa «sin legajo»).
+
+    Son obligatorias DNI, nombre, apellido, ingreso y egreso de la
+    carrera, código de carrera y promedio sin aplazo. El año UARG,
+    el legajo y el promedio con aplazo son opcionales.
     """
 
+    COLUMNAS_OBLIGATORIAS = [
+        "dni",
+        "nombre",
+        "apellido",
+        "promedio_sin_aplazo",
+        "fecha_ingreso_carrera",
+        "fecha_egreso_carrera",
+        "codigo_carrera",
+    ]
+
+    COLUMNAS_OPCIONALES = [
+        "promedio_con_aplazo",
+        "fecha_ingreso_universidad",
+        "anio_ingreso_uarg",
+        "legajo",
+    ]
+
+    # Orden canónico de las planillas históricas. Se conserva para
+    # generar plantillas y tests, pero la validación es por nombre.
     COLUMNAS_REQUERIDAS = [
         "dni",
         "nombre",
@@ -33,6 +56,11 @@ class CargaDatos:
         "codigo_carrera",
         "fecha_ingreso_universidad",
     ]
+
+    ALIAS_COLUMNAS = {
+        "anio_ingreso_uarg": "fecha_ingreso_universidad",
+        "anio_uarg": "fecha_ingreso_universidad",
+    }
 
     @classmethod
     def cargar_excel(cls, archivo):
@@ -63,33 +91,36 @@ class CargaDatos:
                 "Verificá que sea un archivo válido."
             ) from error
 
-        # Normalizar los espacios de los encabezados.
+        # Normalizar los espacios de los encabezados y aceptar alias
+        # del año de ingreso a la UARG.
         datos.columns = [
-            str(columna).strip().lower()
+            cls.ALIAS_COLUMNAS.get(
+                str(columna).strip().lower(),
+                str(columna).strip().lower(),
+            )
             for columna in datos.columns
         ]
 
-        # Verificar encabezados y orden. Las planillas históricas
-        # pueden traer «legajo» en primer lugar: se ignora porque el
-        # DNI es la identidad del graduado.
-        columnas = list(datos.columns)
-
-        if columnas and columnas[0] == "legajo":
+        # El legajo no es dato de entrada: se ignora donde aparezca.
+        if "legajo" in datos.columns:
             datos = datos.drop(columns=["legajo"])
-            columnas = list(datos.columns)
 
-        # El año de ingreso a la UARG es opcional: si falta la
-        # columna, se toma como vacío para todas las filas.
-        if "fecha_ingreso_universidad" not in columnas:
-            datos["fecha_ingreso_universidad"] = None
-            columnas = list(datos.columns)
+        faltantes = [
+            columna for columna in cls.COLUMNAS_OBLIGATORIAS
+            if columna not in datos.columns
+        ]
 
-        if columnas != cls.COLUMNAS_REQUERIDAS:
+        if faltantes:
             raise ValueError(
-                "La estructura del Excel es incorrecta. "
-                "Verificá los nombres y el orden de las columnas "
-                "requeridas, con el DNI en primer lugar."
+                "Faltan columnas obligatorias en el Excel: "
+                + ", ".join(faltantes)
+                + ". El DNI reemplaza al legajo."
             )
+
+        # Las columnas opcionales ausentes se toman como vacías.
+        for columna in ("promedio_con_aplazo", "fecha_ingreso_universidad"):
+            if columna not in datos.columns:
+                datos[columna] = None
 
         # Ignorar filas completamente vacías.
         datos = datos.dropna(how="all")
@@ -133,8 +164,9 @@ class CargaDatos:
                 )
 
                 promedio_con_aplazo = cls._promedio(
-                    fila["promedio_con_aplazo"],
-                    "promedio_con_aplazo"
+                    fila.get("promedio_con_aplazo"),
+                    "promedio_con_aplazo",
+                    obligatorio=False,
                 )
 
                 # La planilla histórica trae una fecha, pero sólo
@@ -379,13 +411,22 @@ class CargaDatos:
         return anio_desde_valor(valor, campo)
 
     @staticmethod
-    def _promedio(valor, campo):
+    def _promedio(valor, campo, obligatorio=True):
         """Valida un promedio numérico entre 0 y 10."""
 
         if pd.isna(valor):
-            raise ValueError(
-                f"El campo '{campo}' es obligatorio."
-            )
+            if obligatorio:
+                raise ValueError(
+                    f"El campo '{campo}' es obligatorio."
+                )
+            return None
+
+        if isinstance(valor, str) and not valor.strip():
+            if obligatorio:
+                raise ValueError(
+                    f"El campo '{campo}' es obligatorio."
+                )
+            return None
 
         try:
             promedio = Decimal(str(valor).strip())

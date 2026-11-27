@@ -24,6 +24,9 @@ from academico.models import (
     Titulo,
     TipoResolucion,
 )
+from academico.servicios.moduloAnalitico.compactacion import (
+    asegurar_dos_paginas,
+)
 from academico.servicios.moduloAnalitico.plan_estudios import (
     verificar_filas,
 )
@@ -138,6 +141,53 @@ def texto_resoluciones(agrupadas):
     )
 
 
+# La columna «ESPACIO CURRICULAR» mide ~5 cm. A 9 pt, un nombre
+# largo se parte en dos líneas: cuando eso pasa, la plantilla dibuja
+# una línea de guiones debajo para separarlo de la materia siguiente.
+LIMITE_LINEA_MATERIA = 32
+MAX_GUIONES_MATERIA = 36
+
+_ANCHOS_ESTRECHOS = set("iljI.,:;'!|()[] ")
+_ANCHOS_ANCHOS = set("mwMW@%")
+
+
+def ancho_aproximado(texto):
+    """
+    Ancho aproximado en «caracteres normales».
+
+    No es tipografía exacta: alcanza para decidir si un nombre va a
+    ocupar más de una línea en la celda de 5 cm.
+    """
+
+    total = 0.0
+
+    for caracter in texto or "":
+        if caracter in _ANCHOS_ESTRECHOS:
+            total += 0.55
+        elif caracter in _ANCHOS_ANCHOS:
+            total += 1.4
+        else:
+            total += 1.0
+
+    return total
+
+
+def separador_materia(nombre):
+    """
+    Guiones para la fila de una materia que se parte en dos líneas.
+
+    Devuelve ``""`` cuando el nombre entra en una sola línea, para
+    que la plantilla no agregue el párrafo en esos casos.
+    """
+
+    ancho = ancho_aproximado(nombre)
+
+    if ancho <= LIMITE_LINEA_MATERIA:
+        return ""
+
+    return "-" * min(MAX_GUIONES_MATERIA, max(10, round(ancho)))
+
+
 def examenes_ordenados(dni, carrera):
     """
     Exámenes en el orden y con el año guardados al validar.
@@ -221,6 +271,7 @@ def examenes_ordenados(dni, carrera):
             "anio_num": anio,
             "anio_cursado": anio,
             "anio_txt": f"{anio}°" if anio is not None else "",
+            "separador": separador_materia(materia.nombre_materia),
         })
 
     # El plan sólo aporta avisos: ni reordena ni reemplaza el año.
@@ -477,4 +528,6 @@ def render_docx(contexto):
     buffer = BytesIO()
     doc.save(buffer)
 
-    return buffer.getvalue()
+    # Si hay LibreOffice, se verifica el límite de dos páginas y se
+    # aplica una compactación extra cuando el documento se pasa.
+    return asegurar_dos_paginas(buffer.getvalue())

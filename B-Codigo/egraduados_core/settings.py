@@ -1,18 +1,15 @@
 """
 Django settings for egraduados_core project.
 
-La configuración sensible se toma de variables de entorno. En
-desarrollo se mantienen valores por defecto seguros para poder
-levantar el proyecto sin configuración adicional; en producción
-(DJANGO_DEBUG=0) el secreto y los hosts son obligatorios.
+El archivo .env junto a manage.py es la única fuente de configuración.
+Se carga siempre con `override=True`: ninguna variable del entorno del
+proceso (systemd, Docker, consola, CI) puede pisar lo que dice .env.
+Falta el archivo o una clave obligatoria => el proyecto no arranca.
 
-Si existe un archivo .env junto a manage.py se carga con
-python-dotenv. Las variables definidas en el entorno del proceso
-(systemd, Docker, consola) tienen prioridad sobre el archivo.
+La base de datos es siempre MySQL; SQLite quedó fuera de soporte.
 """
 
 import os
-import sys
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -26,17 +23,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # VARIABLES DE ENTORNO
 # ==================================================
 
-# Los tests no deben leer un .env de producción que pudiera
-# redirigir la suite a otra base de datos. DJANGO_READ_DOTENV=0
-# permite desactivar la carga explícitamente.
-if (
-    os.environ.get("DJANGO_READ_DOTENV", "1") != "0"
-    and "test" not in sys.argv
-):
-    ruta_env = BASE_DIR / ".env"
+# El .env manda: se carga en todos los comandos (incluidos tests)
+# y sobreescribe el entorno del proceso, no al revés.
+ruta_env = BASE_DIR / ".env"
 
-    if ruta_env.is_file():
-        load_dotenv(ruta_env, override=False)
+if not ruta_env.is_file():
+    raise ImproperlyConfigured(
+        f"Falta el archivo de configuración {ruta_env}. "
+        "Toda la configuración debe definirse ahí."
+    )
+
+load_dotenv(ruta_env, override=True)
+
+
+def env_requerida(nombre, permitir_vacio=False):
+    """Lee una clave obligatoria del .env ya cargado."""
+
+    valor = os.environ.get(nombre)
+
+    if valor is None or (not permitir_vacio and not str(valor).strip()):
+        raise ImproperlyConfigured(
+            f"La variable {nombre} debe estar definida en .env."
+        )
+
+    return valor
+
 
 def env_bool(nombre, por_defecto=False):
     valor = os.environ.get(nombre)
@@ -71,18 +82,7 @@ def env_int(nombre, por_defecto):
 DEBUG = env_bool("DJANGO_DEBUG", True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
-
-if not SECRET_KEY:
-    if DEBUG:
-        SECRET_KEY = (
-            "django-insecure-solo-desarrollo-"
-            "8k&j#d%7r9d!($d))rcv)4u$rpxf"
-        )
-    else:
-        raise ImproperlyConfigured(
-            "Definí DJANGO_SECRET_KEY antes de ejecutar en producción."
-        )
+SECRET_KEY = env_requerida("DJANGO_SECRET_KEY")
 
 ALLOWED_HOSTS = env_list(
     "DJANGO_ALLOWED_HOSTS",
@@ -145,24 +145,21 @@ WSGI_APPLICATION = 'egraduados_core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.environ.get(
-            "DJANGO_DB_ENGINE",
-            "django.db.backends.mysql",
+        # MySQL es obligatorio: no se admite DJANGO_DB_ENGINE ni SQLite.
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': env_requerida("DJANGO_DB_NAME"),
+        'USER': env_requerida("DJANGO_DB_USER"),
+        'PASSWORD': env_requerida(
+            "DJANGO_DB_PASSWORD",
+            permitir_vacio=True,
         ),
-        'NAME': os.environ.get("DJANGO_DB_NAME", "egraduados"),
-        'USER': os.environ.get("DJANGO_DB_USER", "root"),
-        'PASSWORD': os.environ.get("DJANGO_DB_PASSWORD", ""),
-        'HOST': os.environ.get("DJANGO_DB_HOST", "127.0.0.1"),
-        'PORT': os.environ.get("DJANGO_DB_PORT", "3306"),
+        'HOST': env_requerida("DJANGO_DB_HOST"),
+        'PORT': env_requerida("DJANGO_DB_PORT"),
         'OPTIONS': {
             'charset': 'utf8mb4',
         },
     }
 }
-
-# SQLite no acepta el parámetro «charset» de MySQL.
-if DATABASES['default']['ENGINE'].endswith('sqlite3'):
-    DATABASES['default']['OPTIONS'] = {}
 
 
 # Password validation

@@ -125,6 +125,30 @@ class LoginTest(BasePrueba):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "incorrectos")
 
+    def test_codigo_oculto_con_boton_para_verlo(self):
+        respuesta = self.client.get(reverse("login"))
+
+        self.assertContains(respuesta, 'id="codigo"')
+        self.assertContains(respuesta, 'type="password"')
+        self.assertContains(respuesta, 'id="login-codigo-toggle"')
+        self.assertContains(respuesta, 'id="codigo-visual"')
+        self.assertContains(
+            respuesta, "muestran en azul y las minúsculas en gris."
+        )
+        self.assertContains(respuesta, "js/login.js")
+
+    def test_login_es_case_sensitive(self):
+        for codigo in (self.codigo_titulos.lower(), "XYZ789"):
+            with self.subTest(codigo=codigo):
+                respuesta = self.client.post(
+                    reverse("login"),
+                    {"email": "titulos@gmail.com", "codigo": codigo},
+                )
+
+                self.assertEqual(respuesta.status_code, 200)
+                self.assertContains(respuesta, "incorrectos")
+                self.assertIsNone(self.client.session.get(CLAVE_SESION))
+
     def test_vista_protegida_redirige(self):
         respuesta = self.client.get(reverse("lista_graduados"))
 
@@ -197,6 +221,8 @@ class EdicionGraduadoTest(BasePrueba):
                 "anio_ingreso_universidad": "2015",
                 "fecha_ingreso_carrera": "2016-03-01",
                 "fecha_egreso_carrera": "2020-12-15",
+                # Los promedios ya no se editan acá: un POST
+                # manipulado no debe cambiar los valores guardados.
                 "promedio_sin_aplazo": "8.5",
                 "promedio_con_aplazo": "8.0",
             },
@@ -206,7 +232,8 @@ class EdicionGraduadoTest(BasePrueba):
         self.graduado.refresh_from_db()
         self.registro.refresh_from_db()
         self.assertEqual(self.graduado.nombre, "Ana Maria")
-        self.assertEqual(self.registro.promedio_sin_aplazo, 8.5)
+        self.assertEqual(self.registro.promedio_sin_aplazo, 8.0)
+        self.assertEqual(self.registro.promedio_con_aplazo, 7.5)
 
     def test_editar_fechas_incoherentes(self):
         self.iniciar_sesion(self.titulos)
@@ -350,7 +377,10 @@ class EdicionGraduadoTest(BasePrueba):
             dni_graduado=self.graduado,
             codigo_carrera=nueva_carrera,
         )
-        self.assertEqual(registro.promedio_sin_aplazo, 8.5)
+        # El alta de la nueva carrera no copia promedios: se
+        # calculan al generar el analítico.
+        self.assertIsNone(registro.promedio_sin_aplazo)
+        self.assertIsNone(registro.promedio_con_aplazo)
 
     def test_cambio_de_carrera_duplicada_rechazado(self):
         GraduadoCarrera.objects.create(
@@ -430,7 +460,6 @@ class CargaGraduadosTest(BasePrueba):
             "anio_ingreso_universidad": "2017",
             "fecha_ingreso_carrera": "2018-03-01",
             "fecha_egreso_carrera": "2024-04-24",
-            "promedio_sin_aplazo": "8.5",
         }
         datos.update(cambios)
 
@@ -491,10 +520,12 @@ class CargaGraduadosTest(BasePrueba):
             dni_graduado=graduado,
             codigo_carrera=self.carrera,
         )
-        self.assertEqual(registro.promedio_sin_aplazo, 8.5)
+        # La carga manual no guarda promedios: se calculan en la
+        # previsualización del analítico.
+        self.assertIsNone(registro.promedio_sin_aplazo)
         self.assertEqual(
             registro.origen_promedio_sin_aplazo,
-            OrigenPromedio.MANUAL,
+            OrigenPromedio.IMPORTADO,
         )
 
         auditoria = Auditoria.objects.get(
@@ -569,7 +600,8 @@ class CargaGraduadosTest(BasePrueba):
         registro.refresh_from_db()
         self.assertEqual(graduado.nombre, "Ana")
         self.assertEqual(graduado.anio_ingreso_universidad, 2017)
-        self.assertEqual(registro.promedio_sin_aplazo, 8.5)
+        # Sobrescribir no borra el promedio con aplazo ya guardado.
+        self.assertEqual(registro.promedio_sin_aplazo, 7.0)
         self.assertEqual(registro.promedio_con_aplazo, 6.0)
 
         auditoria = Auditoria.objects.get(
@@ -695,6 +727,44 @@ class EstadisticaPorAnioTest(BasePrueba):
         self.assertEqual(resultado["etiquetas"], ["2020", "2021"])
         self.assertEqual(resultado["valores"], [2, 1])
         self.assertEqual(resultado["total"], 3)
+
+    def test_tablero_ofrece_descarga_png_de_cada_grafico(self):
+        from django.conf import settings
+
+        self.iniciar_sesion(self.titulos)
+
+        respuesta = self.client.get(reverse("estadisticas"))
+
+        self.assertEqual(respuesta.status_code, 200)
+
+        contenido = respuesta.content.decode()
+        for grafico in (
+            "graficoPromedios",
+            "graficoTotales",
+            "graficoTiempos",
+            "graficoAnios",
+        ):
+            with self.subTest(grafico=grafico):
+                self.assertIn(
+                    f'data-exportar-png="{grafico}"', contenido
+                )
+                self.assertIn(f'id="{grafico}"', contenido)
+
+        self.assertIn("Descargar PNG", contenido)
+        self.assertIn("js/estadisticas.js", contenido)
+
+        javascript = (
+            settings.BASE_DIR
+            / "academico"
+            / "static"
+            / "js"
+            / "estadisticas.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("function exportarPNG", javascript)
+        self.assertIn("toBlob", javascript)
+        self.assertIn('"image/png"', javascript)
+        self.assertIn("fillStyle", javascript)
 
 
 class AbmUsuariosTest(BasePrueba):
@@ -2098,6 +2168,89 @@ class GeneracionAnaliticosTest(BasePrueba):
         # Los mensajes del redirect (si los hay) no se mezclan con la
         # comprobación de los controles.
         self.assertIsInstance(list(get_messages(respuesta.wsgi_request)), list)
+
+    def test_preview_usa_el_promedio_calculado_no_el_del_formulario(self):
+        """El valor calculado gana al que viniera del formulario viejo."""
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+        archivo = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+        payload = dict(self._form_base())
+        # El Lincoln trae notas 7 y 10: el promedio es 8,50. El
+        # formulario decía 7,67 / 7,10 y debe ignorarse.
+        payload["accion"] = "continuar"
+        payload["archivo_notas"] = archivo
+
+        respuesta = self.client.post(url, payload, follow=True)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(
+            respuesta.context["datos"]["promedio_sin_aplazo"], "8.50"
+        )
+        self.assertEqual(
+            respuesta.context["datos"]["promedio_con_aplazo"], "8.50"
+        )
+        self.assertEqual(
+            respuesta.context["promedios_calculados"],
+            {"sin_aplazo": 8.5, "con_aplazo": 8.5},
+        )
+
+    def test_flechas_de_orden_y_reorden_respetado_al_guardar(self):
+        from academico.models import GraduadoExamen
+
+        self.iniciar_sesion(self.admin)
+
+        url = reverse("generacion_analiticos")
+        archivo = SimpleUploadedFile(
+            "notas.xlsx",
+            _lincoln_xlsx_fixture(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+        payload = dict(self._form_base())
+        payload["accion"] = "continuar"
+        payload["archivo_notas"] = archivo
+
+        respuesta = self.client.post(url, payload, follow=True)
+        contenido = respuesta.content.decode()
+
+        # No queda input numérico de orden: las flechas mueven la fila
+        # y renumaran el hidden fila_orden.
+        self.assertIn('data-mover="arriba"', contenido)
+        self.assertIn('data-mover="abajo"', contenido)
+        self.assertIn("analitico_orden.js", contenido)
+        self.assertIn('<input type="hidden" name="fila_orden"', contenido)
+        self.assertNotIn('type="number" name="fila_orden"', contenido)
+
+        # Simulamos el estado resultante de apretar ↑ en la segunda
+        # fila: la JS deja los hidden como 2, 1.
+        payload = self._grilla_desde_session()
+        payload["accion"] = "validar"
+        payload["fila_orden"] = ["2", "1"]
+
+        respuesta = self.client.post(url, payload)
+
+        self.assertEqual(respuesta.status_code, 302)
+
+        codigos = [
+            fila.id_examen.codigo_materia.codigo_materia
+            for fila in GraduadoExamen.objects.filter(
+                dni_graduado__dni="41734713"
+            ).order_by("orden")
+        ]
+
+        self.assertEqual(codigos, ["9002", "9001"])
 
     def test_descarga_con_cambios_sin_validar_no_genera_archivo(self):
         from django.contrib.messages import get_messages
@@ -4022,3 +4175,227 @@ class CargaDatosValidacionesTest(BasePrueba):
         mensaje = str(contexto.exception)
         self.assertIn("ingreso a la universidad", mensaje)
         self.assertIn("egreso", mensaje)
+
+    def _archivo_con_columnas(self, columnas, valores):
+        from openpyxl import Workbook
+
+        libro = Workbook()
+        hoja = libro.active
+        hoja.append(columnas)
+        hoja.append(valores)
+
+        buffer = BytesIO()
+        libro.save(buffer)
+
+        return SimpleUploadedFile(
+            "graduados.xlsx",
+            buffer.getvalue(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+    def test_columnas_opcionales_pueden_faltar(self):
+        """Sólo las columnas obligatorias deben estar presentes."""
+
+        columnas = [
+            "dni", "nombre", "apellido", "promedio_sin_aplazo",
+            "fecha_ingreso_carrera", "fecha_egreso_carrera",
+            "codigo_carrera",
+        ]
+        valores = [
+            "41734713", "Ana", "Perez", 8,
+            "01/03/2018", "24/04/2024", "CEX1",
+        ]
+
+        resultado = CargaDatos.cargar_excel(
+            self._archivo_con_columnas(columnas, valores)
+        )
+
+        self.assertEqual(resultado["filas_procesadas"], 1)
+        registro = GraduadoCarrera.objects.get(
+            dni_graduado_id="41734713",
+            codigo_carrera_id="CEX1",
+        )
+        self.assertEqual(registro.promedio_sin_aplazo, 8.0)
+        self.assertIsNone(registro.promedio_con_aplazo)
+
+    def test_alias_anio_uarg_y_legajo_ignorado(self):
+        columnas = [
+            "legajo", "dni", "nombre", "apellido", "anio_ingreso_uarg",
+            "promedio_sin_aplazo", "fecha_ingreso_carrera",
+            "fecha_egreso_carrera", "codigo_carrera",
+        ]
+        valores = [
+            "LEG-999", "41734713", "Ana", "Perez", 2017, 8,
+            "01/03/2018", "24/04/2024", "CEX1",
+        ]
+
+        resultado = CargaDatos.cargar_excel(
+            self._archivo_con_columnas(columnas, valores)
+        )
+
+        self.assertEqual(resultado["filas_procesadas"], 1)
+        graduado = Graduado.objects.get(pk="41734713")
+        self.assertEqual(graduado.anio_ingreso_universidad, 2017)
+        self.assertEqual(graduado.legajo, "1-41734713/17")
+
+    def test_falta_columna_obligatoria(self):
+        columnas = [
+            "dni", "nombre", "apellido", "promedio_sin_aplazo",
+            "fecha_ingreso_carrera", "fecha_egreso_carrera",
+        ]
+        valores = [
+            "41734713", "Ana", "Perez", 8,
+            "01/03/2018", "24/04/2024",
+        ]
+
+        with self.assertRaises(ValueError) as contexto:
+            CargaDatos.cargar_excel(
+                self._archivo_con_columnas(columnas, valores)
+            )
+
+        self.assertIn("codigo_carrera", str(contexto.exception))
+
+
+class DocumentoAnaliticoTest(TestCase):
+    """Guiones condicionales y límite de dos páginas del analítico."""
+
+    def test_separador_solo_para_materias_que_se_parten(self):
+        from academico.servicios.moduloAnalitico.generador import (
+            ancho_aproximado,
+            separador_materia,
+        )
+
+        corto = "Materia Uno"
+        largo = "Desarrollo de Sistemas de Información Integral Avanzada"
+
+        self.assertLess(ancho_aproximado(corto), 32)
+        self.assertGreater(ancho_aproximado(largo), 32)
+        self.assertEqual(separador_materia(corto), "")
+        self.assertEqual(separador_materia(largo), "-" * 36)
+
+    def test_compactar_quita_vacios_y_reduce_la_fuente(self):
+        from docx import Document
+        from docx.shared import Pt
+
+        from academico.servicios.moduloAnalitico.compactacion import (
+            compactar,
+        )
+
+        documento = Document()
+
+        for _ in range(5):
+            documento.add_paragraph("")
+
+        parrafo = documento.add_paragraph()
+        parrafo.add_run("Texto de prueba").font.size = Pt(14)
+
+        compactar(documento)
+
+        self.assertEqual(
+            [p.text for p in documento.paragraphs].count(""), 1
+        )
+        self.assertLessEqual(parrafo.runs[0].font.size.pt, 9)
+        self.assertAlmostEqual(
+            documento.sections[0].top_margin.cm, 1.2, places=1
+        )
+
+    def test_plantilla_agrega_guion_solo_en_materias_partidas(self):
+        from docxtpl import DocxTemplate
+        from docx import Document
+        from django.conf import settings
+
+        plantillas = settings.BASE_DIR / "plantillas"
+
+        datos = {
+            "apellido": "PEREZ",
+            "nombre": "ANA",
+            "dni": "12.345.678",
+            "dia_nacimiento": "01",
+            "mes_nacimiento_letras": "enero",
+            "anio_nacimiento": "1.990",
+            "fecha_nacimiento_larga": "1 de enero de 1990",
+            "ciudad_nacimiento": "Rio Gallegos",
+            "provincia_nacimiento": "Santa Cruz",
+            "titulo_secundario": "",
+            "nombre_secundario": "",
+            "ciudad_secundario": "",
+            "anio_egreso_secundario": "",
+            "anio_ingreso_uarg": "",
+            "anio_ingreso_carrera": "",
+            "carrera": "Carrera de prueba",
+            "resoluciones_institucionales": "-",
+            "resoluciones_ministeriales": "-",
+            "otros_instrumentos": "-",
+            "titulo_otorgado": "",
+            "promedio": "8,00",
+            "promedio_letras": "ocho",
+            "fecha_egreso_larga": "1 de enero de 2020",
+            "fecha_emision_larga": "26 de noviembre de 2026",
+        }
+
+        for nombre in (
+            "analitico_titulo.docx",
+            "analitico_en_tramite.docx",
+        ):
+            for separador in ("", "------------------------------"):
+                with self.subTest(
+                    plantilla=nombre, separador=bool(separador)
+                ):
+                    documento = DocxTemplate(
+                        str(plantillas / nombre)
+                    )
+                    documento.render({
+                        **datos,
+                        "filas": [{
+                            "orden": "01",
+                            "anio": "1°",
+                            "espacio": "Materia de prueba",
+                            "nota": "Aprobado",
+                            "fecha": "01-01-2020",
+                            "tipo": "Final",
+                            "respaldo": "",
+                            "folio": "",
+                            "separador": separador,
+                        }],
+                    })
+
+                    buffer = BytesIO()
+                    documento.save(buffer)
+                    salida = Document(BytesIO(buffer.getvalue()))
+
+                    celda = salida.tables[0].rows[1].cells[2].text
+
+                    if separador:
+                        self.assertIn(separador, celda)
+                    else:
+                        self.assertNotIn("-", celda)
+
+                    textos = [p.text for p in salida.paragraphs]
+                    self.assertFalse(
+                        any(". -" in texto for texto in textos)
+                    )
+                    self.assertFalse(
+                        any(
+                            "OBSERVACIONES: -" in texto
+                            for texto in textos
+                        )
+                    )
+
+    def test_asegurar_dos_paginas_omite_verificacion_sin_convertidor(self):
+        from academico.servicios.moduloAnalitico import (
+            compactacion,
+        )
+
+        original = compactacion.ruta_libreoffice
+
+        try:
+            compactacion.ruta_libreoffice = lambda: None
+            self.assertEqual(
+                compactacion.asegurar_dos_paginas(b"contenido-docx"),
+                b"contenido-docx",
+            )
+        finally:
+            compactacion.ruta_libreoffice = original

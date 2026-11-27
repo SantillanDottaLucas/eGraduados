@@ -100,20 +100,11 @@
                     </div>
                 </div>
 
-                <div class="row g-3 mt-1">
-                    <div class="col-12 col-md-6">
-                        <label for="promedio_sin_aplazo" class="form-label">Promedio sin aplazos <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="promedio_sin_aplazo"
-                               name="promedio_sin_aplazo" value="{{ datos.promedio_sin_aplazo }}"
-                               min="0" max="10" step="0.01" required>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <label for="promedio_con_aplazo" class="form-label">Promedio con aplazos <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="promedio_con_aplazo"
-                               name="promedio_con_aplazo" value="{{ datos.promedio_con_aplazo }}"
-                               min="0" max="10" step="0.01" required>
-                    </div>
-                </div>
+                <p class="small text-muted mb-3">
+                    Los promedios no se cargan acá: se calculan en la
+                    previsualización a partir de los exámenes y podés
+                    ajustarlos antes de validar.
+                </p>
 
                 <div class="mt-3">
                     {% include "academico/componentes/resoluciones_repetibles.html" with campo="resoluciones_institucionales" etiqueta="Resoluciones institucionales" valores=datos.resoluciones_institucionales requerido=True placeholder="Ej.: 141/CS/98" ayuda="Podés agregar todas las resoluciones que correspondan. Se asocian a la carrera." %}

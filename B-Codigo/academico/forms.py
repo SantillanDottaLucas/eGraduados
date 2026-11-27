@@ -204,32 +204,6 @@ class EdicionGraduadoForm(forms.Form):
         ),
     )
 
-    promedio_sin_aplazo = forms.FloatField(
-        label="Promedio sin aplazo",
-        required=False,
-        widget=forms.NumberInput(
-            attrs={
-                "class": "form-control",
-                "step": "0.01",
-                "min": 0,
-                "max": 10,
-            }
-        ),
-    )
-
-    promedio_con_aplazo = forms.FloatField(
-        label="Promedio con aplazo",
-        required=False,
-        widget=forms.NumberInput(
-            attrs={
-                "class": "form-control",
-                "step": "0.01",
-                "min": 0,
-                "max": 10,
-            }
-        ),
-    )
-
     fecha_nacimiento = forms.DateField(
         label="Fecha de nacimiento",
         required=False,
@@ -391,28 +365,10 @@ class CargaGraduadoForm(forms.Form):
         ),
     )
 
-    promedio_sin_aplazo = forms.FloatField(
-        label="Promedio general (sin aplazos)",
-        min_value=0,
-        max_value=10,
-        widget=forms.NumberInput(
-            attrs={
-                "class": "form-control",
-                "step": "0.01",
-                "min": 0,
-                "max": 10,
-                "placeholder": "Ejemplo: 8.75",
-            }
-        ),
-    )
-
     def clean(self):
         datos = super().clean()
 
-        from .servicios.validaciones import (
-            validar_datos_graduado,
-            validar_promedio,
-        )
+        from .servicios.validaciones import validar_datos_graduado
 
         fecha_carrera = datos.get("fecha_ingreso_carrera")
 
@@ -436,16 +392,6 @@ class CargaGraduadoForm(forms.Form):
             normalizados["anio_ingreso_universidad"]
         )
         datos["dni"] = normalizados["dni"] or datos.get("dni")
-
-        promedio = datos.get("promedio_sin_aplazo")
-
-        if promedio is not None:
-            try:
-                datos["promedio_sin_aplazo"] = validar_promedio(
-                    promedio, "promedio_sin_aplazo"
-                )
-            except ValueError as error:
-                self.add_error("promedio_sin_aplazo", str(error))
 
         return datos
 

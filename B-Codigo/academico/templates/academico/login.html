@@ -1,6 +1,11 @@
 {% extends "academico/base.html" %}
+{% load static %}
 
 {% block title %}Ingresar | eGraduados{% endblock %}
+
+{% block styles %}
+<link href="{% static 'css/login.css' %}" rel="stylesheet">
+{% endblock %}
 
 {% block content %}
 <div class="login-layout">
@@ -80,20 +85,35 @@
                     <label for="codigo" class="form-label">
                         Código de acceso
                     </label>
-                    <input type="text"
-                           id="codigo"
-                           name="codigo"
-                           class="form-control login-codigo"
-                           placeholder="●●●●●●"
-                           maxlength="6"
-                           minlength="6"
-                           pattern="[A-Za-z0-9]{6}"
-                           autocomplete="one-time-code"
-                           title="6 caracteres alfanuméricos"
-                           aria-describedby="ayuda-codigo"
-                           required>
+                    <div class="input-group login-codigo-grupo">
+                        <input type="password"
+                               id="codigo"
+                               name="codigo"
+                               class="form-control login-codigo"
+                               placeholder="●●●●●●"
+                               maxlength="6"
+                               minlength="6"
+                               pattern="[A-Za-z0-9]{6}"
+                               autocomplete="one-time-code"
+                               title="6 caracteres alfanuméricos"
+                               aria-describedby="ayuda-codigo"
+                               required>
+                        <button type="button"
+                                id="login-codigo-toggle"
+                                class="btn btn-outline-secondary login-codigo-toggle"
+                                aria-pressed="false"
+                                aria-label="Mostrar código de acceso"
+                                title="Mostrar código">
+                            <i class="bi bi-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div id="codigo-visual"
+                         class="login-codigo-visual"
+                         aria-hidden="true"
+                         hidden></div>
                     <div id="ayuda-codigo" class="form-text">
-                        6 caracteres alfanuméricos.
+                        6 caracteres alfanuméricos. Las mayúsculas se
+                        muestran en azul y las minúsculas en gris.
                     </div>
                 </div>
 
@@ -110,4 +130,8 @@
         </div>
     </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/login.js' %}"></script>
 {% endblock %}

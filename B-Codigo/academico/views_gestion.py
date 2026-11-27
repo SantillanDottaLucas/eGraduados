@@ -36,7 +36,6 @@ from .models import (
     GrupoOptativo,
     Materia,
     DetallePlanEstudios,
-    OrigenPromedio,
     PlanEstudios,
     PlanEstudiosGrupoOptativo,
     PlanEstudiosMateria,
@@ -48,7 +47,6 @@ from .models import (
 )
 from .servicios.provincias import provincias_sugeridas
 from .servicios.validaciones import validar_dni_unico
-from .servicios.moduloAnalitico.promedios import mismo_promedio
 
 
 # Filtros de la lista de graduados que se preservan al volver.
@@ -207,23 +205,6 @@ def editar_graduado(request, dni, carrera):
                 )
 
             else:
-                origen_sin = registro.origen_promedio_sin_aplazo
-                origen_con = registro.origen_promedio_con_aplazo
-
-                # Editar un promedio en esta pantalla equivale a un
-                # override manual: no debe ser pisado al recalcular.
-                if not mismo_promedio(
-                    datos["promedio_sin_aplazo"],
-                    registro.promedio_sin_aplazo,
-                ):
-                    origen_sin = OrigenPromedio.MANUAL
-
-                if not mismo_promedio(
-                    datos["promedio_con_aplazo"],
-                    registro.promedio_con_aplazo,
-                ):
-                    origen_con = OrigenPromedio.MANUAL
-
                 with transaction.atomic():
                     graduado.nombre = datos["nombre"]
                     graduado.apellido = datos["apellido"]
@@ -245,14 +226,6 @@ def editar_graduado(request, dni, carrera):
                             fecha_egreso_carrera=(
                                 datos["fecha_egreso_carrera"]
                             ),
-                            promedio_sin_aplazo=(
-                                datos["promedio_sin_aplazo"]
-                            ),
-                            promedio_con_aplazo=(
-                                datos["promedio_con_aplazo"]
-                            ),
-                            origen_promedio_sin_aplazo=origen_sin,
-                            origen_promedio_con_aplazo=origen_con,
                         )
                         registro.delete()
 
@@ -263,14 +236,6 @@ def editar_graduado(request, dni, carrera):
                         registro.fecha_egreso_carrera = (
                             datos["fecha_egreso_carrera"]
                         )
-                        registro.promedio_sin_aplazo = (
-                            datos["promedio_sin_aplazo"]
-                        )
-                        registro.promedio_con_aplazo = (
-                            datos["promedio_con_aplazo"]
-                        )
-                        registro.origen_promedio_sin_aplazo = origen_sin
-                        registro.origen_promedio_con_aplazo = origen_con
                         registro.save()
 
                     # Datos de nacimiento (todos opcionales;
@@ -402,8 +367,6 @@ def editar_graduado(request, dni, carrera):
                 "fecha_egreso_carrera": (
                     registro.fecha_egreso_carrera
                 ),
-                "promedio_sin_aplazo": registro.promedio_sin_aplazo,
-                "promedio_con_aplazo": registro.promedio_con_aplazo,
                 "fecha_nacimiento": (
                     nacimiento.fecha_nacimiento if nacimiento else None
                 ),
